@@ -1,0 +1,10 @@
+# Folders
+.vs/
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# Files
+/.vsconfig
+/*.sln
