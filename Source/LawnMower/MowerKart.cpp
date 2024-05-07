@@ -13,9 +13,9 @@ AMowerKart::AMowerKart()
 
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	FRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
-	FLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FLWheel"));
-	BRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BRWheel"));
-	BLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
+	//FLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FLWheel"));
+	//BRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BRWheel"));
+	//BLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
 	BoxCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("BoxCollision"));
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
@@ -24,9 +24,9 @@ AMowerKart::AMowerKart()
 	RootComponent = Body;
 
 	FRWheel->SetupAttachment(RootComponent);
-	FLWheel->SetupAttachment(RootComponent);
-	BRWheel->SetupAttachment(RootComponent);
-	BLWheel->SetupAttachment(RootComponent);
+	//FLWheel->SetupAttachment(RootComponent);
+	//BRWheel->SetupAttachment(RootComponent);
+	//BLWheel->SetupAttachment(RootComponent);
 	BoxCollision->SetupAttachment(RootComponent);
 	SpringArm->SetupAttachment(RootComponent);
 	Arrow->SetupAttachment(RootComponent);
@@ -36,14 +36,14 @@ AMowerKart::AMowerKart()
 	SpringArm->TargetArmLength = 500.0f;
 
 	FRWheel->SetRelativeLocation(FVector{ 50, 60, -50 });
-	FLWheel->SetRelativeLocation(FVector{ 50, -60, -50 });
-	BRWheel->SetRelativeLocation(FVector{ -50, 60, -50 });
-	BLWheel->SetRelativeLocation(FVector{ -50, -60, -50 });
+	//FLWheel->SetRelativeLocation(FVector{ 50, -60, -50 });
+	//BRWheel->SetRelativeLocation(FVector{ -50, 60, -50 });
+	//BLWheel->SetRelativeLocation(FVector{ -50, -60, -50 });
 
-	FRWheel->SetRelativeScale3D(FVector{ 0.1, 0.05, 0.1 });
-	FLWheel->SetRelativeScale3D(FVector{ 0.1, 0.05, 0.1 });
-	BRWheel->SetRelativeScale3D(FVector{ 0.1, 0.05, 0.1 });
-	BLWheel->SetRelativeScale3D(FVector{ 0.1, 0.05, 0.1 });
+	FRWheel->SetRelativeScale3D(FVector{ 0.2, 0.05, 0.2 });
+	//FLWheel->SetRelativeScale3D(FVector{ 0.2, 0.05, 0.2 });
+	//BRWheel->SetRelativeScale3D(FVector{ 0.2, 0.05, 0.2 });
+	//BLWheel->SetRelativeScale3D(FVector{ 0.2, 0.05, 0.2 });
 }
 
 

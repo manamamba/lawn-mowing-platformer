@@ -36,9 +36,9 @@ private:
 private:
 	UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* Body {};
 	UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* FRWheel{};
-	UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* FLWheel{};
-	UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* BRWheel{};
-	UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* BLWheel{};
+	//UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* FLWheel{};
+	//UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* BRWheel{};
+	//UPROPERTY(EditAnywhere, Category = Component) UStaticMeshComponent* BLWheel{};
 	UPROPERTY(EditAnywhere, Category = Component) UBoxComponent* BoxCollision{};
 	UPROPERTY(EditAnywhere, Category = Component) UArrowComponent* Arrow{};
 	UPROPERTY(EditAnywhere, Category = Component) USpringArmComponent* SpringArm{};
