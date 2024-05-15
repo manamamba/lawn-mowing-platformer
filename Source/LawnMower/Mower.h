@@ -10,14 +10,17 @@
 class UPhysicsConstraintComponent;
 class UArrowComponent; 
 class USpringArmComponent;
-class UCameraComponent;
+class UCameraComponent; 
+class UInputMappingContext;
+class UInputAction;
+struct FInputActionValue;
 
 struct WheelSet {
 	UStaticMeshComponent* Wheel{};
 	UPhysicsConstraintComponent* Axis{};
 	UPhysicsConstraintComponent* Suspension{};
 	const FVector Location{};
-	FName Name{};
+	FName WheelName{};
 	FName RootName{ TEXT("Body") };
 };
 
@@ -35,8 +38,13 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:	
-	
+public:
+	void MoveCamera(const FInputActionValue& Value);
+	void ResetCamera();
+	void Accelerate(const FInputActionValue& Value);
+	void BrakeOn();
+	void BrakeOff();
+	void Steer(const FInputActionValue& Value);
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body{};
@@ -62,8 +70,20 @@ private:
 	const FVector BRPlacement{ -24.0, 24.0, -8.0 };
 	const FVector BLPlacement{ -24.0, -24.0, -8.0 };
 
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* ResetCameraInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOnInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOffInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
+
+	bool SteeringActive{};
+
 private:
 	void SetWheelProperties(WheelSet WheelSet);
+	void ResetFrontWheelRotations(float DeltaTime);
+
 
 
 };
