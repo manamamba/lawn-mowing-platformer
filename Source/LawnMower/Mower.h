@@ -15,6 +15,7 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
+
 struct WheelSet {
 	UStaticMeshComponent* Wheel{};
 	UPhysicsConstraintComponent* Axis{};
@@ -42,7 +43,7 @@ public:
 	void MoveCamera(const FInputActionValue& Value);
 	void ResetCamera();
 	void Accelerate(const FInputActionValue& Value);
-	void BrakeOn();
+	void BrakeOn(const FInputActionValue& Value);
 	void BrakeOff();
 	void Steer(const FInputActionValue& Value);
 
@@ -65,10 +66,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera{};
 
-	const FVector FRPlacement{ 24.0, 24.0, -8.0 };
-	const FVector FLPlacement{ 24.0, -24.0, -8.0 };
-	const FVector BRPlacement{ -24.0, 24.0, -8.0 };
-	const FVector BLPlacement{ -24.0, -24.0, -8.0 };
+	const FVector LocationFR{ 24.0, 24.0, -8.0 };
+	const FVector LocationFL{ 24.0, -24.0, -8.0 };
+	const FVector LocationBR{ -24.0, 24.0, -8.0 };
+	const FVector LocationBL{ -24.0, -24.0, -8.0 };
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
@@ -78,12 +79,14 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOffInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
-	bool SteeringActive{};
+	const float MaxWheelDrag{ 20.0f };
+	float WheelDrag{};
 
 private:
+	void CreateAndAssignComponentSubObjects();
+	void SetupComponentAttachments();
 	void SetWheelProperties(WheelSet WheelSet);
-	void ResetFrontWheelRotations(float DeltaTime);
-
-
+	void SetNonWheelProperties();
+	void SetWheelDrag();
 
 };

@@ -14,6 +14,18 @@ AMower::AMower()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	CreateAndAssignComponentSubObjects();
+	SetupComponentAttachments();
+	SetNonWheelProperties();
+	SetWheelProperties(WheelSet{ WheelFR, AxisFR, SuspensionFR, LocationFR, TEXT("WheelFR") });
+	SetWheelProperties(WheelSet{ WheelFL, AxisFL, SuspensionFL, LocationFL, TEXT("WheelFL") });
+	SetWheelProperties(WheelSet{ WheelBR, AxisBR, SuspensionBR, LocationBR, TEXT("WheelBR") });
+	SetWheelProperties(WheelSet{ WheelBL, AxisBL, SuspensionBL, LocationBL, TEXT("WheelBL") });
+}
+
+
+void AMower::CreateAndAssignComponentSubObjects()
+{
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
 	WheelFR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelFR"));
@@ -31,7 +43,11 @@ AMower::AMower()
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+}
 
+
+void AMower::SetupComponentAttachments()
+{
 	RootComponent = Body;
 	Handle->SetupAttachment(RootComponent);
 	WheelFR->SetupAttachment(RootComponent);
@@ -49,7 +65,11 @@ AMower::AMower()
 	Arrow->SetupAttachment(RootComponent);
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
+}
 
+
+void AMower::SetNonWheelProperties()
+{
 	Body->SetSimulatePhysics(true);
 	Body->SetMassOverrideInKg(NAME_None, 30.0f);
 	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -30.0 });
@@ -62,11 +82,6 @@ AMower::AMower()
 	Handle->SetCollisionObjectType(ECC_WorldDynamic);
 	Handle->SetCollisionResponseToAllChannels(ECR_Block);
 	Handle->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-
-	SetWheelProperties(WheelSet{ WheelFR, AxisFR, SuspensionFR, FRPlacement, TEXT("WheelFR") });
-	SetWheelProperties(WheelSet{ WheelFL, AxisFL, SuspensionFL, FLPlacement, TEXT("WheelFL") });
-	SetWheelProperties(WheelSet{ WheelBR, AxisBR, SuspensionBR, BRPlacement, TEXT("WheelBR") });
-	SetWheelProperties(WheelSet{ WheelBL, AxisBL, SuspensionBL, BLPlacement, TEXT("WheelBL") });
 
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 	CameraArm->TargetArmLength = 200.0f;
@@ -119,27 +134,6 @@ void AMower::BeginPlay()
 void AMower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	// ResetFrontWheelRotations(DeltaTime);
-}
-
-
-void AMower::ResetFrontWheelRotations(float DeltaTime)
-{
-	UE_LOG(LogTemp, Warning, TEXT("Rotation: %f"), WheelFR->GetRelativeRotation().Yaw);
-	
-	if (SteeringActive) return;
-
-	FRotator Rotation{ WheelFR->GetRelativeRotation() };
-	
-	if (Rotation.Yaw == 0.0) return;
-
-	if (Rotation.Yaw < -1.0) Rotation.Yaw += 1.0 * DeltaTime;
-	else if (Rotation.Yaw > 1.0) Rotation.Yaw -= 1.0 * DeltaTime;
-	else Rotation.Yaw = 0.0;
-
-	WheelFR->SetRelativeRotation(Rotation);
-	WheelFL->SetRelativeRotation(Rotation);
 }
 
 
@@ -162,20 +156,22 @@ void AMower::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMower::MoveCamera(const FInputActionValue& Value)
 {
+	const double PitchMin{ -89.0 };
+	const double PitchMax{ 1.5 };
 	FVector2D LookAxisVector{ Value.Get<FVector2D>() };
-	FRotator Rotation{ CameraArm->GetRelativeRotation() };
+	FRotator LookPosition{ CameraArm->GetRelativeRotation() };
 
-	Rotation.Yaw += LookAxisVector.X;
+	LookPosition.Yaw += LookAxisVector.X;
 
-	if (Rotation.Pitch + LookAxisVector.Y > 1.5) Rotation.Pitch = 1.5;
-	else if (Rotation.Pitch + LookAxisVector.Y < -89) Rotation.Pitch = -89;
-	else Rotation.Pitch += LookAxisVector.Y;
+	if (LookPosition.Pitch + LookAxisVector.Y > PitchMax) LookPosition.Pitch = PitchMax;
+	else if (LookPosition.Pitch + LookAxisVector.Y < PitchMin) LookPosition.Pitch = PitchMin;
+	else LookPosition.Pitch += LookAxisVector.Y;
 
-	Rotation.Roll = 0;
+	LookPosition.Roll = 0;
 
-	// UE_LOG(LogTemp, Warning, TEXT("Camera Rotation: %s"), *Rotation.ToString());
+	// UE_LOG(LogTemp, Warning, TEXT("Camera Rotation: %s"), *LookPosition.ToString());
 
-	CameraArm->SetRelativeRotation(Rotation);
+	CameraArm->SetRelativeRotation(LookPosition);
 }
 
 
@@ -187,7 +183,7 @@ void AMower::ResetCamera()
 
 void AMower::Accelerate(const FInputActionValue& Value)
 {
-	float ForceDirection{ Value.Get<float>() };
+	float ForceDirection{ Value.Get<float>()};
 	FVector ForwardVector{ Body->GetForwardVector() };
 	double ForcePower{ 300.0 };
 
@@ -198,46 +194,45 @@ void AMower::Accelerate(const FInputActionValue& Value)
 }
 
 
-void AMower::BrakeOn()
+void AMower::BrakeOn(const FInputActionValue& Value)
 {
-	// somehow combine as one function with press and release in imc to set damping?
-	
-	float DragForce{ 20.0f };
+	WheelDrag += Value.Get<float>() * 0.5f;
+	if (WheelDrag > MaxWheelDrag) WheelDrag = MaxWheelDrag;
 
-	WheelFR->SetAngularDamping(DragForce);
-	WheelFL->SetAngularDamping(DragForce);
-	WheelBR->SetAngularDamping(DragForce);
-	WheelBL->SetAngularDamping(DragForce);
+	SetWheelDrag();
 }
 
 
 void AMower::BrakeOff()
 {
-	WheelFR->SetAngularDamping(0.0f);
-	WheelFL->SetAngularDamping(0.0f);
-	WheelBR->SetAngularDamping(0.0f);
-	WheelBL->SetAngularDamping(0.0f);
+	WheelDrag = 0.0f;
+
+	SetWheelDrag();
+}
+
+
+void AMower::SetWheelDrag()
+{
+	//WheelFR->SetAngularDamping(WheelDrag);
+	//WheelFL->SetAngularDamping(WheelDrag);
+	WheelBR->SetAngularDamping(WheelDrag);
+	WheelBL->SetAngularDamping(WheelDrag);
 }
 
 
 void AMower::Steer(const FInputActionValue& Value)
 {
-	SteeringActive = true;
-
 	float SteeringDirection{ Value.Get<float>() };
-	FRotator Rotation{ WheelFR->GetComponentRotation() };
-
+	FRotator RotationFR{ WheelFR->GetComponentRotation() };
+	FRotator RotationFL{ WheelFR->GetComponentRotation() };
 	double SteeringPower{ 10.0 };
 
-	Rotation.Yaw += SteeringDirection * SteeringPower;
+	RotationFR.Yaw += SteeringDirection * SteeringPower;
+	RotationFL.Yaw += SteeringDirection * SteeringPower;
 
-	UE_LOG(LogTemp, Warning, TEXT("Yaw: %f"), Rotation.Yaw);
+	UE_LOG(LogTemp, Warning, TEXT("FRYaw: %f"), RotationFR.Yaw);
 	
-	WheelFR->SetRelativeRotation(Rotation);
-	WheelFL->SetRelativeRotation(Rotation);
-
-	SteeringActive = false;
-
-	// reset damping on wheels
+	WheelFR->SetRelativeRotation(RotationFR);
+	WheelFL->SetRelativeRotation(RotationFL);
 }
 
