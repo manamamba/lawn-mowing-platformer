@@ -11,6 +11,7 @@ class UPhysicsConstraintComponent;
 class UArrowComponent; 
 class USpringArmComponent;
 class UCameraComponent; 
+class UBoxComponent;
 class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
@@ -40,12 +41,18 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UFUNCTION() void OnGround(UPrimitiveComponent* OverlapComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+		bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION() void OffGround(UPrimitiveComponent* OverlapComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
 	void MoveCamera(const FInputActionValue& Value);
 	void ResetCamera();
 	void Accelerate(const FInputActionValue& Value);
 	void BrakeOn(const FInputActionValue& Value);
 	void BrakeOff();
 	void Steer(const FInputActionValue& Value);
+	void Jump(const FInputActionValue& Value);
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body{};
@@ -65,14 +72,16 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) UArrowComponent* Arrow{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider{};
 
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* MowerInputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* ResetCameraInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOnInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOffInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction {};
 
 	const FVector LocationFR{ 24.0, 24.0, -8.0 };
 	const FVector LocationFL{ 24.0, -24.0, -8.0 };
@@ -85,12 +94,14 @@ private:
 	const double SteeringPower{ 10.0 };
 
 	float WheelDrag{};
+	bool Grounded{};
 
 private:
 	void CreateAndAssignComponentSubObjects();
 	void SetupComponentAttachments();
-	void SetWheelProperties(WheelSet Set);
 	void SetNonWheelProperties();
+	void SetWheelProperties(WheelSet Set);
+	void ApplyMowerCollisionProfile(UStaticMeshComponent* Mesh);
 	void AddMappingContextToLocalPlayerSubsystem();
 	void SetWheelDrag();
 
