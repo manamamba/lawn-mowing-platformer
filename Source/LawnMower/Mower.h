@@ -66,11 +66,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera{};
 
-	const FVector LocationFR{ 24.0, 24.0, -8.0 };
-	const FVector LocationFL{ 24.0, -24.0, -8.0 };
-	const FVector LocationBR{ -24.0, 24.0, -8.0 };
-	const FVector LocationBL{ -24.0, -24.0, -8.0 };
-
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* ResetCameraInputAction{};
@@ -79,14 +74,24 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOffInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
+	const FVector LocationFR{ 24.0, 24.0, -8.0 };
+	const FVector LocationFL{ 24.0, -24.0, -8.0 };
+	const FVector LocationBR{ -24.0, 24.0, -8.0 };
+	const FVector LocationBL{ -24.0, -24.0, -8.0 };
+	const double MinArmPitch{ -89.0 };
+	const double MaxArmPitch{ 8.0 };
+	const double AccelerationPower{ 300.0 };
 	const float MaxWheelDrag{ 20.0f };
+	const double SteeringPower{ 10.0 };
+
 	float WheelDrag{};
 
 private:
 	void CreateAndAssignComponentSubObjects();
 	void SetupComponentAttachments();
-	void SetWheelProperties(WheelSet WheelSet);
+	void SetWheelProperties(WheelSet Set);
 	void SetNonWheelProperties();
+	void AddMappingContextToLocalPlayerSubsystem();
 	void SetWheelDrag();
 
 };

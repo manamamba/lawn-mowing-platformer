@@ -9,6 +9,8 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 
 AMower::AMower()
 {
@@ -48,31 +50,33 @@ void AMower::CreateAndAssignComponentSubObjects()
 
 void AMower::SetupComponentAttachments()
 {
-	RootComponent = Body;
-	Handle->SetupAttachment(RootComponent);
-	WheelFR->SetupAttachment(RootComponent);
-	WheelFL->SetupAttachment(RootComponent);
-	WheelBR->SetupAttachment(RootComponent);
-	WheelBL->SetupAttachment(RootComponent);
-	AxisFR->SetupAttachment(WheelFR);
-	AxisFL->SetupAttachment(WheelFL);
-	AxisBR->SetupAttachment(WheelBR);
-	AxisBL->SetupAttachment(WheelBL);
-	SuspensionFR->SetupAttachment(WheelFR);
-	SuspensionFL->SetupAttachment(WheelFL);
-	SuspensionBR->SetupAttachment(WheelBR);
-	SuspensionBL->SetupAttachment(WheelBL);
-	Arrow->SetupAttachment(RootComponent);
-	CameraArm->SetupAttachment(RootComponent);
-	Camera->SetupAttachment(CameraArm);
+	if (Body) RootComponent = Body;
+	if (Handle) Handle->SetupAttachment(RootComponent);
+	if (WheelFR) WheelFR->SetupAttachment(RootComponent);
+	if (WheelFL) WheelFL->SetupAttachment(RootComponent);
+	if (WheelBR) WheelBR->SetupAttachment(RootComponent);
+	if (WheelBL) WheelBL->SetupAttachment(RootComponent);
+	if (AxisFR) AxisFR->SetupAttachment(WheelFR);
+	if (AxisFL) AxisFL->SetupAttachment(WheelFL);
+	if (AxisBR) AxisBR->SetupAttachment(WheelBR);
+	if (AxisBL) AxisBL->SetupAttachment(WheelBL);
+	if (SuspensionFR) SuspensionFR->SetupAttachment(WheelFR);
+	if (SuspensionFL) SuspensionFL->SetupAttachment(WheelFL);
+	if (SuspensionBR) SuspensionBR->SetupAttachment(WheelBR);
+	if (SuspensionBL) SuspensionBL->SetupAttachment(WheelBL);
+	if (Arrow) Arrow->SetupAttachment(RootComponent);
+	if (CameraArm) CameraArm->SetupAttachment(RootComponent);
+	if (Camera) Camera->SetupAttachment(CameraArm);
 }
 
 
 void AMower::SetNonWheelProperties()
 {
+	if (Body == nullptr || Handle == nullptr || CameraArm == nullptr) return;
+
 	Body->SetSimulatePhysics(true);
 	Body->SetMassOverrideInKg(NAME_None, 30.0f);
-	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -30.0 });
+	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 	Body->SetUseCCD(true);
 	Body->SetCollisionProfileName(TEXT("Pawn"));
 
@@ -83,36 +87,38 @@ void AMower::SetNonWheelProperties()
 	Handle->SetCollisionResponseToAllChannels(ECR_Block);
 	Handle->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
 
+	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 	CameraArm->TargetArmLength = 200.0f;
 }
 
 
-void AMower::SetWheelProperties(WheelSet WheelSet)
+void AMower::SetWheelProperties(WheelSet Set)
 {
-	WheelSet.Wheel->SetRelativeLocation(WheelSet.Location);
-	WheelSet.Wheel->SetSimulatePhysics(true);
-	WheelSet.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
-	WheelSet.Wheel->SetUseCCD(true);
-	WheelSet.Wheel->SetCollisionProfileName(TEXT("Custom..."));
-	WheelSet.Wheel->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
-	WheelSet.Wheel->SetCollisionObjectType(ECC_PhysicsBody);
-	WheelSet.Wheel->SetCollisionResponseToAllChannels(ECR_Block);
-	WheelSet.Wheel->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+	if (Set.Wheel == nullptr || Set.Axis == nullptr || Set.Suspension == nullptr) return;
+	
+	Set.Wheel->SetRelativeLocation(Set.Location); // reset frwheel location in bp for test
+	Set.Wheel->SetSimulatePhysics(true);
+	Set.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
+	Set.Wheel->SetUseCCD(true);
+	Set.Wheel->SetCollisionProfileName(TEXT("Custom..."));
+	Set.Wheel->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+	Set.Wheel->SetCollisionObjectType(ECC_PhysicsBody);
+	Set.Wheel->SetCollisionResponseToAllChannels(ECR_Block);
+	Set.Wheel->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
 
-	WheelSet.Axis->ComponentName1.ComponentName = WheelSet.WheelName;
-	WheelSet.Axis->ComponentName2.ComponentName = WheelSet.RootName;
-	WheelSet.Axis->SetLinearXLimit(LCM_Free, 0.0f);
-	WheelSet.Axis->SetLinearYLimit(LCM_Free, 0.0f);
-	WheelSet.Axis->SetLinearZLimit(LCM_Free, 0.0f);
-	WheelSet.Axis->SetAngularSwing1Limit(ACM_Locked, 45.0f);
-	WheelSet.Axis->SetAngularTwistLimit(ACM_Locked, 45.0f);
-	WheelSet.Axis->SetAngularDriveMode(EAngularDriveMode::Type::TwistAndSwing);
+	Set.Axis->ComponentName1.ComponentName = Set.WheelName;
+	Set.Axis->ComponentName2.ComponentName = Set.RootName;
+	Set.Axis->SetLinearXLimit(LCM_Free, 0.0f);
+	Set.Axis->SetLinearYLimit(LCM_Free, 0.0f);
+	Set.Axis->SetLinearZLimit(LCM_Free, 0.0f);
+	Set.Axis->SetAngularSwing1Limit(ACM_Locked, 45.0f);
+	Set.Axis->SetAngularTwistLimit(ACM_Locked, 45.0f);
+	Set.Axis->SetAngularDriveMode(EAngularDriveMode::Type::TwistAndSwing);
 
-	WheelSet.Suspension->ComponentName1.ComponentName = WheelSet.WheelName;
-	WheelSet.Suspension->ComponentName2.ComponentName = WheelSet.RootName;
-	WheelSet.Suspension->SetLinearZLimit(LCM_Limited, 3.0f);
-	WheelSet.Suspension->SetAngularTwistLimit(ACM_Locked, 45.0f);
+	Set.Suspension->ComponentName1.ComponentName = Set.WheelName;
+	Set.Suspension->ComponentName2.ComponentName = Set.RootName;
+	Set.Suspension->SetLinearZLimit(LCM_Limited, 3.0f);
 }
 
 
@@ -120,14 +126,19 @@ void AMower::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = 
-			ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(InputMappingContext, 0);
-		}
-	}
+	AddMappingContextToLocalPlayerSubsystem();
+}
+
+
+void AMower::AddMappingContextToLocalPlayerSubsystem()
+{
+	APlayerController* PlayerController{};
+	UEnhancedInputLocalPlayerSubsystem* Subsystem{};
+
+	PlayerController = Cast<APlayerController>(Controller);
+	Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+
+	if (PlayerController && Subsystem) Subsystem->AddMappingContext(InputMappingContext, 0);
 }
 
 
@@ -156,22 +167,17 @@ void AMower::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMower::MoveCamera(const FInputActionValue& Value)
 {
-	const double PitchMin{ -89.0 };
-	const double PitchMax{ 1.5 };
-	FVector2D LookAxisVector{ Value.Get<FVector2D>() };
-	FRotator LookPosition{ CameraArm->GetRelativeRotation() };
+	const FVector2D InputVector{ Value.Get<FVector2D>() };
+	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
 
-	LookPosition.Yaw += LookAxisVector.X;
+	ArmPosition.Yaw += InputVector.X;
+	ArmPosition.Pitch += InputVector.Y;
+	if (ArmPosition.Pitch > MaxArmPitch) ArmPosition.Pitch = MaxArmPitch;
+	if (ArmPosition.Pitch < MinArmPitch) ArmPosition.Pitch = MinArmPitch;
 
-	if (LookPosition.Pitch + LookAxisVector.Y > PitchMax) LookPosition.Pitch = PitchMax;
-	else if (LookPosition.Pitch + LookAxisVector.Y < PitchMin) LookPosition.Pitch = PitchMin;
-	else LookPosition.Pitch += LookAxisVector.Y;
+	CameraArm->SetRelativeRotation(ArmPosition);
 
-	LookPosition.Roll = 0;
-
-	// UE_LOG(LogTemp, Warning, TEXT("Camera Rotation: %s"), *LookPosition.ToString());
-
-	CameraArm->SetRelativeRotation(LookPosition);
+	// UE_LOG(LogTemp, Warning, TEXT("Camera Rotation: %s"), *ArmPosition.ToString());
 }
 
 
@@ -183,14 +189,12 @@ void AMower::ResetCamera()
 
 void AMower::Accelerate(const FInputActionValue& Value)
 {
-	float ForceDirection{ Value.Get<float>()};
+	const float InputDirection{ Value.Get<float>()};
 	FVector ForwardVector{ Body->GetForwardVector() };
-	double ForcePower{ 300.0 };
+
+	Body->AddForce(ForwardVector * InputDirection * AccelerationPower, NAME_None, true);
 
 	// UE_LOG(LogTemp, Warning, TEXT("%f %f %s"), Direction, Power, *ForwardVector.ToString());
-
-	Body->AddForce(ForwardVector * ForcePower * ForceDirection, NAME_None, true);
-	
 }
 
 
@@ -213,8 +217,6 @@ void AMower::BrakeOff()
 
 void AMower::SetWheelDrag()
 {
-	//WheelFR->SetAngularDamping(WheelDrag);
-	//WheelFL->SetAngularDamping(WheelDrag);
 	WheelBR->SetAngularDamping(WheelDrag);
 	WheelBL->SetAngularDamping(WheelDrag);
 }
@@ -223,16 +225,14 @@ void AMower::SetWheelDrag()
 void AMower::Steer(const FInputActionValue& Value)
 {
 	float SteeringDirection{ Value.Get<float>() };
-	FRotator RotationFR{ WheelFR->GetComponentRotation() };
-	FRotator RotationFL{ WheelFR->GetComponentRotation() };
-	double SteeringPower{ 10.0 };
 
-	RotationFR.Yaw += SteeringDirection * SteeringPower;
-	RotationFL.Yaw += SteeringDirection * SteeringPower;
+	FRotator WheelFRRotation{ WheelFR->GetRelativeRotation() };
+	FRotator WheelFLRotation{ WheelFL->GetRelativeRotation() };
 
-	UE_LOG(LogTemp, Warning, TEXT("FRYaw: %f"), RotationFR.Yaw);
-	
-	WheelFR->SetRelativeRotation(RotationFR);
-	WheelFL->SetRelativeRotation(RotationFL);
+	WheelFRRotation.Yaw += SteeringDirection * SteeringPower;
+	WheelFLRotation.Yaw += SteeringDirection * SteeringPower;
+
+	WheelFR->SetRelativeRotation(WheelFRRotation);
+	WheelFL->SetRelativeRotation(WheelFLRotation);
 }
 
