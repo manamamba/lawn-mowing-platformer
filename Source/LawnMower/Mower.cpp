@@ -11,7 +11,6 @@
 #include "EnhancedInputSubsystems.h"
 
 
-
 AMower::AMower()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -43,9 +42,9 @@ void AMower::CreateAndAssignComponentSubObjects()
 	SuspensionBR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBR"));
 	SuspensionBL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBL"));
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
+	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 }
 
 
@@ -66,40 +65,36 @@ void AMower::SetupComponentAttachments()
 	if (SuspensionBR) SuspensionBR->SetupAttachment(WheelBR);
 	if (SuspensionBL) SuspensionBL->SetupAttachment(WheelBL);
 	if (Arrow) Arrow->SetupAttachment(RootComponent);
+	if (Collider) Collider->SetupAttachment(RootComponent);
 	if (CameraArm) CameraArm->SetupAttachment(RootComponent);
 	if (Camera) Camera->SetupAttachment(CameraArm);
-	if (Collider) Collider->SetupAttachment(RootComponent);
 }
 
 
 void AMower::SetNonWheelProperties()
 {
-	if (!Body || !Handle || !CameraArm || !Collider) return;
+	if (!Body || !Handle || !Collider || !CameraArm) return;
 
-	Body->SetSimulatePhysics(true);
+	SetMeshCollisionProperties(Body);
+	SetMeshCollisionProperties(Handle);
+
 	Body->SetMassOverrideInKg(NAME_None, 30.0f);
 	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
-	Body->SetUseCCD(true);
-	Body->SetGenerateOverlapEvents(false);
-
-	ApplyMowerCollisionProfile(Body);
 
 	Handle->SetRelativeLocation(FVector{ -22.0, 0.0, 0.0 });
-	Handle->SetGenerateOverlapEvents(false);
 
-	ApplyMowerCollisionProfile(Handle);
+	Collider->SetRelativeLocation(FVector{ 0.0, 0.0, -13.0 });
+	Collider->SetBoxExtent(FVector{ 28.0, 22.0, 5.0 });
+
+	// Collider->SetCollisionProfileName(TEXT("Custom..."));
+	// Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+	// Collider->SetCollisionObjectType(ECC_WorldDynamic);
+	// Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
+	// Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 	CameraArm->TargetArmLength = 200.0f;
-
-	Collider->SetRelativeLocation(FVector{ 0.0, 0.0, -12.5 });
-	Collider->SetBoxExtent(FVector{ 28.0, 22.0, 4.0 });
-	Collider->SetCollisionProfileName(TEXT("Custom..."));
-	Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
-	Collider->SetCollisionObjectType(ECC_WorldDynamic);
-	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Collider->SetCollisionResponseToChannel(ECC_WorldDynamic, ECR_Overlap);
 }
 
 
@@ -107,13 +102,10 @@ void AMower::SetWheelProperties(WheelSet Set)
 {
 	if (!Set.Wheel || !Set.Axis || !Set.Suspension) return;
 	
-	Set.Wheel->SetRelativeLocation(Set.Location);
-	Set.Wheel->SetSimulatePhysics(true);
-	Set.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
-	Set.Wheel->SetUseCCD(true);
-	Set.Wheel->SetGenerateOverlapEvents(false);
+	SetMeshCollisionProperties(Set.Wheel);
 
-	ApplyMowerCollisionProfile(Set.Wheel);
+	Set.Wheel->SetRelativeLocation(Set.Location);
+	Set.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
 
 	Set.Axis->ComponentName1.ComponentName = Set.WheelName;
 	Set.Axis->ComponentName2.ComponentName = Set.RootName;
@@ -130,10 +122,11 @@ void AMower::SetWheelProperties(WheelSet Set)
 }
 
 
-void AMower::ApplyMowerCollisionProfile(UStaticMeshComponent* Mesh)
+void AMower::SetMeshCollisionProperties(UStaticMeshComponent* Mesh)
 {
 	if (!Mesh) return;
 	
+	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetCollisionProfileName(TEXT("Custom..."));
 	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
 	Mesh->SetCollisionObjectType(ECC_Pawn);
@@ -145,6 +138,11 @@ void AMower::ApplyMowerCollisionProfile(UStaticMeshComponent* Mesh)
 	Mesh->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_Vehicle, ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_Destructible, ECR_Block);
+
+	if (Mesh == Handle) return;
+
+	Mesh->SetSimulatePhysics(true);
+	Mesh->SetUseCCD(true);
 }
 
 
@@ -154,10 +152,9 @@ void AMower::BeginPlay()
 
 	AddMappingContextToLocalPlayerSubsystem();
 
-	Collider->OnComponentBeginOverlap.AddDynamic(this, &AMower::OnGround);
-	Collider->OnComponentEndOverlap.AddDynamic(this, &AMower::OffGround);
-
-	UE_LOG(LogTemp, Warning, TEXT("updated collision settings"));
+	// Collider->OnComponentBeginOverlap.AddDynamic(this, &AMower::OnGround);
+	// Collider->OnComponentEndOverlap.AddDynamic(this, &AMower::OffGround);
+	// UE_LOG(LogTemp, Warning, TEXT("updated collider box"));
 }
 
 
@@ -173,22 +170,20 @@ void AMower::AddMappingContextToLocalPlayerSubsystem()
 }
 
 
+/*
 void AMower::OnGround(UPrimitiveComponent* OverlapComp, 
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OverlapComp) UE_LOG(LogTemp, Warning, TEXT("ON OverlapComp: %s"), *OverlapComp->GetName());
-	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("ON OverlapComp: %s"), *OtherActor->GetName());
-	if (OtherComp) UE_LOG(LogTemp, Warning, TEXT("ON OverlapComp: %s"), *OtherComp->GetName());
+	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("ON OverlappedActor: %s"), *OtherActor->GetName());
 }
 
 
 void AMower::OffGround(UPrimitiveComponent* OverlapComp, 
 	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-	if (OverlapComp) UE_LOG(LogTemp, Warning, TEXT("OFF OverlapComp: %s"), *OverlapComp->GetName());
-	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("OFF OverlapComp: %s"), *OtherActor->GetName());
-	if (OtherComp) UE_LOG(LogTemp, Warning, TEXT("OFF OverlapComp: %s"), *OtherComp->GetName());
+	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("OFF OverlappedActor: %s"), *OtherActor->GetName());
 }
+*/
 
 
 void AMower::Tick(float DeltaTime)

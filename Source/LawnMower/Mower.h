@@ -41,10 +41,12 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	/*
 	UFUNCTION() void OnGround(UPrimitiveComponent* OverlapComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
 		bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION() void OffGround(UPrimitiveComponent* OverlapComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	*/
 
 	void MoveCamera(const FInputActionValue& Value);
 	void ResetCamera();
@@ -101,7 +103,7 @@ private:
 	void SetupComponentAttachments();
 	void SetNonWheelProperties();
 	void SetWheelProperties(WheelSet Set);
-	void ApplyMowerCollisionProfile(UStaticMeshComponent* Mesh);
+	void SetMeshCollisionProperties(UStaticMeshComponent* Mesh);
 	void AddMappingContextToLocalPlayerSubsystem();
 	void SetWheelDrag();
 
