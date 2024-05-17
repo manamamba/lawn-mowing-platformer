@@ -42,7 +42,6 @@ void AMower::CreateAndAssignComponentSubObjects()
 	SuspensionBR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBR"));
 	SuspensionBL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBL"));
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
-	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 }
@@ -65,7 +64,6 @@ void AMower::SetupComponentAttachments()
 	if (SuspensionBR) SuspensionBR->SetupAttachment(WheelBR);
 	if (SuspensionBL) SuspensionBL->SetupAttachment(WheelBL);
 	if (Arrow) Arrow->SetupAttachment(RootComponent);
-	if (Collider) Collider->SetupAttachment(RootComponent);
 	if (CameraArm) CameraArm->SetupAttachment(RootComponent);
 	if (Camera) Camera->SetupAttachment(CameraArm);
 }
@@ -73,7 +71,7 @@ void AMower::SetupComponentAttachments()
 
 void AMower::SetNonWheelProperties()
 {
-	if (!Body || !Handle || !Collider || !CameraArm) return;
+	if (!Body || !Handle || !CameraArm) return;
 
 	SetMeshCollisionProperties(Body);
 	SetMeshCollisionProperties(Handle);
@@ -82,15 +80,6 @@ void AMower::SetNonWheelProperties()
 	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 
 	Handle->SetRelativeLocation(FVector{ -22.0, 0.0, 0.0 });
-
-	Collider->SetRelativeLocation(FVector{ 0.0, 0.0, -13.0 });
-	Collider->SetBoxExtent(FVector{ 28.0, 22.0, 5.0 });
-
-	// Collider->SetCollisionProfileName(TEXT("Custom..."));
-	// Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
-	// Collider->SetCollisionObjectType(ECC_WorldDynamic);
-	// Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
-	// Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Overlap);
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
@@ -108,7 +97,7 @@ void AMower::SetWheelProperties(WheelSet Set)
 	Set.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
 
 	Set.Axis->ComponentName1.ComponentName = Set.WheelName;
-	Set.Axis->ComponentName2.ComponentName = Set.RootName;
+	Set.Axis->ComponentName2.ComponentName = TEXT("Body");
 	Set.Axis->SetLinearXLimit(LCM_Free, 0.0f);
 	Set.Axis->SetLinearYLimit(LCM_Free, 0.0f);
 	Set.Axis->SetLinearZLimit(LCM_Free, 0.0f);
@@ -117,7 +106,7 @@ void AMower::SetWheelProperties(WheelSet Set)
 	Set.Axis->SetAngularDriveMode(EAngularDriveMode::Type::TwistAndSwing);
 
 	Set.Suspension->ComponentName1.ComponentName = Set.WheelName;
-	Set.Suspension->ComponentName2.ComponentName = Set.RootName;
+	Set.Suspension->ComponentName2.ComponentName = TEXT("Body");
 	Set.Suspension->SetLinearZLimit(LCM_Limited, 3.0f);
 }
 
@@ -151,10 +140,6 @@ void AMower::BeginPlay()
 	Super::BeginPlay();
 
 	AddMappingContextToLocalPlayerSubsystem();
-
-	// Collider->OnComponentBeginOverlap.AddDynamic(this, &AMower::OnGround);
-	// Collider->OnComponentEndOverlap.AddDynamic(this, &AMower::OffGround);
-	// UE_LOG(LogTemp, Warning, TEXT("updated collider box"));
 }
 
 
@@ -168,22 +153,6 @@ void AMower::AddMappingContextToLocalPlayerSubsystem()
 
 	if (PlayerController && Subsystem) Subsystem->AddMappingContext(MowerInputMappingContext, 0);
 }
-
-
-/*
-void AMower::OnGround(UPrimitiveComponent* OverlapComp, 
-	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("ON OverlappedActor: %s"), *OtherActor->GetName());
-}
-
-
-void AMower::OffGround(UPrimitiveComponent* OverlapComp, 
-	AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	if (OtherActor) UE_LOG(LogTemp, Warning, TEXT("OFF OverlappedActor: %s"), *OtherActor->GetName());
-}
-*/
 
 
 void AMower::Tick(float DeltaTime)
@@ -284,6 +253,32 @@ void AMower::Steer(const FInputActionValue& Value)
 
 void AMower::Jump(const FInputActionValue& Value)
 {
+	if (!IsGrounded()) return;
 
+	UE_LOG(LogTemp, Warning, TEXT("Mower is Grounded!"));
 }
 
+bool AMower::IsGrounded() 
+{
+	// needs to work for downvector no matter the oreintation of the mower
+
+	
+	
+	FHitResult Hit{};
+	double TraceDistance{ 2.0 };
+	FVector Start{ GetController()->GetPawn()->GetActorLocation() };
+	FVector DownVector{ -GetController()->GetPawn()->GetActorUpVector() };
+
+
+	FVector End{ Start * DownVector * TraceDistance };
+
+	// UE_LOG(LogTemp, Warning, TEXT("Location: %s"), *MowerLocation.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("DownVector: %s"), *MowerDownwardVector.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("Start: %s"), *Start.ToString());
+	//UE_LOG(LogTemp, Warning, TEXT("End: %s"), *End.ToString());
+
+	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 5.0f, 6, FColor::Blue);
+
+	return GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1);
+}
