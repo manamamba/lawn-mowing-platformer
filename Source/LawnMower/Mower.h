@@ -42,8 +42,7 @@ public:
 	void MoveCamera(const FInputActionValue& Value);
 	void ResetCamera();
 	void Accelerate(const FInputActionValue& Value);
-	void BrakeOn(const FInputActionValue& Value);
-	void BrakeOff();
+	void Brake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
 
@@ -70,8 +69,7 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* ResetCameraInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction{};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOnInputAction{};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeOffInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction{};
 
@@ -82,10 +80,11 @@ private:
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 8.0 };
 	const double AccelerationPower{ 300.0 };
-	const float MaxWheelDrag{ 20.0f };
+	const float MaxWheelDrag{ 10.0f };
 	const double SteeringPower{ 10.0 };
 
 	float WheelDrag{};
+	bool Braking{};
 
 private:
 	void CreateAndAssignComponentSubObjects();
@@ -93,8 +92,10 @@ private:
 	void SetNonWheelProperties();
 	void SetWheelProperties(WheelSet Set);
 	void SetMeshCollisionProperties(UStaticMeshComponent* Mesh);
-	void AddMappingContextToLocalPlayerSubsystem();
-	void SetWheelDrag();
-	bool IsGrounded();
+	void SetMeshMassOverrides();
+	void AddInputMappingContextToLocalPlayerSubsystem();
+	void ReduceWheelDrag();
+	void SetRearWheelAngularDamping();
+	bool IsGrounded(APawn* Mower);
 
 };

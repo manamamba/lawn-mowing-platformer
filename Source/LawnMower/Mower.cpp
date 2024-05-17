@@ -76,9 +76,6 @@ void AMower::SetNonWheelProperties()
 	SetMeshCollisionProperties(Body);
 	SetMeshCollisionProperties(Handle);
 
-	Body->SetMassOverrideInKg(NAME_None, 30.0f);
-	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
-
 	Handle->SetRelativeLocation(FVector{ -22.0, 0.0, 0.0 });
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
@@ -94,7 +91,6 @@ void AMower::SetWheelProperties(WheelSet Set)
 	SetMeshCollisionProperties(Set.Wheel);
 
 	Set.Wheel->SetRelativeLocation(Set.Location);
-	Set.Wheel->SetMassOverrideInKg(NAME_None, 5.0f);
 
 	Set.Axis->ComponentName1.ComponentName = Set.WheelName;
 	Set.Axis->ComponentName2.ComponentName = TEXT("Body");
@@ -108,6 +104,8 @@ void AMower::SetWheelProperties(WheelSet Set)
 	Set.Suspension->ComponentName1.ComponentName = Set.WheelName;
 	Set.Suspension->ComponentName2.ComponentName = TEXT("Body");
 	Set.Suspension->SetLinearZLimit(LCM_Limited, 3.0f);
+	Set.Suspension->SetLinearPositionDrive(false, false, true);
+	Set.Suspension->SetLinearDriveParams(10.0f, 1.0f, 0.0f);
 }
 
 
@@ -139,11 +137,25 @@ void AMower::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AddMappingContextToLocalPlayerSubsystem();
+	SetMeshMassOverrides();
+	AddInputMappingContextToLocalPlayerSubsystem();
 }
 
 
-void AMower::AddMappingContextToLocalPlayerSubsystem()
+void AMower::SetMeshMassOverrides()
+{
+	Body->BodyInstance.SetMassOverride(30.0f);
+	Handle->BodyInstance.SetMassOverride(0.001f);
+	WheelFR->BodyInstance.SetMassOverride(5.0f);
+	WheelFL->BodyInstance.SetMassOverride(5.0f);
+	WheelBR->BodyInstance.SetMassOverride(5.0f);
+	WheelBL->BodyInstance.SetMassOverride(5.0f);
+
+	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
+}
+
+
+void AMower::AddInputMappingContextToLocalPlayerSubsystem()
 {
 	APlayerController* PlayerController{};
 	UEnhancedInputLocalPlayerSubsystem* Subsystem{};
@@ -158,6 +170,25 @@ void AMower::AddMappingContextToLocalPlayerSubsystem()
 void AMower::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ReduceWheelDrag();
+}
+
+
+void AMower::ReduceWheelDrag()
+{
+	if (WheelDrag == 0.0f) return;
+	(WheelDrag > 0.0f) ? WheelDrag -= 0.25f : WheelDrag == 0.0f;
+	SetRearWheelAngularDamping();
+
+	UE_LOG(LogTemp, Warning, TEXT("Wheel Drag: %f"), WheelDrag);
+}
+
+
+void AMower::SetRearWheelAngularDamping()
+{
+	WheelBR->SetAngularDamping(WheelDrag);
+	WheelBL->SetAngularDamping(WheelDrag);
 }
 
 
@@ -171,8 +202,7 @@ void AMower::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(ResetCameraInputAction, ETriggerEvent::Triggered, this, &AMower::ResetCamera);
 
 		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMower::Accelerate);
-		EnhancedInputComponent->BindAction(BrakeOnInputAction, ETriggerEvent::Triggered, this, &AMower::BrakeOn);
-		EnhancedInputComponent->BindAction(BrakeOffInputAction, ETriggerEvent::Triggered, this, &AMower::BrakeOff);
+		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMower::Brake);
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMower::Steer);
 		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMower::Jump);
 	}
@@ -212,27 +242,12 @@ void AMower::Accelerate(const FInputActionValue& Value)
 }
 
 
-void AMower::BrakeOn(const FInputActionValue& Value)
+void AMower::Brake(const FInputActionValue& Value)
 {
-	WheelDrag += Value.Get<float>() * 0.5f;
+	WheelDrag += Value.Get<float>();
+
 	if (WheelDrag > MaxWheelDrag) WheelDrag = MaxWheelDrag;
-
-	SetWheelDrag();
-}
-
-
-void AMower::BrakeOff()
-{
-	WheelDrag = 0.0f;
-
-	SetWheelDrag();
-}
-
-
-void AMower::SetWheelDrag()
-{
-	WheelBR->SetAngularDamping(WheelDrag);
-	WheelBL->SetAngularDamping(WheelDrag);
+	SetRearWheelAngularDamping();
 }
 
 
@@ -253,32 +268,32 @@ void AMower::Steer(const FInputActionValue& Value)
 
 void AMower::Jump(const FInputActionValue& Value)
 {
-	if (!IsGrounded()) return;
+	APawn* Mower{ GetController()->GetPawn() };
+	
+	if (!IsGrounded(Mower)) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Mower is Grounded!"));
+	// UE_LOG(LogTemp, Warning, TEXT("Mower is Grounded!"));
+
+	Body->AddImpulse(Body->GetUpVector() * 25000.0);
 }
 
-bool AMower::IsGrounded() 
+
+bool AMower::IsGrounded(APawn* Mower)
 {
-	// needs to work for downvector no matter the oreintation of the mower
+	if (!Mower) return false;
 
-	
-	
 	FHitResult Hit{};
-	double TraceDistance{ 2.0 };
-	FVector Start{ GetController()->GetPawn()->GetActorLocation() };
-	FVector DownVector{ -GetController()->GetPawn()->GetActorUpVector() };
+	double TraceDistance{ 14.0 };
 
+	FVector Start{ Mower->GetActorLocation() };
+	FVector Direction{ -Mower->GetActorUpVector() * TraceDistance };
+	FVector End{ Start + Direction };
 
-	FVector End{ Start * DownVector * TraceDistance };
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
-	// UE_LOG(LogTemp, Warning, TEXT("Location: %s"), *MowerLocation.ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("DownVector: %s"), *MowerDownwardVector.ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("Start: %s"), *Start.ToString());
-	//UE_LOG(LogTemp, Warning, TEXT("End: %s"), *End.ToString());
+	// DrawDebugSphere(GetWorld(), Start, 20.0f, 6, FColor::Orange, true);
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Blue, true);
+	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 15.0f, 6, FColor::Green, true);
 
-	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 5.0f, 6, FColor::Blue);
-
-	return GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1);
+	return Grounded;
 }
