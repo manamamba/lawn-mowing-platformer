@@ -13,6 +13,12 @@ class UInputMappingContext;
 class UInputAction;
 struct FInputActionValue;
 
+struct RayCastResponse {
+	FHitResult Hit{};
+	double HitRayDifference{};
+	const double MowerMass{ 30.0 };
+};
+
 
 UCLASS()
 class LAWNMOWER_API AMowerRC : public APawn
@@ -37,9 +43,9 @@ private:
 	void SetWheelProperties(UStaticMeshComponent* Wheel, FVector Location);
 	void OverrideMass();
 	void AddInputMappingContextToLocalPlayerSubsystem();
-	void ApplyForceToGroundedWheels();
-	bool IsWheelGrounded(UStaticMeshComponent* Wheel, const FVector& DownwardVector, FHitResult& Hit);
-	void ApplyForceToWheel(const FVector& ImpactPoint, const FVector& UpwardVector);
+	void ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel);
+	bool IsWheelGrounded(UStaticMeshComponent* Wheel, RayCastResponse& WheelResponse);
+	void ApplyForceToWheel(const RayCastResponse& WheelResponse);
 
 
 private:	
@@ -55,8 +61,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
 	
-	const float BodyMass{ 30.0 };
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 8.9 };
+	const float MowerMass{ 30.0f };
+
+	double MowerVelocityChange{};
 
 };

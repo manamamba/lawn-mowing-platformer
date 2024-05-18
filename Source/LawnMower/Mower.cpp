@@ -181,7 +181,7 @@ void AMower::ReduceWheelDrag()
 	(WheelDrag > 0.0f) ? WheelDrag -= 0.25f : WheelDrag == 0.0f;
 	SetRearWheelAngularDamping();
 
-	UE_LOG(LogTemp, Warning, TEXT("Wheel Drag: %f"), WheelDrag);
+	// UE_LOG(LogTemp, Warning, TEXT("Wheel Drag: %f"), WheelDrag);
 }
 
 

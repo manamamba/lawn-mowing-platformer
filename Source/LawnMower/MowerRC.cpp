@@ -87,7 +87,7 @@ void AMowerRC::BeginPlay()
 
 void AMowerRC::OverrideMass()
 {
-	Body->BodyInstance.SetMassOverride(BodyMass);
+	Body->BodyInstance.SetMassOverride(MowerMass);
 	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 }
 
@@ -108,68 +108,71 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	ApplyForceToGroundedWheels();
+
+	double MowerVelocity{ Body->GetComponentVelocity().Z };
+
+
+
+
+
+
+
+	ApplyForceToGroundedWheel(FRWheel);
+	ApplyForceToGroundedWheel(FLWheel);
+	ApplyForceToGroundedWheel(BRWheel);
+	ApplyForceToGroundedWheel(BLWheel);
 }
 
 
-void AMowerRC::ApplyForceToGroundedWheels()
+void AMowerRC::ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel)
 {
-	Body->AddForce(Body->GetUpVector() * (BodyMass * 33.0), NAME_None, true);
+	RayCastResponse WheelResponse{};
 
-	// when force is only happening on hits it will work correclty
-	UE_LOG(LogTemp, Warning, TEXT("32 Force Added!"));
+	if (!IsWheelGrounded(Wheel, WheelResponse)) return;
 
+	// UE_LOG(LogTemp, Warning, TEXT("%s is Grounded!"), *Wheel->GetName() );
 
-	/*
-	APawn* Mower{ GetController()->GetPawn() };
-	
-	if (!Mower) return;
+	ApplyForceToWheel(WheelResponse);
 
-	const FVector MowerDownwardVector{ -GetController()->GetPawn()->GetActorUpVector() };
-	const FVector MowerUpwardvector{ GetController()->GetPawn()->GetActorUpVector() };
-
-	FHitResult FRWheelHit{};
-	FHitResult FLWheelHit{};
-	FHitResult BRWheelHit{};
-	FHitResult BLWheelHit{};
-
-	if (IsWheelGrounded(FRWheel, MowerDownwardVector, FRWheelHit)) ApplyForceToWheel(FRWheelHit.ImpactPoint, MowerUpwardvector);
-	if (IsWheelGrounded(FLWheel, MowerDownwardVector, FLWheelHit)) ApplyForceToWheel(FLWheelHit.ImpactPoint, MowerUpwardvector);
-	if (IsWheelGrounded(BRWheel, MowerDownwardVector, BRWheelHit)) ApplyForceToWheel(BRWheelHit.ImpactPoint, MowerUpwardvector);
-	if (IsWheelGrounded(BLWheel, MowerDownwardVector, BLWheelHit)) ApplyForceToWheel(BLWheelHit.ImpactPoint, MowerUpwardvector);
-	*/
+	// UE_LOG(LogTemp, Warning, TEXT("%s Force Applied!"), *Wheel->GetName() );
 }
 
 
-bool AMowerRC::IsWheelGrounded(UStaticMeshComponent* Wheel, const FVector& DownwardVector, FHitResult& Hit)
+bool AMowerRC::IsWheelGrounded(UStaticMeshComponent* Wheel, RayCastResponse& WheelResponse)
 {
-	return false;
-
-	/*
 	if (!Wheel) return false;
 	
-	const double RayLength{ 9.0 };
+	constexpr double RayLength{ 9.0 };
+	const FVector DownVector{ -Body->GetUpVector() };
 	const FVector Start{ Wheel->GetComponentLocation() };
-	const FVector End{ Start + (DownwardVector * RayLength) };
+	const FVector End{ Start + (DownVector * RayLength) };
 
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End,ECC_GameTraceChannel1) };
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(WheelResponse.Hit, Start, End, ECC_GameTraceChannel1) };
 
-	DrawDebugLine(GetWorld(), Start, End, FColor::Purple);
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 10.0, 6, FColor::Blue);
-	
+	if (Grounded) WheelResponse.HitRayDifference = RayLength - FVector::Dist(WheelResponse.Hit.ImpactPoint, Start);
+	if (Grounded) UE_LOG(LogTemp, Warning, TEXT("ImpactDistance: %f"), WheelResponse.HitRayDifference);
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Purple);
+	DrawDebugSphere(GetWorld(), WheelResponse.Hit.ImpactPoint, 6.0, 6, FColor::Purple);
+
 	return Grounded;
-	*/
 }
 
 
-void AMowerRC::ApplyForceToWheel(const FVector& ImpactPoint, const FVector& UpwardVector)
+void AMowerRC::ApplyForceToWheel(const RayCastResponse& WheelResponse)
 {
-	/*
-	UE_LOG(LogTemp, Warning, TEXT("ApplyForceToWheel Called!"));
-	
-	const double ForceStrength{ 100.0 };
-	Body->AddForce(-UpwardVector * ForceStrength,NAME_None, true);
-	*/
+
+
+
+
+
+
+
+
+
+	//constexpr double Force{ 20030.0 };
+	//const FVector UpVector{ Body->GetUpVector() };
+	//double Force{ 30.0 * -MowerDownVelocity };
+	//Body->AddForceAtLocation(UpVector * Force, WheelResponse.Hit.ImpactPoint);
 }
 
 
