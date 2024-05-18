@@ -235,7 +235,6 @@ void AMower::Accelerate(const FInputActionValue& Value)
 {
 	const float InputDirection{ Value.Get<float>()};
 	FVector ForwardVector{ Body->GetForwardVector() };
-
 	Body->AddForce(ForwardVector * InputDirection * AccelerationPower, NAME_None, true);
 
 	// UE_LOG(LogTemp, Warning, TEXT("%f %f %s"), Direction, Power, *ForwardVector.ToString());
@@ -253,7 +252,7 @@ void AMower::Brake(const FInputActionValue& Value)
 
 void AMower::Steer(const FInputActionValue& Value)
 {
-	float SteeringDirection{ Value.Get<float>() };
+	double SteeringDirection{ Value.Get<float>() };
 
 	FRotator WheelFRRotation{ WheelFR->GetRelativeRotation() };
 	FRotator WheelFLRotation{ WheelFL->GetRelativeRotation() };

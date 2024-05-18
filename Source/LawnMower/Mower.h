@@ -80,9 +80,10 @@ private:
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 8.0 };
 	const double AccelerationPower{ 300.0 };
-	const float MaxWheelDrag{ 10.0f };
+	const float MaxWheelDrag{ 10.25f };
 	const double SteeringPower{ 10.0 };
 
+	FRotator SteeringPosition{};
 	float WheelDrag{};
 	bool Braking{};
 
