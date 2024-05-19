@@ -2,12 +2,15 @@
 
 
 #include "MowerRC.h"
+#include "Components/BoxComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/KismetSystemLibrary.h"
+
 
 AMowerRC::AMowerRC()
 {
@@ -21,6 +24,7 @@ AMowerRC::AMowerRC()
 
 void AMowerRC::CreateAndAssignComponentSubObjects()
 {
+	PhysicsBody = CreateDefaultSubobject<UBoxComponent>(TEXT("PhysicsBody"));
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
 	FRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
@@ -34,45 +38,48 @@ void AMowerRC::CreateAndAssignComponentSubObjects()
 
 void AMowerRC::SetupComponentAttachments()
 {
-	RootComponent = Body;
+	RootComponent = PhysicsBody;
+	Body->SetupAttachment(RootComponent);
 	Handle->SetupAttachment(RootComponent);
-	CameraArm->SetupAttachment(RootComponent);
-	Camera->SetupAttachment(CameraArm);
 	FRWheel->SetupAttachment(RootComponent);
 	FLWheel->SetupAttachment(RootComponent);
 	BRWheel->SetupAttachment(RootComponent);
 	BLWheel->SetupAttachment(RootComponent);
+	CameraArm->SetupAttachment(RootComponent);
+	Camera->SetupAttachment(CameraArm);
 }
 
 
 void AMowerRC::SetComponentProperties()
 {
-	Body->SetGenerateOverlapEvents(false);
-	Body->SetSimulatePhysics(true);
-	Body->SetUseCCD(true);
-
-	Handle->SetRelativeLocation(FVector{ -22.0, 0.0, 0.0 });
-	Handle->SetGenerateOverlapEvents(false);
-	Handle->SetCollisionProfileName("NoCollision");
-
-	SetWheelProperties(FRWheel, LocalFRWheelPosition);
-	SetWheelProperties(FLWheel, LocalFLWheelPosition);
-	SetWheelProperties(BRWheel, LocalBRWheelPosition);
-	SetWheelProperties(BLWheel, LocalBLWheelPosition);
+	PhysicsBody->SetBoxExtent(PhysicsBodyDimensions);
+	PhysicsBody->SetGenerateOverlapEvents(false);
+	PhysicsBody->SetSimulatePhysics(true);
+	PhysicsBody->SetLinearDamping(2.0f);
+	PhysicsBody->SetAngularDamping(2.0f);
+	PhysicsBody->SetUseCCD(true);
+	PhysicsBody->SetCollisionProfileName("PhysicsActor");
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 	CameraArm->TargetArmLength = 200.0f;
+
+	SetMeshComponentCollisionAndDefaultLocation(Body, DefaultBodyPosition);
+	SetMeshComponentCollisionAndDefaultLocation(Handle, DefaultHandlePosition);
+	SetMeshComponentCollisionAndDefaultLocation(FRWheel, DefaultFRWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(FLWheel, DefaultFLWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(BRWheel, DefaultBRWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(BLWheel, DefaultBLWheelPosition);
 }
 
 
-void AMowerRC::SetWheelProperties(UStaticMeshComponent* Wheel, FVector Location)
+void AMowerRC::SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location)
 {
-	if (!Wheel) return;
+	if (!Mesh) return;
 	
-	Wheel->SetRelativeLocation(Location);
-	Wheel->SetGenerateOverlapEvents(false);
-	Wheel->SetCollisionProfileName("NoCollision");
+	Mesh->SetRelativeLocation(Location);
+	Mesh->SetGenerateOverlapEvents(false);
+	Mesh->SetCollisionProfileName("NoCollision");
 }
 
 
@@ -80,7 +87,7 @@ void AMowerRC::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
+	// PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 
 	AddInputMappingContextToLocalPlayerSubsystem();
 }
@@ -102,53 +109,107 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// ApplyForceToGroundedMower(GetMowerAcceleration(DeltaTime));
+	FloatPhysicsEnabledComponent(PhysicsBody);
+	TrackPhysicsEnabledComponentAcceleration(PhysicsBody, PhysicsBodyVelocity, DeltaTime);
 
-	Float(DeltaTime);
-
-	//const double MowerAcceleration{ GetMowerAcceleration() };
-	// ApplyForceToWheelPosition(FRWheel, LocalFRWheelPosition);
-	// ApplyForceToWheelPosition(FLWheel, LocalFLWheelPosition);
-	// ApplyForceToWheelPosition(BRWheel, LocalBRWheelPosition);
-	// ApplyForceToWheelPosition(BLWheel, LocalBLWheelPosition);
+	RayCastAtDefaultPosition(FRRayCastDefaultPosition);
+	RayCastAtDefaultPosition(FLRayCastDefaultPosition);
+	RayCastAtDefaultPosition(BRRayCastDefaultPosition);
+	RayCastAtDefaultPosition(BLRayCastDefaultPosition);
 }
 
 
-void AMowerRC::Float(float DeltaTime)
+void AMowerRC::FloatPhysicsEnabledComponent(UPrimitiveComponent* Component)
 {
-	const double Mass{ Body->GetMass() };
+	if (!Component) return;
+	
+	const double Mass{ Component->GetMass() };
+	const double GravitationalAcceleration{ 980.0 };
 	const double Force{ Mass * GravitationalAcceleration };
 
-	Body->AddForce(FVector::UpVector * Force);
+	Component->AddForce(FVector::UpVector * Force);
+}
 
-	double Acceleration{ GetMowerAcceleration(DeltaTime) };
-	FVector VelocityDirection{ FinalVelocity.GetSafeNormal(0.01) };
-	const FVector Start{ Body->GetComponentLocation() };
-	const FVector End{ Start + (-VelocityDirection * 100.0) };
-	double AntiVelocityForce{ Mass * Acceleration };
 
-	// if acceleration is over a threshold, do not apply opposite velocity
-	if (Acceleration < GravitationalAcceleration) Body->AddForce(-VelocityDirection * AntiVelocityForce);
+void AMowerRC::TrackPhysicsEnabledComponentAcceleration(UPrimitiveComponent* Component, ChangeInVelocity& Velocity, float DeltaTime)
+{
+	if (!Component) return;
 
-	// need to get its rotation back to upright and stopped
+	const double Mass{ Component->GetMass() };
+	const FVector ComponentVelocityThisTick{ Component->GetComponentVelocity() };
+	const double ComponentAcceleration{ GetAcceleration(ComponentVelocityThisTick, Velocity, DeltaTime) };
+	const double AntiVelocityForce{ Mass * ComponentAcceleration };
+	const FVector VelocityDirection{ Velocity.Final.GetSafeNormal(1.0) };
+	const FVector Start{ Component->GetComponentLocation() };
+	const FVector End{ Start + (VelocityDirection * AntiVelocityForce / Mass) };
 
-	
 	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
-
-	UE_LOG(LogTemp, Warning, TEXT("Acceleration      %f"), Acceleration);
+	UE_LOG(LogTemp, Warning, TEXT("Acceleration      %f"), ComponentAcceleration);
 	UE_LOG(LogTemp, Warning, TEXT("AntiVelocityForce %f"), AntiVelocityForce);
 	UE_LOG(LogTemp, Warning, TEXT("VelocityDirection %s"), *VelocityDirection.ToString());
 }
 
 
-double AMowerRC::GetMowerAcceleration(float DeltaTime)
+double AMowerRC::GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime)
 {
-	FinalVelocity = Body->GetComponentVelocity();
-	InitialVelocity = LastTickVelocity;
-	LastTickVelocity = FinalVelocity;
-	
-	return double{ FVector::Dist(FinalVelocity, InitialVelocity) / DeltaTime };
+	Velocity.Final = Vector;
+	Velocity.Initial = Velocity.LastTick;
+	Velocity.LastTick = Velocity.Final;
+
+	return double{ FVector::Dist(Velocity.Final, Velocity.Initial) / DeltaTime };
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void AMowerRC::RayCastAtDefaultPosition(FVector DefaultPosition)
+{
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
@@ -158,6 +219,7 @@ void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
 	constexpr double RayLength{ 15.9 };
 	double HitRay{};
 
+	const double GravitationalAcceleration{ 980.0 };
 	const FVector UpVector{ Body->GetUpVector() };
 	const FVector Start{ Body->GetComponentLocation() };
 	const FVector End{ Start + (-UpVector * RayLength) };
@@ -169,9 +231,9 @@ void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
 	DrawDebugLine(GetWorld(), Start, End, FColor::Orange);
 	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 2.0, 6, FColor::Orange);
 
-	FVector VelocityDirection{ FinalVelocity.GetSafeNormal(1.0) };
+	FVector VelocityDirection{ /*FinalVelocity.GetSafeNormal(1.0)*/ };
 	const double Force{ Body->GetMass() * Acceleration };
-	const double AntiGravitationalForce{ Body->GetMass() * GravitationalAcceleration };
+	const double AntiGravitationalForce{ Body->GetMass() * GravitationalAcceleration};
 
 	Body->AddForce(UpVector * (AntiGravitationalForce / Force) );
 
@@ -184,26 +246,6 @@ void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void AMowerRC::ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition)
 {
 	if (!Wheel) return;
@@ -213,6 +255,7 @@ void AMowerRC::ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVec
 	constexpr double RayLength{ 8.9 };
 	double HitRay{};
 
+	const double GravitationalAcceleration{ 980.0 };
 	const FVector UpVector{ Body->GetUpVector() };
 	const FTransform BodyTransform{ Body->GetComponentTransform() };
 	const FVector Start{ UKismetMathLibrary::TransformLocation(BodyTransform, WheelPosition) };
@@ -244,6 +287,15 @@ void AMowerRC::ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVec
 
 	Body->AddForceAtLocation(FVector::UpVector * Force, Hit.ImpactPoint);
 }
+
+
+
+
+
+
+
+
+
 
 
 void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
