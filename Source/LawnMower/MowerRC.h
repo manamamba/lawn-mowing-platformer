@@ -51,9 +51,6 @@ private:
 
 	void RayCastAtDefaultPosition(FVector DefaultPosition);
 
-
-
-
 	void ApplyForceToGroundedMower(double Acceleration);
 	void ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition);
 
