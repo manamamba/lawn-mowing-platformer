@@ -7,6 +7,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 
 
 AMowerRC::AMowerRC()
@@ -55,10 +56,10 @@ void AMowerRC::SetComponentProperties()
 	Handle->SetGenerateOverlapEvents(false);
 	Handle->SetCollisionProfileName("NoCollision");
 
-	SetWheelProperties(FRWheel, FVector{ 24.0, 24.0, -8.0 });
-	SetWheelProperties(FLWheel, FVector{ 24.0, -24.0, -8.0 });
-	SetWheelProperties(BRWheel, FVector{ -24.0, 24.0, -8.0 });
-	SetWheelProperties(BLWheel, FVector{ -24.0, -24.0, -8.0 });
+	SetWheelProperties(FRWheel, LocalFRWheelPosition);
+	SetWheelProperties(FLWheel, LocalFLWheelPosition);
+	SetWheelProperties(BRWheel, LocalBRWheelPosition);
+	SetWheelProperties(BLWheel, LocalBLWheelPosition);
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
@@ -79,16 +80,10 @@ void AMowerRC::SetWheelProperties(UStaticMeshComponent* Wheel, FVector Location)
 void AMowerRC::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	OverrideMass();
+
+	// Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
+
 	AddInputMappingContextToLocalPlayerSubsystem();
-}
-
-
-void AMowerRC::OverrideMass()
-{
-	Body->BodyInstance.SetMassOverride(MowerMass);
-	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 }
 
 
@@ -108,71 +103,95 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// const double MowerAcceleration{ GetMowerAcceleration() };
 
-	double MowerVelocity{ Body->GetComponentVelocity().Z };
+	TestMowerHovering();
 
-
-
-
-
-
-
-	ApplyForceToGroundedWheel(FRWheel);
-	ApplyForceToGroundedWheel(FLWheel);
-	ApplyForceToGroundedWheel(BRWheel);
-	ApplyForceToGroundedWheel(BLWheel);
+	// ApplyForceToGroundedWheel(FRWheel, LocalFRWheelPosition, MowerAcceleration);
+	// ApplyForceToGroundedWheel(FLWheel, LocalFLWheelPosition, MowerAcceleration);
+	// ApplyForceToGroundedWheel(BRWheel, LocalBRWheelPosition, MowerAcceleration);
+	// ApplyForceToGroundedWheel(BLWheel, LocalBLWheelPosition, MowerAcceleration);
 }
 
 
-void AMowerRC::ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel)
+void AMowerRC::TestMowerHovering()
 {
-	RayCastResponse WheelResponse{};
-
-	if (!IsWheelGrounded(Wheel, WheelResponse)) return;
-
-	// UE_LOG(LogTemp, Warning, TEXT("%s is Grounded!"), *Wheel->GetName() );
-
-	ApplyForceToWheel(WheelResponse);
-
-	// UE_LOG(LogTemp, Warning, TEXT("%s Force Applied!"), *Wheel->GetName() );
-}
-
-
-bool AMowerRC::IsWheelGrounded(UStaticMeshComponent* Wheel, RayCastResponse& WheelResponse)
-{
-	if (!Wheel) return false;
-	
-	constexpr double RayLength{ 9.0 };
+	FHitResult Hit{};
+	const double RayLength{ 8.9 };
+	const FVector Start{ Body->GetComponentLocation() };
 	const FVector DownVector{ -Body->GetUpVector() };
-	const FVector Start{ Wheel->GetComponentLocation() };
 	const FVector End{ Start + (DownVector * RayLength) };
 
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(WheelResponse.Hit, Start, End, ECC_GameTraceChannel1) };
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
-	if (Grounded) WheelResponse.HitRayDifference = RayLength - FVector::Dist(WheelResponse.Hit.ImpactPoint, Start);
-	if (Grounded) UE_LOG(LogTemp, Warning, TEXT("ImpactDistance: %f"), WheelResponse.HitRayDifference);
-	// DrawDebugLine(GetWorld(), Start, End, FColor::Purple);
-	DrawDebugSphere(GetWorld(), WheelResponse.Hit.ImpactPoint, 6.0, 6, FColor::Purple);
+	if (Grounded)
+	{
+		const double MowerAcceleration{ GetMowerAcceleration() };
+
+		const float Mass{ Body->BodyInstance.GetBodyMass() }; // 18.570330
+		const double Force{ Mass * MowerAcceleration };
+		const FVector UpVector{ Body->GetUpVector() };
+
+		// if acceleration is near 0, then we still need to apply the needed force to keep it hovering!
+		// need a base line force always being applied when ground is detected
+
+		Body->AddForce(UpVector * Force);
+
+		UE_LOG(LogTemp, Warning, TEXT("Mass: %f"), Mass);
+		UE_LOG(LogTemp, Warning, TEXT("Acceleration: %f"), MowerAcceleration);
+		UE_LOG(LogTemp, Warning, TEXT("Force: %f"), Force);
+	}
+}
+
+
+double AMowerRC::GetMowerAcceleration()
+{
+	const FVector FinalVelocity{ Body->GetComponentVelocity() };
+	const FVector InitialVelocity{ LastTickVelocity };
+	LastTickVelocity = FinalVelocity;
+
+	return double{ FVector::Dist(FinalVelocity, InitialVelocity) / UGameplayStatics::GetWorldDeltaSeconds(this) };
+}
+
+
+void AMowerRC::ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel, const FVector& WheelPosition, double Acceleration)
+{
+	FHitResult Hit{};
+
+	if (IsWheelGrounded(Wheel, WheelPosition, Hit)) ApplyForceToWheel(Hit, Acceleration);
+}
+
+
+bool AMowerRC::IsWheelGrounded(UStaticMeshComponent* Wheel, const FVector& WheelPosition, FHitResult& Hit)
+{
+	if (!Wheel) return false;
+
+	constexpr double RayLength{ 8.9 };
+	double HitRay{};
+	const FVector DownVector{ -Body->GetUpVector() };
+	const FTransform BodyTransform{ Body->GetComponentTransform() };
+	const FVector Start{ UKismetMathLibrary::TransformLocation(BodyTransform, WheelPosition) };
+	const FVector End{ Start + (DownVector * RayLength) };
+
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
+
+	if (Grounded) HitRay = RayLength - FVector::Dist(Start, Hit.ImpactPoint);
+	Wheel->SetWorldLocation(Start + (-DownVector * HitRay));
+
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
+	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 6.0, 6, FColor::Blue);
 
 	return Grounded;
 }
 
 
-void AMowerRC::ApplyForceToWheel(const RayCastResponse& WheelResponse)
+void AMowerRC::ApplyForceToWheel(const FHitResult& Hit, double Acceleration)
 {
+	const float Mass{ Body->BodyInstance.GetBodyMass() };
+	const double Force{ Mass * Acceleration };
+	const FVector UpVector{ Body->GetUpVector() };
 
-
-
-
-
-
-
-
-
-	//constexpr double Force{ 20030.0 };
-	//const FVector UpVector{ Body->GetUpVector() };
-	//double Force{ 30.0 * -MowerDownVelocity };
-	//Body->AddForceAtLocation(UpVector * Force, WheelResponse.Hit.ImpactPoint);
+	Body->AddForceAtLocation(UpVector * Force, Hit.ImpactPoint);
 }
 
 
@@ -180,8 +199,8 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
-
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) 
+	{
 		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
 	}
 }
