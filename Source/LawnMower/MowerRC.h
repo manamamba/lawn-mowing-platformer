@@ -36,13 +36,14 @@ private:
 	void SetComponentProperties();
 	void SetWheelProperties(UStaticMeshComponent* Wheel, FVector Location);
 	void AddInputMappingContextToLocalPlayerSubsystem();
-	double GetMowerAcceleration();
-	void ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel, const FVector& WheelPosition, double Acceleration);
-	bool IsWheelGrounded(UStaticMeshComponent* Wheel, const FVector& WheelPosition, FHitResult& Hit);
-	void ApplyForceToWheel(const FHitResult& Hit, double Acceleration);
 
-	void TestMowerHovering();
+	void Float(float DeltaTime);
 
+	double GetMowerAcceleration(float DeltaTime);
+	void ApplyForceToGroundedMower(double Acceleration);
+	
+
+	void ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition);
 
 private:	
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body{};
@@ -56,14 +57,24 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
-	
-	const FVector LocalFRWheelPosition{ 24.0, 24.0, -8.0 };
-	const FVector LocalFLWheelPosition{ 24.0, -24.0, -8.0 };
-	const FVector LocalBRWheelPosition{ -24.0, 24.0, -8.0 };
-	const FVector LocalBLWheelPosition{ -24.0, -24.0, -8.0 };
+
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 8.9 };
+	const float BodyMass{ 30.0f };
+	const FVector LocalFRWheelPosition{ 24.0, 24.0, -7.0 };
+	const FVector LocalFLWheelPosition{ 24.0, -24.0, -7.0 };
+	const FVector LocalBRWheelPosition{ -24.0, 24.0, -7.0 };
+	const FVector LocalBLWheelPosition{ -24.0, -24.0, -7.0 };
+	const double GravitationalAcceleration{ 980.0 };
 
+
+	double MowerAcceleration{};
+
+	FVector FinalVelocity{};
+	FVector InitialVelocity{};
 	FVector LastTickVelocity{};
+
+
+
 
 };

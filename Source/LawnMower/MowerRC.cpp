@@ -7,8 +7,7 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/GameplayStatics.h"
-
+#include "Kismet/KismetSystemLibrary.h"
 
 AMowerRC::AMowerRC()
 {
@@ -103,95 +102,147 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// const double MowerAcceleration{ GetMowerAcceleration() };
+	// ApplyForceToGroundedMower(GetMowerAcceleration(DeltaTime));
 
-	TestMowerHovering();
+	Float(DeltaTime);
 
-	// ApplyForceToGroundedWheel(FRWheel, LocalFRWheelPosition, MowerAcceleration);
-	// ApplyForceToGroundedWheel(FLWheel, LocalFLWheelPosition, MowerAcceleration);
-	// ApplyForceToGroundedWheel(BRWheel, LocalBRWheelPosition, MowerAcceleration);
-	// ApplyForceToGroundedWheel(BLWheel, LocalBLWheelPosition, MowerAcceleration);
+	//const double MowerAcceleration{ GetMowerAcceleration() };
+	// ApplyForceToWheelPosition(FRWheel, LocalFRWheelPosition);
+	// ApplyForceToWheelPosition(FLWheel, LocalFLWheelPosition);
+	// ApplyForceToWheelPosition(BRWheel, LocalBRWheelPosition);
+	// ApplyForceToWheelPosition(BLWheel, LocalBLWheelPosition);
 }
 
 
-void AMowerRC::TestMowerHovering()
+void AMowerRC::Float(float DeltaTime)
+{
+	const double Mass{ Body->GetMass() };
+	const double Force{ Mass * GravitationalAcceleration };
+
+	Body->AddForce(FVector::UpVector * Force);
+
+	double Acceleration{ GetMowerAcceleration(DeltaTime) };
+	FVector VelocityDirection{ FinalVelocity.GetSafeNormal(0.01) };
+	const FVector Start{ Body->GetComponentLocation() };
+	const FVector End{ Start + (-VelocityDirection * 100.0) };
+	double AntiVelocityForce{ Mass * Acceleration };
+
+	// if acceleration is over a threshold, do not apply opposite velocity
+	if (Acceleration < GravitationalAcceleration) Body->AddForce(-VelocityDirection * AntiVelocityForce);
+
+	// need to get its rotation back to upright and stopped
+
+	
+	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
+
+	UE_LOG(LogTemp, Warning, TEXT("Acceleration      %f"), Acceleration);
+	UE_LOG(LogTemp, Warning, TEXT("AntiVelocityForce %f"), AntiVelocityForce);
+	UE_LOG(LogTemp, Warning, TEXT("VelocityDirection %s"), *VelocityDirection.ToString());
+}
+
+
+double AMowerRC::GetMowerAcceleration(float DeltaTime)
+{
+	FinalVelocity = Body->GetComponentVelocity();
+	InitialVelocity = LastTickVelocity;
+	LastTickVelocity = FinalVelocity;
+	
+	return double{ FVector::Dist(FinalVelocity, InitialVelocity) / DeltaTime };
+}
+
+
+void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
 {
 	FHitResult Hit{};
-	const double RayLength{ 8.9 };
+
+	constexpr double RayLength{ 15.9 };
+	double HitRay{};
+
+	const FVector UpVector{ Body->GetUpVector() };
 	const FVector Start{ Body->GetComponentLocation() };
-	const FVector DownVector{ -Body->GetUpVector() };
-	const FVector End{ Start + (DownVector * RayLength) };
+	const FVector End{ Start + (-UpVector * RayLength) };
 
 	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
-	if (Grounded)
-	{
-		const double MowerAcceleration{ GetMowerAcceleration() };
+	if (!Grounded) return;
 
-		const float Mass{ Body->BodyInstance.GetBodyMass() }; // 18.570330
-		const double Force{ Mass * MowerAcceleration };
-		const FVector UpVector{ Body->GetUpVector() };
+	DrawDebugLine(GetWorld(), Start, End, FColor::Orange);
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 2.0, 6, FColor::Orange);
 
-		// if acceleration is near 0, then we still need to apply the needed force to keep it hovering!
-		// need a base line force always being applied when ground is detected
+	FVector VelocityDirection{ FinalVelocity.GetSafeNormal(1.0) };
+	const double Force{ Body->GetMass() * Acceleration };
+	const double AntiGravitationalForce{ Body->GetMass() * GravitationalAcceleration };
 
-		Body->AddForce(UpVector * Force);
+	Body->AddForce(UpVector * (AntiGravitationalForce / Force) );
 
-		UE_LOG(LogTemp, Warning, TEXT("Mass: %f"), Mass);
-		UE_LOG(LogTemp, Warning, TEXT("Acceleration: %f"), MowerAcceleration);
-		UE_LOG(LogTemp, Warning, TEXT("Force: %f"), Force);
-	}
+
+
+	DrawDebugLine(GetWorld(), Start, Start + VelocityDirection * 50.0, FColor::Purple);
+	DrawDebugSphere(GetWorld(), Start + VelocityDirection * 50.0, 15.0, 12, FColor::Purple);
+	UE_LOG(LogTemp, Warning, TEXT("Acceleration %f"), Acceleration);
+	UE_LOG(LogTemp, Warning, TEXT("Force %f"), Force);
 }
 
 
-double AMowerRC::GetMowerAcceleration()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void AMowerRC::ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition)
 {
-	const FVector FinalVelocity{ Body->GetComponentVelocity() };
-	const FVector InitialVelocity{ LastTickVelocity };
-	LastTickVelocity = FinalVelocity;
-
-	return double{ FVector::Dist(FinalVelocity, InitialVelocity) / UGameplayStatics::GetWorldDeltaSeconds(this) };
-}
-
-
-void AMowerRC::ApplyForceToGroundedWheel(UStaticMeshComponent* Wheel, const FVector& WheelPosition, double Acceleration)
-{
+	if (!Wheel) return;
+	
 	FHitResult Hit{};
-
-	if (IsWheelGrounded(Wheel, WheelPosition, Hit)) ApplyForceToWheel(Hit, Acceleration);
-}
-
-
-bool AMowerRC::IsWheelGrounded(UStaticMeshComponent* Wheel, const FVector& WheelPosition, FHitResult& Hit)
-{
-	if (!Wheel) return false;
 
 	constexpr double RayLength{ 8.9 };
 	double HitRay{};
-	const FVector DownVector{ -Body->GetUpVector() };
+
+	const FVector UpVector{ Body->GetUpVector() };
 	const FTransform BodyTransform{ Body->GetComponentTransform() };
 	const FVector Start{ UKismetMathLibrary::TransformLocation(BodyTransform, WheelPosition) };
-	const FVector End{ Start + (DownVector * RayLength) };
+	const FVector End{ Start + (-UpVector * RayLength) };
 
 	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	if (Grounded) HitRay = RayLength - FVector::Dist(Start, Hit.ImpactPoint);
-	Wheel->SetWorldLocation(Start + (-DownVector * HitRay));
 
-	// DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
-	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 6.0, 6, FColor::Blue);
+	Wheel->SetWorldLocation(Start + (UpVector * HitRay));
 
-	return Grounded;
-}
+	// DrawDebugSphere(GetWorld(), Start, 2.0, 6, FColor::Blue);
+	// DrawDebugLine(GetWorld(), Start, End, FColor::Purple);
+	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 3.0, 6, FColor::Orange);
 
+	if (!Grounded) return;
 
-void AMowerRC::ApplyForceToWheel(const FHitResult& Hit, double Acceleration)
-{
-	const float Mass{ Body->BodyInstance.GetBodyMass() };
-	const double Force{ Mass * Acceleration };
-	const FVector UpVector{ Body->GetUpVector() };
+	FVector NewWheelPosition{ Wheel->GetComponentLocation() };
 
-	Body->AddForceAtLocation(UpVector * Force, Hit.ImpactPoint);
+	// Float();
+
+	const double WheelCount{ 4.0 };
+	const float Mass{ Body->GetMass() };
+
+	double Force{ (Mass * GravitationalAcceleration) / WheelCount };
+	
+	// DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (UpVector * 20.0), FColor::Green);
+	// UE_LOG(LogTemp, Warning, TEXT("%s Force Applied: %f"), *Wheel->GetName(), Force);
+
+	Body->AddForceAtLocation(FVector::UpVector * Force, Hit.ImpactPoint);
 }
 
 
