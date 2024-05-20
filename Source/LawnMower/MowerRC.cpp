@@ -60,12 +60,12 @@ void AMowerRC::SetComponentProperties()
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 	CameraArm->TargetArmLength = 200.0f;
 
-	SetMeshComponentCollisionAndDefaultLocation(Body, DefaultBodyPosition);
-	SetMeshComponentCollisionAndDefaultLocation(Handle, DefaultHandlePosition);
-	SetMeshComponentCollisionAndDefaultLocation(FRWheel, DefaultFRWheelPosition);
-	SetMeshComponentCollisionAndDefaultLocation(FLWheel, DefaultFLWheelPosition);
-	SetMeshComponentCollisionAndDefaultLocation(BRWheel, DefaultBRWheelPosition);
-	SetMeshComponentCollisionAndDefaultLocation(BLWheel, DefaultBLWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(Body, BodyPosition);
+	SetMeshComponentCollisionAndDefaultLocation(Handle, HandlePosition);
+	SetMeshComponentCollisionAndDefaultLocation(FRWheel, FRWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(FLWheel, FLWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(BRWheel, BRWheelPosition);
+	SetMeshComponentCollisionAndDefaultLocation(BLWheel, BLWheelPosition);
 }
 
 
@@ -85,7 +85,7 @@ void AMowerRC::BeginPlay()
 
 	AddInputMappingContextToLocalPlayerSubsystem();
 
-	// PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
+	PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -10.0 });
 }
 
 
@@ -108,15 +108,15 @@ void AMowerRC::Tick(float DeltaTime)
 	// FloatMower();
 	// TrackMowerForceDirection(DeltaTime);
 
-	if (RayCastHit(FRRayCast, DefaultFRRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
-	if (RayCastHit(FLRayCast, DefaultFLRayCastPosition)) ApplyForceOnRayCast(FLRayCast);
-	if (RayCastHit(BRRayCast, DefaultBRRayCastPosition)) ApplyForceOnRayCast(BRRayCast);
-	if (RayCastHit(BLRayCast, DefaultBLRayCastPosition)) ApplyForceOnRayCast(BLRayCast);
+	if (RayCastHit(FRRayCast, FRRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
+	if (RayCastHit(FRRayCast, FLRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
+	if (RayCastHit(FRRayCast, BRRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
+	if (RayCastHit(FRRayCast, BLRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
 
-	ApplySuspensionOnWheel(FRWheel, DefaultFRWheelPosition);
-	ApplySuspensionOnWheel(FLWheel, DefaultFLWheelPosition);
-	ApplySuspensionOnWheel(BRWheel, DefaultBRWheelPosition);
-	ApplySuspensionOnWheel(BLWheel, DefaultBLWheelPosition);
+	ApplySuspensionOnWheel(FRWheel, FRWheelPosition);
+	ApplySuspensionOnWheel(FLWheel, FLWheelPosition);
+	ApplySuspensionOnWheel(BRWheel, BRWheelPosition);
+	ApplySuspensionOnWheel(BLWheel, BLWheelPosition);
 
 	ApplyDragForce();
 }
@@ -149,6 +149,13 @@ double AMowerRC::GetAcceleration(const FVector& Vector, ChangeInVelocity& Veloci
 
 	return double{ FVector::Dist(Velocity.Final, Velocity.Initial) / DeltaTime };
 }
+
+
+
+
+
+
+
 
 
 bool AMowerRC::RayCastHit(RayCast& RayCast, const FVector& DefaultRayCastPosition)
@@ -188,8 +195,8 @@ void AMowerRC::ApplyForceOnRayCast(RayCast& RayCast)
 {
 	RayCast.CompressionRatio = (RayCastLength - RayCast.Hit.Distance) / RayCastLength;
 
-	if (RayCast.CompressionRatio < MinWheelDrag) RayCast.DragForce = MaxWheelDrag;
-	else RayCast.DragForce = MaxWheelDrag / (RayCast.CompressionRatio * WheelCount);
+	if (RayCast.CompressionRatio < DragForceCompressionRatioMinimum) RayCast.DragForce = MaxWheelDragForce;
+	else RayCast.DragForce = MaxWheelDragForce / (RayCast.CompressionRatio * WheelCount);
 	
 	DragForces.Add(RayCast.DragForce);
 
@@ -209,10 +216,13 @@ void AMowerRC::ApplyDragForce()
 
 	for (double Force : DragForces) TotalDragForce += Force;
 
-	UE_LOG(LogTemp, Warning, TEXT("TotalDragForce %f"), TotalDragForce);
+	const double LinearDragForce{ TotalDragForce * LinearDragForceMultiplier };
+	const double AngularDragForce{ TotalDragForce * AngularDragForceMultiplier };
 
-	PhysicsBody->SetLinearDamping(TotalDragForce);
-	PhysicsBody->SetAngularDamping(TotalDragForce);
+	// UE_LOG(LogTemp, Warning, TEXT("Linear Drag: %f	Angular Drag: %f"), LinearDragForce, AngularDragForce);
+
+	PhysicsBody->SetLinearDamping(LinearDragForce);
+	PhysicsBody->SetAngularDamping(AngularDragForce);
 
 	DragForces.Reset();
 }
