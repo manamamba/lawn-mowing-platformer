@@ -108,15 +108,11 @@ void AMowerRC::Tick(float DeltaTime)
 	// FloatMower();
 	// TrackMowerForceDirection(DeltaTime);
 
-	if (RayCastHit(FRRayCast, FRRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
-	if (RayCastHit(FRRayCast, FLRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
-	if (RayCastHit(FRRayCast, BRRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
-	if (RayCastHit(FRRayCast, BLRayCastPosition)) ApplyForceOnRayCast(FRRayCast);
+	SetPhysicsBodyTickData();
+	SendForceRayCasts(ForceRayCasts, ForceRayCastStarts);
+	SendWheelRayCasts(WheelRayCasts, WheelRayCastStarts);
 
-	ApplySuspensionOnWheel(FRWheel, FRWheelPosition);
-	ApplySuspensionOnWheel(FLWheel, FLWheelPosition);
-	ApplySuspensionOnWheel(BRWheel, BRWheelPosition);
-	ApplySuspensionOnWheel(BLWheel, BLWheelPosition);
+	DrawForceAndWheelRayCasts(ForceRayCasts, WheelRayCasts);
 
 	ApplyDragForce();
 }
@@ -151,43 +147,32 @@ double AMowerRC::GetAcceleration(const FVector& Vector, ChangeInVelocity& Veloci
 }
 
 
+void AMowerRC::SetPhysicsBodyTickData()
+{
+	PhysicsBodyTransform = PhysicsBody->GetComponentTransform();
+	PhysicsBodyUpVector = PhysicsBody->GetUpVector();
+	PhysicsBodyForwardVector = PhysicsBody->GetForwardVector();
+	PhysicsBodyRightVector = PhysicsBody->GetRightVector();
+}
 
 
-
-
-
+void AMowerRC::SendForceRayCasts(AllForceRayCasts& SentForceRayCasts, const LocalStarts& SentForceRayCastStarts)
+{
+	if (RayCastHit(SentForceRayCasts.FR, SentForceRayCastStarts.FR)) ApplyForceOnRayCast(SentForceRayCasts.FR);
+	if (RayCastHit(SentForceRayCasts.FL, SentForceRayCastStarts.FL)) ApplyForceOnRayCast(SentForceRayCasts.FL);
+	if (RayCastHit(SentForceRayCasts.BR, SentForceRayCastStarts.BR)) ApplyForceOnRayCast(SentForceRayCasts.BR);
+	if (RayCastHit(SentForceRayCasts.BL, SentForceRayCastStarts.BL)) ApplyForceOnRayCast(SentForceRayCasts.BL);
+}
 
 
 bool AMowerRC::RayCastHit(RayCast& RayCast, const FVector& DefaultRayCastPosition)
 {
-	const FTransform ComponentTransform{ PhysicsBody->GetComponentTransform() };
-	const FVector ComponentUpVector{ PhysicsBody->GetUpVector() };
-
-	RayCast.RayCastStart = UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultRayCastPosition);
+	RayCast.RayCastStart = UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, DefaultRayCastPosition);
 	RayCast.Hit.Reset();
 
-	const FVector RayCastEnd{ RayCast.RayCastStart + (-ComponentUpVector * RayCastLength) };
+	const FVector RayCastEnd{ RayCast.RayCastStart + (-PhysicsBodyUpVector * RayCastLength) };
 
 	return GetWorld()->LineTraceSingleByChannel(RayCast.Hit, RayCast.RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
-}
-
-
-void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, const FVector& DefaultWheelPosition)
-{
-	const FTransform ComponentTransform{ PhysicsBody->GetComponentTransform() };
-	const FVector ComponentUpVector{ PhysicsBody->GetUpVector() };
-
-	FHitResult Hit{};
-
-	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultWheelPosition) };
-	const FVector WheelEnd{ WheelStart + (-ComponentUpVector * RayCastLength) };
-
-	double RayCastLengthDifference{};
-
-	if (GetWorld()->LineTraceSingleByChannel(Hit, WheelStart, WheelEnd, ECC_GameTraceChannel1) )
-		RayCastLengthDifference = RayCastLength - Hit.Distance;
-
-	Wheel->SetWorldLocation(WheelStart + (ComponentUpVector * RayCastLengthDifference));
 }
 
 
@@ -207,6 +192,66 @@ void AMowerRC::ApplyForceOnRayCast(RayCast& RayCast)
 	const FVector RayCastForce{ RayCast.Hit.ImpactNormal * Force };
 
 	PhysicsBody->AddForceAtLocation(RayCastForce, RayCast.RayCastStart);
+}
+
+
+void AMowerRC::SendWheelRayCasts(AllWheelRayCasts& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts)
+{
+	ApplySuspensionOnWheel(FRWheel, SentWheelRayCasts.FR, SentWheelRayCastStarts.FR);
+	ApplySuspensionOnWheel(FLWheel, SentWheelRayCasts.FL, SentWheelRayCastStarts.FL);
+	ApplySuspensionOnWheel(BRWheel, SentWheelRayCasts.BR, SentWheelRayCastStarts.BR);
+	ApplySuspensionOnWheel(BLWheel, SentWheelRayCasts.BL, SentWheelRayCastStarts.BL);
+}
+
+
+void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, WheelCast& WheelCast, const FVector& DefaultWheelPosition)
+{
+	WheelCast.WheelCastStart = UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, DefaultWheelPosition);
+	WheelCast.Hit.Reset();
+	
+	const FVector WheelEnd{ WheelCast.WheelCastStart + (-PhysicsBodyUpVector * RayCastLength) };
+
+	double RayCastLengthDifference{};
+
+	if (GetWorld()->LineTraceSingleByChannel(WheelCast.Hit, WheelCast.WheelCastStart, WheelEnd, ECC_GameTraceChannel1) )
+		RayCastLengthDifference = RayCastLength - WheelCast.Hit.Distance;
+
+	Wheel->SetWorldLocation(WheelCast.WheelCastStart + (PhysicsBodyUpVector * RayCastLengthDifference));
+}
+
+
+void AMowerRC::DrawForceAndWheelRayCasts(AllForceRayCasts& SentForceRayCasts, AllWheelRayCasts& SentWheelRayCasts)
+{
+	DrawRayCastData(SentForceRayCasts.FR.RayCastStart, SentForceRayCasts.FR.Hit);
+	DrawRayCastData(SentForceRayCasts.FL.RayCastStart, SentForceRayCasts.FL.Hit);
+	DrawRayCastData(SentForceRayCasts.BR.RayCastStart, SentForceRayCasts.BR.Hit);
+	DrawRayCastData(SentForceRayCasts.BL.RayCastStart, SentForceRayCasts.BL.Hit);
+
+	DrawRayCastData(SentWheelRayCasts.FR.WheelCastStart, SentWheelRayCasts.FR.Hit);
+	DrawRayCastData(SentWheelRayCasts.FL.WheelCastStart, SentWheelRayCasts.FL.Hit);
+	DrawRayCastData(SentWheelRayCasts.BR.WheelCastStart, SentWheelRayCasts.BR.Hit);
+	DrawRayCastData(SentWheelRayCasts.BL.WheelCastStart, SentWheelRayCasts.BL.Hit);
+}
+
+
+void AMowerRC::DrawRayCastData(FVector RayCastStart, FHitResult Hit)
+{
+	if (!Hit.bBlockingHit)
+	{
+		DrawDebugLine(GetWorld(), Hit.TraceStart, Hit.TraceEnd, FColor::Red);
+		DrawDebugSphere(GetWorld(), Hit.TraceEnd, 1.0, 6, FColor::Red);
+
+		return;
+	}
+
+	const FVector SurfaceCrossProduct{ FVector::CrossProduct(PhysicsBodyRightVector, Hit.ImpactNormal) };
+
+	DrawDebugLine(GetWorld(), Hit.TraceStart, Hit.ImpactPoint, FColor::Green);
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0, 6, FColor::Green);
+
+	// const FVector SurfaceCrossProduct{ FVector::CrossProduct(PhysicsBodyRightVector, Hit.ImpactNormal) };
+	// DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (SurfaceCrossProduct * 50.0), FColor::Cyan);
+	// // DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 50.0), FColor::Turquoise);
 }
 
 
@@ -252,85 +297,7 @@ void AMowerRC::ApplyDragForce()
 
 
 
-void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* Mesh, const FVector& DefaultMeshPosition)
-{
-	if (!Component) return;
-	
-	FHitResult Hit{};
 
-	const FTransform ComponentTransform{ Component->GetComponentTransform() };
-	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultRayCastPosition) };
-	const FVector ComponentUpVector{ Component->GetUpVector() };
-	const FVector RayCastEnd{ RayCastStart + (-ComponentUpVector * RayCastLength) };
-
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1) };
-
-	double RayCastLengthDifference{};
-	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultMeshPosition) };
-	
-	if (Grounded) RayCastLengthDifference = RayCastLength - Hit.Distance;
-	
-	const double CompressionRatio{ RayCastLengthDifference / RayCastLength }; 
-	const FVector SurfaceIP{ Hit.ImpactPoint };
-	const FVector SurfaceIN{ Hit.ImpactNormal };
-
-	Mesh->SetWorldLocation(WheelStart + (ComponentUpVector * RayCastLengthDifference));
-
-
-	if (!Grounded)
-	{
-		DrawDebugLine(GetWorld(), Hit.TraceStart, Hit.TraceEnd, FColor::Red);
-		DrawDebugSphere(GetWorld(), Hit.TraceEnd, 1.0, 6, FColor::Red);
-
-		return;
-	}
-	else
-	{
-		const FVector SurfaceCrossProduct{ FVector::CrossProduct(Component->GetRightVector(), SurfaceIN) };
-
-		DrawDebugLine(GetWorld(), RayCastStart, SurfaceIP, FColor::Green);
-		DrawDebugSphere(GetWorld(), SurfaceIP, 1.0, 6, FColor::Green);
-		DrawDebugLine(GetWorld(), SurfaceIP, SurfaceIP + (SurfaceIN * 50.0), FColor::Turquoise);
-		DrawDebugLine(GetWorld(), SurfaceIP, SurfaceIP + (SurfaceCrossProduct * 50.0), FColor::Cyan);
-
-		++GroundedWheels;
-	}
-
-
-	if (CompressionRatio < DragCompression) DragCompression = CompressionRatio;
-	if (DragCompression < DragCompressionMinimum) DragCompression = DragCompressionMinimum;
-
-
-	double Acceleration{ GravitationalAcceleration };
-	Acceleration = GravitationalAcceleration * CompressionRatio;
-
-	const double Force{ Mass * Acceleration };
-	const FVector RayCastForce{ SurfaceIN * Force };
-
-	Component->AddForceAtLocation(RayCastForce, RayCastStart);
-}
-
-
-void AMowerRC::ApplyDragToGroundedMower()
-{
-	if (DragCompression == 1.0)
-	{
-		PhysicsBody->SetLinearDamping(0.01);
-		PhysicsBody->SetAngularDamping(0.0);
-
-		return;
-	}
-	
-	double WheelDrag{ GroundedWheels / WheelCount };
-
-	PhysicsBody->SetLinearDamping(MaxWheelDrag / DragCompression * WheelDrag);
-	PhysicsBody->SetAngularDamping(MaxWheelDrag / DragCompression * WheelDrag);
-
-	UE_LOG(LogTemp, Warning, TEXT("Drag: %f"), MaxWheelDrag / DragCompression * WheelDrag);
-
-	DragCompression = 1.0;
-	GroundedWheels = 0;
-}
 
 
 void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

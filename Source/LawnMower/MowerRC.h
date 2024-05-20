@@ -28,7 +28,7 @@ struct RayCast {
 	double DragForce{};
 };
 
-struct RayCasts {
+struct AllForceRayCasts {
 	RayCast FR{};
 	RayCast FL{};
 	RayCast BR{};
@@ -40,14 +40,14 @@ struct WheelCast {
 	FHitResult Hit{};
 };
 
-struct WheelCasts {
+struct AllWheelRayCasts {
 	WheelCast FR{};
 	WheelCast FL{};
 	WheelCast BR{};
 	WheelCast BL{};
 };
 
-struct LocalPositions {
+struct LocalStarts {
 	FVector FR{};
 	FVector FL{};
 	FVector BR{};
@@ -79,13 +79,17 @@ private:
 	void TrackMowerForceDirection(float DeltaTime);
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 
+	void SetPhysicsBodyTickData();
+	void SendForceRayCasts(AllForceRayCasts& SentForceRayCasts, const LocalStarts& SentForceRayCastStarts);
 	bool RayCastHit(RayCast& RayCast, const FVector& DefaultRayCastPosition);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, const FVector& DefaultWheelPosition);
 	void ApplyForceOnRayCast(RayCast& RayCast);
-	void ApplyDragForce();
+	void SendWheelRayCasts(AllWheelRayCasts& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, WheelCast& WheelCast, const FVector& DefaultWheelPosition);
+	
+	void DrawForceAndWheelRayCasts(AllForceRayCasts& SentForceRayCasts, AllWheelRayCasts& SentWheelRayCasts);
+	void DrawRayCastData(FVector RayCastStart, FHitResult Hit);
 
-	void RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* WheelMesh, const FVector& DefaultMeshPosition);
-	void ApplyDragToGroundedMower();
+	void ApplyDragForce();
 
 public:
 	void MoveCamera(const FInputActionValue& Value);
@@ -122,8 +126,8 @@ private:
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
 
-	const LocalPositions RayCastPositions{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
-	const LocalPositions WheelPositions{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
+	const LocalStarts ForceRayCastStarts{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
+	const LocalStarts WheelRayCastStarts{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 5.0 };
@@ -150,14 +154,14 @@ private:
 	RayCast BRRayCast{};
 	RayCast BLRayCast{};
 
-	RayCasts RayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
+	AllForceRayCasts ForceRayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
 
 	WheelCast FRWheelCast{};
 	WheelCast FLWheelCast{};
 	WheelCast BRWheelCast{};
 	WheelCast BLWheelCast{};
 
-	WheelCasts WheelCasts{ FRWheelCast, FLWheelCast, BRWheelCast, BLWheelCast };
+	AllWheelRayCasts WheelRayCasts{ FRWheelCast, FLWheelCast, BRWheelCast, BLWheelCast };
 
 	TArray<double> DragForces{};
 
