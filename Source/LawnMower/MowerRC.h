@@ -46,7 +46,7 @@ private:
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 	
 	void RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* WheelMesh, const FVector& DefaultMeshPosition);
-	void RayCastDamping();
+	void ApplyDragToGroundedComponent(UPrimitiveComponent* Component);
 
 public:
 	void MoveCamera(const FInputActionValue& Value);
@@ -84,9 +84,6 @@ private:
 
 	ChangeInVelocity PhysicsBodyVelocity{};
 
-	double FRRayCastHitLength{};
-	double FLRayCastHitLength{};
-	double BRRayCastHitLength{};
-	double BLRayCastHitLength{};
-
+	double DragCompression{ 1.0 };
+	int32 GroundedWheels{ 0 };
 };

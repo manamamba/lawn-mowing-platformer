@@ -7,9 +7,7 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
-
 #include "Kismet/KismetMathLibrary.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 
 AMowerRC::AMowerRC()
@@ -118,6 +116,8 @@ void AMowerRC::Tick(float DeltaTime)
 	RayCastAtDefaultPosition(PhysicsBody, FLRayCastDefaultPosition, FLWheel, DefaultFLWheelPosition);
 	RayCastAtDefaultPosition(PhysicsBody, BRRayCastDefaultPosition, BRWheel, DefaultBRWheelPosition);
 	RayCastAtDefaultPosition(PhysicsBody, BLRayCastDefaultPosition, BLWheel, DefaultBLWheelPosition);
+
+	ApplyDragToGroundedComponent(PhysicsBody);
 }
 
 
@@ -182,56 +182,74 @@ void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FV
 	
 	if (Grounded) RayCastLengthDifference = RayCastLength - RayCastHitLength;
 	
-	const double CompressionRatio{ RayCastLengthDifference / RayCastLength };
+	const double CompressionRatio{ RayCastLengthDifference / RayCastLength }; 
 	const FVector SurfaceImpactPoint{ Hit.ImpactPoint };
 	const FVector SurfaceImpactNormal{ Hit.ImpactNormal };
 
 	Mesh->SetWorldLocation(WheelStart + (ComponentUpVector * RayCastLengthDifference));
+
 
 	if (!Grounded)
 	{
 		DrawDebugLine(GetWorld(), RayCastStart, RayCastEnd, FColor::Red);
 		DrawDebugSphere(GetWorld(), RayCastEnd, 1.0, 6, FColor::Red);
 
-		Component->SetLinearDamping(0.01);
-		Component->SetAngularDamping(0.0);
-
 		return;
 	}
+	else
+	{
+		DrawDebugLine(GetWorld(), RayCastStart, Hit.ImpactPoint, FColor::Green);
+		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0, 6, FColor::Green);
+		DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 50.0), FColor::Turquoise);
 
-	UE_LOG(LogTemp, Warning, TEXT("CompressionRatio: %f"), CompressionRatio);
-	DrawDebugLine(GetWorld(), RayCastStart, Hit.ImpactPoint, FColor::Green);
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0, 6, FColor::Green);
+		++GroundedWheels;
+	}
 	
-	if (Grounded) DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 100.0), FColor::Orange);
 
 	const double WheelCount{ 4.0 };
 	const double Mass{ Component->GetMass() };
 	const double GravitationalAcceleration{ 980.0 };
 
 	double Acceleration{ GravitationalAcceleration };
-	if (CompressionRatio > 0.1) Acceleration += GravitationalAcceleration * CompressionRatio;
+	Acceleration = GravitationalAcceleration * CompressionRatio;
 
 	const double Force{ Mass * Acceleration };
-	const FVector RayCastForce{ Hit.ImpactNormal * (Force / WheelCount) };
+	const FVector RayCastForce{ Hit.ImpactNormal * Force };
 
 	Component->AddForceAtLocation(RayCastForce, RayCastStart);
 
 
+	const double DragCompressionMin{ 0.25 };
 
-
-
-
-
+	if (CompressionRatio < DragCompression) DragCompression = CompressionRatio;
+	if (DragCompression < DragCompressionMin) DragCompression = DragCompressionMin;
 }
 
 
-void AMowerRC::RayCastDamping()
+void AMowerRC::ApplyDragToGroundedComponent(UPrimitiveComponent* Component)
 {
+	if (!Component) return;
 
+	UE_LOG(LogTemp, Warning, TEXT("CompressionMin %f"), DragCompression);
+	UE_LOG(LogTemp, Warning, TEXT("Linear %f	Angular %f"), Component->GetLinearDamping(), Component->GetAngularDamping());
 
+	if (DragCompression == 1.0)
+	{
+		Component->SetLinearDamping(0.01);
+		Component->SetAngularDamping(0.0);
 
+		return;
+	}
+	
+	const double MaxDrag{ 2.0 };
 
+	double WheelDrag{ GroundedWheels / 4.0 };
+
+	Component->SetLinearDamping(MaxDrag / DragCompression * WheelDrag);
+	Component->SetAngularDamping(MaxDrag / DragCompression * WheelDrag);
+
+	DragCompression = 1.0;
+	GroundedWheels = 0;
 }
 
 
