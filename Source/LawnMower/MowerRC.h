@@ -35,24 +35,22 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-public:
-	void MoveCamera(const FInputActionValue& Value);
-
 private:	
 	void CreateAndAssignComponentSubObjects();
 	void SetupComponentAttachments();
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location);
 	void AddInputMappingContextToLocalPlayerSubsystem();
-
 	void FloatPhysicsEnabledComponent(UPrimitiveComponent* Component);
 	void TrackPhysicsEnabledComponentAcceleration(UPrimitiveComponent* Component, ChangeInVelocity& Velocity, float DeltaTime);
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
+	
+	void RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* WheelMesh, const FVector& DefaultMeshPosition);
+	void RayCastDamping();
 
-	void RayCastAtDefaultPosition(FVector DefaultPosition);
+public:
+	void MoveCamera(const FInputActionValue& Value);
 
-	void ApplyForceToGroundedMower(double Acceleration);
-	void ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition);
 
 private:	
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody{};
@@ -85,5 +83,10 @@ private:
 	const double MaxArmPitch{ 5.0 };
 
 	ChangeInVelocity PhysicsBodyVelocity{};
+
+	double FRRayCastHitLength{};
+	double FLRayCastHitLength{};
+	double BRRayCastHitLength{};
+	double BLRayCastHitLength{};
 
 };

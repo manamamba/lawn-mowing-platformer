@@ -55,8 +55,10 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetBoxExtent(PhysicsBodyDimensions);
 	PhysicsBody->SetGenerateOverlapEvents(false);
 	PhysicsBody->SetSimulatePhysics(true);
-	PhysicsBody->SetLinearDamping(2.0f);
-	PhysicsBody->SetAngularDamping(2.0f);
+
+	// PhysicsBody->SetLinearDamping(2.0f);
+	// PhysicsBody->SetAngularDamping(2.0f);
+
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName("PhysicsActor");
 
@@ -87,7 +89,7 @@ void AMowerRC::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
+	PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 
 	AddInputMappingContextToLocalPlayerSubsystem();
 }
@@ -109,13 +111,13 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FloatPhysicsEnabledComponent(PhysicsBody);
-	TrackPhysicsEnabledComponentAcceleration(PhysicsBody, PhysicsBodyVelocity, DeltaTime);
+	// FloatPhysicsEnabledComponent(PhysicsBody);
+	// TrackPhysicsEnabledComponentAcceleration(PhysicsBody, PhysicsBodyVelocity, DeltaTime);
 
-	RayCastAtDefaultPosition(FRRayCastDefaultPosition);
-	RayCastAtDefaultPosition(FLRayCastDefaultPosition);
-	RayCastAtDefaultPosition(BRRayCastDefaultPosition);
-	RayCastAtDefaultPosition(BLRayCastDefaultPosition);
+	RayCastAtDefaultPosition(PhysicsBody, FRRayCastDefaultPosition, FRWheel, DefaultFRWheelPosition);
+	RayCastAtDefaultPosition(PhysicsBody, FLRayCastDefaultPosition, FLWheel, DefaultFLWheelPosition);
+	RayCastAtDefaultPosition(PhysicsBody, BRRayCastDefaultPosition, BRWheel, DefaultBRWheelPosition);
+	RayCastAtDefaultPosition(PhysicsBody, BLRayCastDefaultPosition, BLWheel, DefaultBLWheelPosition);
 }
 
 
@@ -140,9 +142,9 @@ void AMowerRC::TrackPhysicsEnabledComponentAcceleration(UPrimitiveComponent* Com
 	const double ComponentAcceleration{ GetAcceleration(ComponentVelocityThisTick, Velocity, DeltaTime) };
 	const double AntiVelocityForce{ Mass * ComponentAcceleration };
 	const FVector VelocityDirection{ Velocity.Final.GetSafeNormal(1.0) };
+	
 	const FVector Start{ Component->GetComponentLocation() };
 	const FVector End{ Start + (VelocityDirection * AntiVelocityForce / Mass) };
-
 	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
 	UE_LOG(LogTemp, Warning, TEXT("Acceleration      %f"), ComponentAcceleration);
 	UE_LOG(LogTemp, Warning, TEXT("AntiVelocityForce %f"), AntiVelocityForce);
@@ -160,142 +162,77 @@ double AMowerRC::GetAcceleration(const FVector& Vector, ChangeInVelocity& Veloci
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-void AMowerRC::RayCastAtDefaultPosition(FVector DefaultPosition)
+void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* Mesh, const FVector& DefaultMeshPosition)
 {
-
-
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void AMowerRC::ApplyForceToGroundedMower(double Acceleration)
-{
-	FHitResult Hit{};
-
-	constexpr double RayLength{ 15.9 };
-	double HitRay{};
-
-	const double GravitationalAcceleration{ 980.0 };
-	const FVector UpVector{ Body->GetUpVector() };
-	const FVector Start{ Body->GetComponentLocation() };
-	const FVector End{ Start + (-UpVector * RayLength) };
-
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
-
-	if (!Grounded) return;
-
-	DrawDebugLine(GetWorld(), Start, End, FColor::Orange);
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 2.0, 6, FColor::Orange);
-
-	FVector VelocityDirection{ /*FinalVelocity.GetSafeNormal(1.0)*/ };
-	const double Force{ Body->GetMass() * Acceleration };
-	const double AntiGravitationalForce{ Body->GetMass() * GravitationalAcceleration};
-
-	Body->AddForce(UpVector * (AntiGravitationalForce / Force) );
-
-
-
-	DrawDebugLine(GetWorld(), Start, Start + VelocityDirection * 50.0, FColor::Purple);
-	DrawDebugSphere(GetWorld(), Start + VelocityDirection * 50.0, 15.0, 12, FColor::Purple);
-	UE_LOG(LogTemp, Warning, TEXT("Acceleration %f"), Acceleration);
-	UE_LOG(LogTemp, Warning, TEXT("Force %f"), Force);
-}
-
-
-void AMowerRC::ApplyForceToWheelPosition(UStaticMeshComponent* Wheel, const FVector& WheelPosition)
-{
-	if (!Wheel) return;
+	if (!Component) return;
 	
 	FHitResult Hit{};
 
-	constexpr double RayLength{ 8.9 };
-	double HitRay{};
+	constexpr double RayCastLength{ 8.9 };
+	const FTransform ComponentTransform{ Component->GetComponentTransform() };
+	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultRayCastPosition) };
+	const FVector ComponentUpVector{ Component->GetUpVector() };
+	const FVector RayCastEnd{ RayCastStart + (-ComponentUpVector * RayCastLength) };
 
-	const double GravitationalAcceleration{ 980.0 };
-	const FVector UpVector{ Body->GetUpVector() };
-	const FTransform BodyTransform{ Body->GetComponentTransform() };
-	const FVector Start{ UKismetMathLibrary::TransformLocation(BodyTransform, WheelPosition) };
-	const FVector End{ Start + (-UpVector * RayLength) };
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1) };
 
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
+	double RayCastLengthDifference{};
+	double RayCastHitLength{ FVector::Dist(RayCastStart, Hit.ImpactPoint) };
+	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultMeshPosition) };
+	
+	if (Grounded) RayCastLengthDifference = RayCastLength - RayCastHitLength;
+	
+	const double CompressionRatio{ RayCastLengthDifference / RayCastLength };
+	const FVector SurfaceImpactPoint{ Hit.ImpactPoint };
+	const FVector SurfaceImpactNormal{ Hit.ImpactNormal };
 
-	if (Grounded) HitRay = RayLength - FVector::Dist(Start, Hit.ImpactPoint);
+	Mesh->SetWorldLocation(WheelStart + (ComponentUpVector * RayCastLengthDifference));
 
-	Wheel->SetWorldLocation(Start + (UpVector * HitRay));
+	if (!Grounded)
+	{
+		DrawDebugLine(GetWorld(), RayCastStart, RayCastEnd, FColor::Red);
+		DrawDebugSphere(GetWorld(), RayCastEnd, 1.0, 6, FColor::Red);
 
-	// DrawDebugSphere(GetWorld(), Start, 2.0, 6, FColor::Blue);
-	// DrawDebugLine(GetWorld(), Start, End, FColor::Purple);
-	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 3.0, 6, FColor::Orange);
+		Component->SetLinearDamping(0.01);
+		Component->SetAngularDamping(0.0);
 
-	if (!Grounded) return;
+		return;
+	}
 
-	FVector NewWheelPosition{ Wheel->GetComponentLocation() };
-
-	// Float();
+	UE_LOG(LogTemp, Warning, TEXT("CompressionRatio: %f"), CompressionRatio);
+	DrawDebugLine(GetWorld(), RayCastStart, Hit.ImpactPoint, FColor::Green);
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0, 6, FColor::Green);
+	
+	if (Grounded) DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 100.0), FColor::Orange);
 
 	const double WheelCount{ 4.0 };
-	const float Mass{ Body->GetMass() };
+	const double Mass{ Component->GetMass() };
+	const double GravitationalAcceleration{ 980.0 };
 
-	double Force{ (Mass * GravitationalAcceleration) / WheelCount };
-	
-	// DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (UpVector * 20.0), FColor::Green);
-	// UE_LOG(LogTemp, Warning, TEXT("%s Force Applied: %f"), *Wheel->GetName(), Force);
+	double Acceleration{ GravitationalAcceleration };
+	if (CompressionRatio > 0.1) Acceleration += GravitationalAcceleration * CompressionRatio;
 
-	Body->AddForceAtLocation(FVector::UpVector * Force, Hit.ImpactPoint);
+	const double Force{ Mass * Acceleration };
+	const FVector RayCastForce{ Hit.ImpactNormal * (Force / WheelCount) };
+
+	Component->AddForceAtLocation(RayCastForce, RayCastStart);
+
+
+
+
+
+
+
 }
 
 
+void AMowerRC::RayCastDamping()
+{
 
 
 
 
-
-
-
+}
 
 
 void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
