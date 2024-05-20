@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Player controlled lawn mower class by Cody Wheeler
 
 
 #include "MowerRC.h"
@@ -53,10 +53,6 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetBoxExtent(PhysicsBodyDimensions);
 	PhysicsBody->SetGenerateOverlapEvents(false);
 	PhysicsBody->SetSimulatePhysics(true);
-
-	// PhysicsBody->SetLinearDamping(2.0f);
-	// PhysicsBody->SetAngularDamping(2.0f);
-
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName("PhysicsActor");
 
@@ -87,9 +83,9 @@ void AMowerRC::BeginPlay()
 {
 	Super::BeginPlay();
 
-	PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
-
 	AddInputMappingContextToLocalPlayerSubsystem();
+	 
+	// PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 }
 
 
@@ -109,46 +105,34 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// FloatPhysicsEnabledComponent(PhysicsBody);
-	// TrackPhysicsEnabledComponentAcceleration(PhysicsBody, PhysicsBodyVelocity, DeltaTime);
+	// FloatMower();
+	// TrackMowerForceDirection(DeltaTime);
 
 	RayCastAtDefaultPosition(PhysicsBody, FRRayCastDefaultPosition, FRWheel, DefaultFRWheelPosition);
 	RayCastAtDefaultPosition(PhysicsBody, FLRayCastDefaultPosition, FLWheel, DefaultFLWheelPosition);
 	RayCastAtDefaultPosition(PhysicsBody, BRRayCastDefaultPosition, BRWheel, DefaultBRWheelPosition);
 	RayCastAtDefaultPosition(PhysicsBody, BLRayCastDefaultPosition, BLWheel, DefaultBLWheelPosition);
 
-	ApplyDragToGroundedComponent(PhysicsBody);
+	ApplyDragToGroundedMower();
 }
 
 
-void AMowerRC::FloatPhysicsEnabledComponent(UPrimitiveComponent* Component)
+void AMowerRC::FloatMower()
 {
-	if (!Component) return;
-	
-	const double Mass{ Component->GetMass() };
-	const double GravitationalAcceleration{ 980.0 };
-	const double Force{ Mass * GravitationalAcceleration };
-
-	Component->AddForce(FVector::UpVector * Force);
+	PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce);
 }
 
 
-void AMowerRC::TrackPhysicsEnabledComponentAcceleration(UPrimitiveComponent* Component, ChangeInVelocity& Velocity, float DeltaTime)
+void AMowerRC::TrackMowerForceDirection(float DeltaTime)
 {
-	if (!Component) return;
+	const FVector MowerVelocityThisTick{ PhysicsBody->GetComponentVelocity() };
+	const double Acceleration{ GetAcceleration(MowerVelocityThisTick, MowerVelocity, DeltaTime) };
+	const double Force{ Mass * Acceleration };
+	const FVector VelocityNormal{ MowerVelocity.Final.GetSafeNormal(1.0) };
+	const FVector LineStart{ PhysicsBody->GetComponentLocation() };
+	const FVector LineEnd{ LineStart + (-VelocityNormal * 50.0) };
 
-	const double Mass{ Component->GetMass() };
-	const FVector ComponentVelocityThisTick{ Component->GetComponentVelocity() };
-	const double ComponentAcceleration{ GetAcceleration(ComponentVelocityThisTick, Velocity, DeltaTime) };
-	const double AntiVelocityForce{ Mass * ComponentAcceleration };
-	const FVector VelocityDirection{ Velocity.Final.GetSafeNormal(1.0) };
-	
-	const FVector Start{ Component->GetComponentLocation() };
-	const FVector End{ Start + (VelocityDirection * AntiVelocityForce / Mass) };
-	DrawDebugLine(GetWorld(), Start, End, FColor::Blue);
-	UE_LOG(LogTemp, Warning, TEXT("Acceleration      %f"), ComponentAcceleration);
-	UE_LOG(LogTemp, Warning, TEXT("AntiVelocityForce %f"), AntiVelocityForce);
-	UE_LOG(LogTemp, Warning, TEXT("VelocityDirection %s"), *VelocityDirection.ToString());
+	DrawDebugLine(GetWorld(), LineStart, LineEnd, FColor::Blue);
 }
 
 
@@ -162,13 +146,50 @@ double AMowerRC::GetAcceleration(const FVector& Vector, ChangeInVelocity& Veloci
 }
 
 
+// RayCast Refactor!
+// Make Wheel Position RayCasting Seperate, One Function that 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* Mesh, const FVector& DefaultMeshPosition)
 {
 	if (!Component) return;
 	
 	FHitResult Hit{};
 
-	constexpr double RayCastLength{ 8.9 };
 	const FTransform ComponentTransform{ Component->GetComponentTransform() };
 	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(ComponentTransform, DefaultRayCastPosition) };
 	const FVector ComponentUpVector{ Component->GetUpVector() };
@@ -183,8 +204,8 @@ void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FV
 	if (Grounded) RayCastLengthDifference = RayCastLength - RayCastHitLength;
 	
 	const double CompressionRatio{ RayCastLengthDifference / RayCastLength }; 
-	const FVector SurfaceImpactPoint{ Hit.ImpactPoint };
-	const FVector SurfaceImpactNormal{ Hit.ImpactNormal };
+	const FVector SurfaceIP{ Hit.ImpactPoint };
+	const FVector SurfaceIN{ Hit.ImpactNormal };
 
 	Mesh->SetWorldLocation(WheelStart + (ComponentUpVector * RayCastLengthDifference));
 
@@ -198,59 +219,50 @@ void AMowerRC::RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FV
 	}
 	else
 	{
-		DrawDebugLine(GetWorld(), RayCastStart, Hit.ImpactPoint, FColor::Green);
-		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0, 6, FColor::Green);
-		DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 50.0), FColor::Turquoise);
+		DrawDebugLine(GetWorld(), RayCastStart, SurfaceIP, FColor::Green);
+		DrawDebugSphere(GetWorld(), SurfaceIP, 1.0, 6, FColor::Green);
+		DrawDebugLine(GetWorld(), SurfaceIP, SurfaceIP + (SurfaceIN * 50.0), FColor::Turquoise);
+		DrawDebugLine(GetWorld(), SurfaceIP, SurfaceIP + (Component->GetForwardVector() * 25.0), FColor::Cyan);
 
 		++GroundedWheels;
 	}
-	
 
-	const double WheelCount{ 4.0 };
-	const double Mass{ Component->GetMass() };
-	const double GravitationalAcceleration{ 980.0 };
+
+	if (CompressionRatio < DragCompression) DragCompression = CompressionRatio;
+	if (DragCompression < DragCompressionMinimum) DragCompression = DragCompressionMinimum;
+
 
 	double Acceleration{ GravitationalAcceleration };
 	Acceleration = GravitationalAcceleration * CompressionRatio;
 
 	const double Force{ Mass * Acceleration };
-	const FVector RayCastForce{ Hit.ImpactNormal * Force };
+	const FVector RayCastForce{ SurfaceIN * Force };
 
 	Component->AddForceAtLocation(RayCastForce, RayCastStart);
-
-
-	const double DragCompressionMin{ 0.25 };
-
-	if (CompressionRatio < DragCompression) DragCompression = CompressionRatio;
-	if (DragCompression < DragCompressionMin) DragCompression = DragCompressionMin;
 }
 
 
-void AMowerRC::ApplyDragToGroundedComponent(UPrimitiveComponent* Component)
+void AMowerRC::ApplyDragToGroundedMower()
 {
-	if (!Component) return;
-
-	UE_LOG(LogTemp, Warning, TEXT("CompressionMin %f"), DragCompression);
-	UE_LOG(LogTemp, Warning, TEXT("Linear %f	Angular %f"), Component->GetLinearDamping(), Component->GetAngularDamping());
-
 	if (DragCompression == 1.0)
 	{
-		Component->SetLinearDamping(0.01);
-		Component->SetAngularDamping(0.0);
+		PhysicsBody->SetLinearDamping(0.01);
+		PhysicsBody->SetAngularDamping(0.0);
 
 		return;
 	}
 	
-	const double MaxDrag{ 2.0 };
+	double WheelDrag{ GroundedWheels / WheelCount };
 
-	double WheelDrag{ GroundedWheels / 4.0 };
-
-	Component->SetLinearDamping(MaxDrag / DragCompression * WheelDrag);
-	Component->SetAngularDamping(MaxDrag / DragCompression * WheelDrag);
+	PhysicsBody->SetLinearDamping(MaxWheelDrag / DragCompression * WheelDrag);
+	PhysicsBody->SetAngularDamping(MaxWheelDrag / DragCompression * WheelDrag);
 
 	DragCompression = 1.0;
 	GroundedWheels = 0;
 }
+
+
+
 
 
 void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -260,6 +272,7 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) 
 	{
 		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
+		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
 	}
 }
 
@@ -267,13 +280,26 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AMowerRC::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D InputVector{ Value.Get<FVector2D>() };
+	
 	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
 
 	ArmPosition.Yaw += InputVector.X;
 	ArmPosition.Pitch += InputVector.Y;
+
 	if (ArmPosition.Pitch > MaxArmPitch) ArmPosition.Pitch = MaxArmPitch;
 	if (ArmPosition.Pitch < MinArmPitch) ArmPosition.Pitch = MinArmPitch;
 
 	CameraArm->SetRelativeRotation(ArmPosition);
 }
 
+
+void AMowerRC::Accelerate(const FInputActionValue& Value)
+{
+	const float InputVector{ Value.Get<float>() };
+	const double Acceleration{ 5000.0 };
+
+	const FVector ForwardVector{ PhysicsBody->GetForwardVector() };
+	const FVector Force{ ForwardVector * (Acceleration * InputVector) };
+
+	PhysicsBody->AddForce(Force, NAME_None, true);
+}

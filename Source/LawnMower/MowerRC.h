@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Player controlled lawn mower class by Cody Wheeler
 
 
 #pragma once
@@ -41,15 +41,24 @@ private:
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location);
 	void AddInputMappingContextToLocalPlayerSubsystem();
-	void FloatPhysicsEnabledComponent(UPrimitiveComponent* Component);
-	void TrackPhysicsEnabledComponentAcceleration(UPrimitiveComponent* Component, ChangeInVelocity& Velocity, float DeltaTime);
+	void FloatMower();
+	void TrackMowerForceDirection(float DeltaTime);
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 	
+
+
+
+
+
+
+
+
 	void RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* WheelMesh, const FVector& DefaultMeshPosition);
-	void ApplyDragToGroundedComponent(UPrimitiveComponent* Component);
+	void ApplyDragToGroundedMower();
 
 public:
 	void MoveCamera(const FInputActionValue& Value);
+	void Accelerate(const FInputActionValue& Value);
 
 
 private:	
@@ -65,6 +74,7 @@ private:
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction{};
 
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector DefaultBodyPosition{ -0.3, 0.0, -1.0 };
@@ -79,11 +89,26 @@ private:
 	const FVector BRRayCastDefaultPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastDefaultPosition{ -25.0, -15.0, -9.0 };
 
-	const double MinArmPitch{ -89.0 };
-	const double MaxArmPitch{ 5.0 };
+	static constexpr double MinArmPitch{ -89.0 };
+	static constexpr double MaxArmPitch{ 5.0 };
+	static constexpr double RayCastLength{ 8.9 };
+	static constexpr double WheelCount{ 4.0 };
+	static constexpr double Mass{ 16.850502 };
+	static constexpr double GravitationalAcceleration{ 980.0 };
+	static constexpr double AntiGravitationalForce{ Mass * GravitationalAcceleration };
+	static constexpr double DragCompressionMinimum{ 0.25 };
+	static constexpr double MaxWheelDrag{ 2.0 };
 
-	ChangeInVelocity PhysicsBodyVelocity{};
+
+
+
+
+
+
+
+	ChangeInVelocity MowerVelocity{};
 
 	double DragCompression{ 1.0 };
 	int32 GroundedWheels{ 0 };
+
 };
