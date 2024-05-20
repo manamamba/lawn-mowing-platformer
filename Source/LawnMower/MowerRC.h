@@ -21,6 +21,20 @@ struct ChangeInVelocity {
 	FVector LastTick{};
 };
 
+struct RayCast {
+	FVector RayCastStart{};
+	FHitResult Hit{};
+	double CompressionRatio{};
+	double DragForce{};
+};
+
+struct AllRayCasts {
+	RayCast FRRayCast{};
+	RayCast FLRayCast{};
+	RayCast BRRayCast{};
+	RayCast BLRayCast{};
+};
+
 
 UCLASS()
 class LAWNMOWER_API AMowerRC : public APawn
@@ -41,17 +55,15 @@ private:
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location);
 	void AddInputMappingContextToLocalPlayerSubsystem();
+	
 	void FloatMower();
 	void TrackMowerForceDirection(float DeltaTime);
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
-	
 
-
-
-
-
-
-
+	bool RayCastHit(RayCast& RayCast, const FVector& DefaultRayCastPosition);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, const FVector& DefaultWheelPosition);
+	void ApplyForceOnRayCast(RayCast& RayCast);
+	void ApplyDragForce();
 
 	void RayCastAtDefaultPosition(UPrimitiveComponent* Component, const FVector& DefaultRayCastPosition, UStaticMeshComponent* WheelMesh, const FVector& DefaultMeshPosition);
 	void ApplyDragToGroundedMower();
@@ -84,10 +96,10 @@ private:
 	const FVector DefaultBRWheelPosition{ -26.0, 24.0, -9.0 };
 	const FVector DefaultBLWheelPosition{ -26.0, -24.0, -9.0 };
 
-	const FVector FRRayCastDefaultPosition{ 25.0, 15.0, -9.0 };
-	const FVector FLRayCastDefaultPosition{ 25.0, -15.0, -9.0 };
-	const FVector BRRayCastDefaultPosition{ -25.0, 15.0, -9.0 };
-	const FVector BLRayCastDefaultPosition{ -25.0, -15.0, -9.0 };
+	const FVector DefaultFRRayCastPosition{ 25.0, 15.0, -9.0 };
+	const FVector DefaultFLRayCastPosition{ 25.0, -15.0, -9.0 };
+	const FVector DefaultBRRayCastPosition{ -25.0, 15.0, -9.0 };
+	const FVector DefaultBLRayCastPosition{ -25.0, -15.0, -9.0 };
 
 	static constexpr double MinArmPitch{ -89.0 };
 	static constexpr double MaxArmPitch{ 5.0 };
@@ -97,16 +109,24 @@ private:
 	static constexpr double GravitationalAcceleration{ 980.0 };
 	static constexpr double AntiGravitationalForce{ Mass * GravitationalAcceleration };
 	static constexpr double DragCompressionMinimum{ 0.25 };
-	static constexpr double MaxWheelDrag{ 2.0 };
-
-
-
-
-
-
-
+	static constexpr double MaxWheelDrag{ 1.5 };
+	static constexpr double MinWheelDrag{ 0.25 };
 
 	ChangeInVelocity MowerVelocity{};
+
+	FTransform Transform{};
+	FVector UpVector{};
+
+	RayCast FRRayCast{};
+	RayCast FLRayCast{};
+	RayCast BRRayCast{};
+	RayCast BLRayCast{};
+
+	AllRayCasts AllRayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
+
+	TArray<double> DragForces{};
+
+
 
 	double DragCompression{ 1.0 };
 	int32 GroundedWheels{ 0 };
