@@ -15,12 +15,6 @@ class UInputAction;
 struct FInputActionValue;
 
 
-struct ChangeInVelocity {
-	FVector Final{};
-	FVector Initial{};
-	FVector LastTick{};
-};
-
 struct RayCastGroup {
 	FHitResult FR{};
 	FHitResult FL{};
@@ -28,7 +22,7 @@ struct RayCastGroup {
 	FHitResult BL{};
 };
 
-struct LocalStarts {
+struct LocalOrigins {
 	FVector FR{};
 	FVector FL{};
 	FVector BR{};
@@ -54,24 +48,23 @@ private:
 	void SetupComponentAttachments();
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location);
+	void SetPhysicsBodyMassProperties();
 	void AddInputMappingContextToLocalPlayerSubsystem();
 
+	void UpdatePhysicsBodyPositionalData();
+	void UpdatePhysicsBodyForceData(float DeltaTime);
 	void FloatMower();
-	void TrackMowerForceDirection(float DeltaTime);
-	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 
-	void SetPhysicsBodyTickData();
-	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts);
-	bool RayCastHit(FHitResult& RayCast, const FVector& LocalStart);
+	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
+	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForceOnRayCastHit(FHitResult& RayCast);
 	void AddDragOnRayCastHit(double CompressionRatio);
-	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& Hit, const FVector& LocalStart);
+	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& Hit, const FVector& LocalOrigin);
 	
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(FHitResult& Hit);
 
-	void DecayAcceleration(float DeltaTime);
 	void ApplyDragForce();
 
 public:
@@ -109,28 +102,38 @@ private:
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
 
-	const LocalStarts ForceRayCastStarts{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
-	const LocalStarts WheelRayCastStarts{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
+	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
+	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
 	const double MinArmPitch{ -89.0 };
 	const double MaxArmPitch{ 5.0 };
 	const double RayCastLength{ 8.9 };
 	const double WheelCount{ 4.0 };
-	const double Mass{ 30.0 };
+	const double PhysicsBodyMass{ 30.0 };
 	const double GravitationalAcceleration{ 980.0 };
-	const double AntiGravitationalForce{ Mass * GravitationalAcceleration };
+	const double AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
 	const double DragForceCompressionRatioMinimum{ 0.25 };
 	const double MaxWheelDragForce{ 2.0 };
 	const double LinearDragForceMultiplier{ 1.0 };
 	const double AngularDragForceMultiplier{ 1.0 };
 
-	ChangeInVelocity MowerVelocity{};
-
 	FTransform PhysicsBodyTransform{};
+
+	FVector PhysicsBodyLocation{};
 	FVector PhysicsBodyUpVector{};
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
+
+	FVector PhysicsBodyVelocity{};
+	FVector PhysicsBodyFinalVelocity{};
+	FVector PhysicsBodyInitiallVelocity{};
+	FVector PhysicsBodyLastTicklVelocity{};
+	FVector PhysicsBodyVelocityNormal{};
+
+	double PhysicsBodyChangeInVelocity{};
+	double PhysicsBodyAcceleration{};
+	double PhysicsBodyForce{};
 
 	FHitResult FRForceRayCast{};
 	FHitResult FLForceRayCast{};
@@ -146,5 +149,11 @@ private:
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
 	TArray<double> DragForces{};
+
+	double WheelForceRatio{};
+
+	double AcceleratingDirection{};
+	// these need reset at the end of each actor tick
+
 
 };
