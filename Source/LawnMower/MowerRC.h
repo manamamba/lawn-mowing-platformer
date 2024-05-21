@@ -47,23 +47,30 @@ private:
 	void CreateAndAssignComponentSubObjects();
 	void SetupComponentAttachments();
 	void SetComponentProperties();
-	void SetMeshComponentCollisionAndDefaultLocation(UStaticMeshComponent* Mesh, const FVector& Location);
-	void SetPhysicsBodyMassProperties();
+	void SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location);
+
 	void AddInputMappingContextToLocalPlayerSubsystem();
+	void SetPhysicsBodyMassProperties();
+
+	void FloatMower();
+
+	void ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup, float DeltaTime);
+	void AddForceToGroundedWheel(FHitResult& RayCast, double Force);
 
 	void UpdatePhysicsBodyPositionalData();
 	void UpdatePhysicsBodyForceData(float DeltaTime);
-	void FloatMower();
-
+	
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForceOnRayCastHit(FHitResult& RayCast);
-	void AddDragOnRayCastHit(double CompressionRatio);
+	void AddDragForceOnRayCastHit(double CompressionRatio);
 	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& Hit, const FVector& LocalOrigin);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 	
+	void AddAngularDragForce();
+
 	void DrawRayCasts(RayCastGroup& RayCasts);
-	void DrawRayCast(FHitResult& Hit);
+	void DrawRayCast(FHitResult& RayCast);
 
 	void ApplyDragForce();
 
@@ -110,13 +117,18 @@ private:
 	const double RayCastLength{ 8.9 };
 	const double WheelCount{ 4.0 };
 	const double PhysicsBodyMass{ 30.0 };
+
 	const double GravitationalAcceleration{ 980.0 };
 	const double AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
 	const double DragForceCompressionRatioMinimum{ 0.25 };
 	const double MaxWheelDragForce{ 2.0 };
-	const double LinearDragForceMultiplier{ 1.0 };
-	const double AngularDragForceMultiplier{ 1.0 };
+
+	const double AngularDragForceMultiplier{ 0.003 };
+
+	const double AccelerationForceMaximum{ 15000.0 };
+	const double AccelerationDecayRate{ 0.3 };
+	const double AccelerationRatioMaximum{ 3.0 };
 
 	FTransform PhysicsBodyTransform{};
 
@@ -148,12 +160,10 @@ private:
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
-	TArray<double> DragForces{};
+	TArray<double> LinearDragForces{};
+	TArray<double> AngularDragForces{};
 
-	double WheelForceRatio{};
-
+	double AccelerationRatio{};
 	double AcceleratingDirection{};
-	// these need reset at the end of each actor tick
-
 
 };
