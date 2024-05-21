@@ -71,6 +71,7 @@ private:
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(FHitResult& Hit);
 
+	void DecayAcceleration(float DeltaTime);
 	void ApplyDragForce();
 
 public:
@@ -145,10 +146,5 @@ private:
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
 	TArray<double> DragForces{};
-
-
-
-
-
 
 };

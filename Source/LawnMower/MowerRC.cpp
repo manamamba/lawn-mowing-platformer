@@ -117,6 +117,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawRayCasts(ForceRayCasts);
 	// DrawRayCasts(WheelRayCasts);
 
+	DecayAcceleration(DeltaTime);
 	ApplyDragForce();
 }
 
@@ -130,8 +131,9 @@ void AMowerRC::FloatMower()
 void AMowerRC::TrackMowerForceDirection(float DeltaTime)
 {
 	const FVector MowerVelocityThisTick{ PhysicsBody->GetComponentVelocity() };
-	const double Acceleration{ GetAcceleration(MowerVelocityThisTick, MowerVelocity, DeltaTime) };
-	const double Force{ Mass * Acceleration };
+	const double MowerAcceleration = GetAcceleration(MowerVelocityThisTick, MowerVelocity, DeltaTime);
+	const double Force{ Mass * MowerAcceleration };
+
 	const FVector VelocityNormal{ MowerVelocity.Final.GetSafeNormal(1.0) };
 	const FVector LineStart{ PhysicsBody->GetComponentLocation() };
 	const FVector LineEnd{ LineStart + (-VelocityNormal * 50.0) };
@@ -256,6 +258,15 @@ void AMowerRC::DrawRayCast(FHitResult& Hit)
 }
 
 
+void AMowerRC::DecayAcceleration(float DeltaTime)
+{
+
+
+
+
+}
+
+
 void AMowerRC::ApplyDragForce()
 {
 	double TotalDragForce{};
@@ -302,7 +313,11 @@ void AMowerRC::MoveCamera(const FInputActionValue& Value)
 
 void AMowerRC::Accelerate(const FInputActionValue& Value)
 {
+	const float AcceleratingDirection{ Value.Get<float>() };
 	
+	// apply force to each grounded wheel at the impact point and surfacecrossproduct direction
+	// multiply force to add by a decaying value in tick and if force is applied add to that value
+
 	
 	
 	
@@ -311,10 +326,12 @@ void AMowerRC::Accelerate(const FInputActionValue& Value)
 
 
 
-	const float InputVector{ Value.Get<float>() };
+	
+	
+	const double Acceleration{ 5000.0 };
+	const FVector ForwardVector{ PhysicsBody->GetForwardVector() };
+	const FVector Force{ ForwardVector * (Acceleration * AcceleratingDirection) };
+	PhysicsBody->AddForce(Force, NAME_None, true);
 
-	// const double Acceleration{ 5000.0 };
-	// const FVector ForwardVector{ PhysicsBody->GetForwardVector() };
-	// const FVector Force{ ForwardVector * (Acceleration * InputVector) };
-	// PhysicsBody->AddForce(Force, NAME_None, true);
+	//const FVector SurfaceCrossProduct{ FVector::CrossProduct(PhysicsBodyRightVector, Hit.ImpactNormal) };
 }
