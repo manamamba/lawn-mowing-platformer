@@ -54,10 +54,11 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetGenerateOverlapEvents(false);
 	PhysicsBody->SetSimulatePhysics(true);
 	PhysicsBody->SetUseCCD(true);
-	PhysicsBody->SetCollisionProfileName("PhysicsActor");
+	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
 	CameraArm->SetRelativeLocation(FVector{ 0.0, 0.0, 10.0 });
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
+	CameraArm->SetUsingAbsoluteRotation(true);
 	CameraArm->TargetArmLength = 200.0f;
 
 	SetMeshComponentCollisionAndDefaultLocation(Body, BodyPosition);
@@ -85,6 +86,7 @@ void AMowerRC::BeginPlay()
 
 	AddInputMappingContextToLocalPlayerSubsystem();
 
+	PhysicsBody->SetMassOverrideInKg(NAME_None, Mass);
 	PhysicsBody->SetCenterOfMass(FVector{ 0.0, 0.0, -10.0 });
 }
 
@@ -112,7 +114,7 @@ void AMowerRC::Tick(float DeltaTime)
 	SendForceRayCasts(ForceRayCasts, ForceRayCastStarts);
 	SendWheelRayCasts(WheelRayCasts, WheelRayCastStarts);
 
-	DrawRayCasts(ForceRayCasts);
+	// DrawRayCasts(ForceRayCasts);
 	// DrawRayCasts(WheelRayCasts);
 
 	ApplyDragForce();
@@ -157,62 +159,68 @@ void AMowerRC::SetPhysicsBodyTickData()
 }
 
 
-void AMowerRC::SendForceRayCasts(RayCastGroup& SentRayCasts, const LocalStarts& SentRayCastStarts)
+void AMowerRC::SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts)
 {
-	if (RayCastHit(SentRayCasts.FR, SentRayCastStarts.FR)) ApplyForceOnRayCast(SentRayCasts.FR);
-	if (RayCastHit(SentRayCasts.FL, SentRayCastStarts.FL)) ApplyForceOnRayCast(SentRayCasts.FL);
-	if (RayCastHit(SentRayCasts.BR, SentRayCastStarts.BR)) ApplyForceOnRayCast(SentRayCasts.BR);
-	if (RayCastHit(SentRayCasts.BL, SentRayCastStarts.BL)) ApplyForceOnRayCast(SentRayCasts.BL);
+	if (RayCastHit(RayCastGroup.FR, LocalStarts.FR)) AddForceOnRayCastHit(RayCastGroup.FR);
+	if (RayCastHit(RayCastGroup.FL, LocalStarts.FL)) AddForceOnRayCastHit(RayCastGroup.FL);
+	if (RayCastHit(RayCastGroup.BR, LocalStarts.BR)) AddForceOnRayCastHit(RayCastGroup.BR);
+	if (RayCastHit(RayCastGroup.BL, LocalStarts.BL)) AddForceOnRayCastHit(RayCastGroup.BL);
 }
 
 
-bool AMowerRC::RayCastHit(RayCast& RayCast, const FVector& LocalPosition)
+bool AMowerRC::RayCastHit(FHitResult& Hit, const FVector& LocalStart)
 {
-	RayCast.Hit.Reset();
+	Hit.Reset();
 	
-	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, LocalPosition) };
+	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, LocalStart) };
 	const FVector RayCastEnd{ RayCastStart + (-PhysicsBodyUpVector * RayCastLength) };
 
-	return GetWorld()->LineTraceSingleByChannel(RayCast.Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
+	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
 }
 
 
-void AMowerRC::ApplyForceOnRayCast(RayCast& RayCast)
+void AMowerRC::AddForceOnRayCastHit(FHitResult& Hit)
 {
-	RayCast.CompressionRatio = (RayCastLength - RayCast.Hit.Distance) / RayCastLength;
+	double CompressionRatio{ 1.0 - Hit.Time };
 
-	if (RayCast.CompressionRatio < DragForceCompressionRatioMinimum) RayCast.DragForce = MaxWheelDragForce;
-	else RayCast.DragForce = MaxWheelDragForce / (RayCast.CompressionRatio * WheelCount);
+	AddDragOnRayCastHit(CompressionRatio);
+
+	const double Force{ Mass * GravitationalAcceleration * CompressionRatio };
+
+	PhysicsBody->AddForceAtLocation(Hit.ImpactNormal * Force, Hit.TraceStart);
+}
+
+
+void AMowerRC::AddDragOnRayCastHit(double CompressionRatio)
+{
+	double DragForce{};
+
+	if (CompressionRatio < DragForceCompressionRatioMinimum) DragForce = MaxWheelDragForce;
+	else DragForce = MaxWheelDragForce / (CompressionRatio * WheelCount);
 	
-	DragForces.Add(RayCast.DragForce);
-
-	const double Force{ Mass * GravitationalAcceleration * RayCast.CompressionRatio };
-	const FVector RayCastForce{ RayCast.Hit.ImpactNormal * Force };
-
-	PhysicsBody->AddForceAtLocation(RayCastForce, RayCast.Hit.TraceStart);
+	DragForces.Add(DragForce);
 }
 
 
-void AMowerRC::SendWheelRayCasts(RayCastGroup& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts)
+void AMowerRC::SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts)
 {
-	ApplySuspensionOnWheel(FRWheel, SentWheelRayCasts.FR, SentWheelRayCastStarts.FR);
-	ApplySuspensionOnWheel(FLWheel, SentWheelRayCasts.FL, SentWheelRayCastStarts.FL);
-	ApplySuspensionOnWheel(BRWheel, SentWheelRayCasts.BR, SentWheelRayCastStarts.BR);
-	ApplySuspensionOnWheel(BLWheel, SentWheelRayCasts.BL, SentWheelRayCastStarts.BL);
+	ApplySuspensionOnWheel(FRWheel, RayCastGroup.FR, LocalStarts.FR);
+	ApplySuspensionOnWheel(FLWheel, RayCastGroup.FL, LocalStarts.FL);
+	ApplySuspensionOnWheel(BRWheel, RayCastGroup.BR, LocalStarts.BR);
+	ApplySuspensionOnWheel(BLWheel, RayCastGroup.BL, LocalStarts.BL);
 }
 
 
-void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, RayCast& WheelCast, const FVector& DefaultWheelPosition)
+void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& Hit, const FVector& LocalStart)
 {
-	WheelCast.Hit.Reset();
+	Hit.Reset();
 	
-	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, DefaultWheelPosition) };
+	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, LocalStart) };
 	const FVector WheelEnd{ WheelStart + (-PhysicsBodyUpVector * RayCastLength) };
-
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(WheelCast.Hit, WheelStart, WheelEnd, ECC_GameTraceChannel1) };
 	double RayCastLengthDifference{};
 
-	if (Grounded) RayCastLengthDifference = RayCastLength - WheelCast.Hit.Distance;
+	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, WheelStart, WheelEnd, ECC_GameTraceChannel1) };
+	if (Grounded) RayCastLengthDifference = RayCastLength - Hit.Distance;
 
 	Wheel->SetWorldLocation(WheelStart + (PhysicsBodyUpVector * RayCastLengthDifference));
 }
@@ -220,10 +228,10 @@ void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, RayCast& Whee
 
 void AMowerRC::DrawRayCasts(RayCastGroup& RayCasts)
 {
-	DrawRayCast(RayCasts.FR.Hit);
-	DrawRayCast(RayCasts.FL.Hit);
-	DrawRayCast(RayCasts.BR.Hit);
-	DrawRayCast(RayCasts.BL.Hit);
+	DrawRayCast(RayCasts.FR);
+	DrawRayCast(RayCasts.FL);
+	DrawRayCast(RayCasts.BR);
+	DrawRayCast(RayCasts.BL);
 }
 
 
@@ -294,11 +302,19 @@ void AMowerRC::MoveCamera(const FInputActionValue& Value)
 
 void AMowerRC::Accelerate(const FInputActionValue& Value)
 {
+	
+	
+	
+	
+	
+	
+
+
+
 	const float InputVector{ Value.Get<float>() };
-	const double Acceleration{ 5000.0 };
 
-	const FVector ForwardVector{ PhysicsBody->GetForwardVector() };
-	const FVector Force{ ForwardVector * (Acceleration * InputVector) };
-
-	PhysicsBody->AddForce(Force, NAME_None, true);
+	// const double Acceleration{ 5000.0 };
+	// const FVector ForwardVector{ PhysicsBody->GetForwardVector() };
+	// const FVector Force{ ForwardVector * (Acceleration * InputVector) };
+	// PhysicsBody->AddForce(Force, NAME_None, true);
 }

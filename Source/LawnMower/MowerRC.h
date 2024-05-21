@@ -21,17 +21,11 @@ struct ChangeInVelocity {
 	FVector LastTick{};
 };
 
-struct RayCast {
-	FHitResult Hit{};
-	double CompressionRatio{};
-	double DragForce{};
-};
-
 struct RayCastGroup {
-	RayCast FR{};
-	RayCast FL{};
-	RayCast BR{};
-	RayCast BL{};
+	FHitResult FR{};
+	FHitResult FL{};
+	FHitResult BR{};
+	FHitResult BL{};
 };
 
 struct LocalStarts {
@@ -67,11 +61,12 @@ private:
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 
 	void SetPhysicsBodyTickData();
-	void SendForceRayCasts(RayCastGroup& SentRayCasts, const LocalStarts& SentRayCastStarts);
-	bool RayCastHit(RayCast& RayCast, const FVector& LocalPosition);
-	void ApplyForceOnRayCast(RayCast& RayCast);
-	void SendWheelRayCasts(RayCastGroup& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, RayCast& WheelCast, const FVector& DefaultWheelPosition);
+	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts);
+	bool RayCastHit(FHitResult& RayCast, const FVector& LocalStart);
+	void AddForceOnRayCastHit(FHitResult& RayCast);
+	void AddDragOnRayCastHit(double CompressionRatio);
+	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalStarts& LocalStarts);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& Hit, const FVector& LocalStart);
 	
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(FHitResult& Hit);
@@ -120,7 +115,7 @@ private:
 	const double MaxArmPitch{ 5.0 };
 	const double RayCastLength{ 8.9 };
 	const double WheelCount{ 4.0 };
-	const double Mass{ 16.850502 };
+	const double Mass{ 30.0 };
 	const double GravitationalAcceleration{ 980.0 };
 	const double AntiGravitationalForce{ Mass * GravitationalAcceleration };
 
@@ -136,20 +131,24 @@ private:
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
 
-	RayCast FRRayCast{};
-	RayCast FLRayCast{};
-	RayCast BRRayCast{};
-	RayCast BLRayCast{};
+	FHitResult FRForceRayCast{};
+	FHitResult FLForceRayCast{};
+	FHitResult BRForceRayCast{};
+	FHitResult BLForceRayCast{};
 
-	RayCast FRWheelCast{};
-	RayCast FLWheelCast{};
-	RayCast BRWheelCast{};
-	RayCast BLWheelCast{};
+	FHitResult FRWheelRayCast{};
+	FHitResult FLWheelRayCast{};
+	FHitResult BRWheelRayCast{};
+	FHitResult BLWheelRayCast{};
 	
-	RayCastGroup ForceRayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
-
-	RayCastGroup WheelRayCasts{ FRWheelCast, FLWheelCast, BRWheelCast, BLWheelCast };
+	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
+	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
 	TArray<double> DragForces{};
+
+
+
+
+
 
 };
