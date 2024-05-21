@@ -22,29 +22,16 @@ struct ChangeInVelocity {
 };
 
 struct RayCast {
-	FVector RayCastStart{};
 	FHitResult Hit{};
 	double CompressionRatio{};
 	double DragForce{};
 };
 
-struct AllForceRayCasts {
+struct RayCastGroup {
 	RayCast FR{};
 	RayCast FL{};
 	RayCast BR{};
 	RayCast BL{};
-};
-
-struct WheelCast {
-	FVector WheelCastStart{};
-	FHitResult Hit{};
-};
-
-struct AllWheelRayCasts {
-	WheelCast FR{};
-	WheelCast FL{};
-	WheelCast BR{};
-	WheelCast BL{};
 };
 
 struct LocalStarts {
@@ -80,14 +67,14 @@ private:
 	double GetAcceleration(const FVector& Vector, ChangeInVelocity& Velocity, float DeltaTime);
 
 	void SetPhysicsBodyTickData();
-	void SendForceRayCasts(AllForceRayCasts& SentForceRayCasts, const LocalStarts& SentForceRayCastStarts);
-	bool RayCastHit(RayCast& RayCast, const FVector& DefaultRayCastPosition);
+	void SendForceRayCasts(RayCastGroup& SentRayCasts, const LocalStarts& SentRayCastStarts);
+	bool RayCastHit(RayCast& RayCast, const FVector& LocalPosition);
 	void ApplyForceOnRayCast(RayCast& RayCast);
-	void SendWheelRayCasts(AllWheelRayCasts& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, WheelCast& WheelCast, const FVector& DefaultWheelPosition);
+	void SendWheelRayCasts(RayCastGroup& SentWheelRayCasts, const LocalStarts& SentWheelRayCastStarts);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, RayCast& WheelCast, const FVector& DefaultWheelPosition);
 	
-	void DrawForceAndWheelRayCasts(AllForceRayCasts& SentForceRayCasts, AllWheelRayCasts& SentWheelRayCasts);
-	void DrawRayCastData(FVector RayCastStart, FHitResult Hit);
+	void DrawRayCasts(RayCastGroup& RayCasts);
+	void DrawRayCast(FHitResult& Hit);
 
 	void ApplyDragForce();
 
@@ -154,23 +141,15 @@ private:
 	RayCast BRRayCast{};
 	RayCast BLRayCast{};
 
-	AllForceRayCasts ForceRayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
+	RayCast FRWheelCast{};
+	RayCast FLWheelCast{};
+	RayCast BRWheelCast{};
+	RayCast BLWheelCast{};
+	
+	RayCastGroup ForceRayCasts{ FRRayCast, FLRayCast, BRRayCast, BLRayCast };
 
-	WheelCast FRWheelCast{};
-	WheelCast FLWheelCast{};
-	WheelCast BRWheelCast{};
-	WheelCast BLWheelCast{};
-
-	AllWheelRayCasts WheelRayCasts{ FRWheelCast, FLWheelCast, BRWheelCast, BLWheelCast };
+	RayCastGroup WheelRayCasts{ FRWheelCast, FLWheelCast, BRWheelCast, BLWheelCast };
 
 	TArray<double> DragForces{};
-
-
-
-	const double MaxWheelDrag{ 1.5 };
-	const double DragCompressionMinimum{ 0.25 };
-
-	double DragCompression{ 1.0 };
-	int32 GroundedWheels{ 0 };
 
 };
