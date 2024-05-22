@@ -54,9 +54,16 @@ private:
 
 	void FloatMower();
 
-	void ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup, float DeltaTime);
-	void AddForceToGroundedWheel(FHitResult& RayCast, double Force);
-	void ApplyBrakeFriction();
+	void ApplyAccelerationInput(RayCastGroup& RayCastGroup, float DeltaTime);
+	// void UpdateAccelerationRatio();
+
+
+	FVector GetAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
+	FVector GetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
+
+	void ApplyBrakeFriction(float DeltaTime);
+
+	void ApplyAccelerationForce();
 
 	void UpdatePhysicsBodyPositionalData();
 	void UpdatePhysicsBodyForceData(float DeltaTime);
@@ -65,15 +72,14 @@ private:
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForceOnRayCastHit(FHitResult& RayCast);
 	void AddDragForceOnRayCastHit(double CompressionRatio);
+
 	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
-
-	void AddAdditionalDragForce(RayCastGroup& RayCasts);
 
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(FHitResult& RayCast);
 
-	void ApplyDragForce();
+	void ApplyDragForces();
 
 public:
 	void MoveCamera(const FInputActionValue& Value);
@@ -130,9 +136,9 @@ private:
 
 	const double DragForceCompressionRatioMinimum{ 0.25 };
 	const double MaxWheelDragForce{ 2.0 };
-	const double AngularDragForceMultiplier{ 0.0004 };
+	const double AngularDragForceMultiplier{ 0.0003 };
 
-	const double AccelerationForceMaximum{ 16000.0 };
+	const double AccelerationForceMaximum{ 80000.0 };
 	const double AccelerationRatioMaximum{ 3.0 };
 	const double AccelerationDecayRate{ 0.5 };
 

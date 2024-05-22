@@ -89,6 +89,7 @@ void AMowerRC::BeginPlay()
 	SetPhysicsBodyMassProperties();
 }
 
+
 void AMowerRC::AddInputMappingContextToLocalPlayerSubsystem()
 {
 	APlayerController* PlayerController{};
@@ -112,8 +113,12 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	ApplyAccelerationInputToGroundedWheels(ForceRayCasts, DeltaTime);
-	ApplyBrakeFriction();
+	ApplyAccelerationInput(ForceRayCasts, DeltaTime);
+	ApplyBrakeFriction(DeltaTime);
+
+
+
+	ApplyAccelerationForce();
 
 	UpdatePhysicsBodyPositionalData();
 	UpdatePhysicsBodyForceData(DeltaTime);
@@ -121,19 +126,25 @@ void AMowerRC::Tick(float DeltaTime)
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 	SendWheelRayCasts(WheelRayCasts, WheelRayCastOrigins);
 
-	DrawRayCasts(ForceRayCasts);
+	// DrawRayCasts(ForceRayCasts);
 	// DrawRayCasts(WheelRayCasts);
 
-	AddAdditionalDragForce(ForceRayCasts);
-	ApplyDragForce();
+	ApplyDragForces();
 }
 
 
 void AMowerRC::FloatMower() { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
 
 
-void AMowerRC::ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup, float DeltaTime)
+void AMowerRC::ApplyAccelerationInput(RayCastGroup& RayCastGroup, float DeltaTime)
 {
+	FVector AccelerationSurfaceImpact{ GetAccelerationSurfaceImpact(RayCastGroup) };
+	FVector AccelerationSurfaceNormal{ GetAccelerationSurfaceNormal(RayCastGroup) };
+
+	// AcceleratingDirection
+
+
+
 	if (GroundedWheels) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
@@ -141,10 +152,9 @@ void AMowerRC::ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup
 
 	AccelerationForce = AccelerationForceMaximum * AccelerationRatio;
 
-	if (RayCastGroup.FR.bBlockingHit) AddForceToGroundedWheel(RayCastGroup.FR, AccelerationForce);
-	if (RayCastGroup.FL.bBlockingHit) AddForceToGroundedWheel(RayCastGroup.FL, AccelerationForce);
-	if (RayCastGroup.BR.bBlockingHit) AddForceToGroundedWheel(RayCastGroup.BR, AccelerationForce);
-	if (RayCastGroup.BL.bBlockingHit) AddForceToGroundedWheel(RayCastGroup.BL, AccelerationForce);
+	if (AccelerationForce < 0.0) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
+
+	PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * abs(AccelerationForce), AccelerationSurfaceImpact);
 
 	if (!AcceleratingDirection || !GroundedWheels)
 	{
@@ -153,31 +163,63 @@ void AMowerRC::ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup
 		if (AccelerationRatio < 0.1 && AccelerationRatio > -0.1) AccelerationRatio = 0.0;
 	}
 
-	// UE_LOG(LogTemp, Error, TEXT("AccelerationForce %f"), AccelerationForce);
-	// UE_LOG(LogTemp, Error, TEXT("AccelerationRatio %f"), AccelerationRatio);
+	UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
+	UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
+	// DrawDebugSphere(GetWorld(), AccelerationSurfaceImpact, 1.0f, 6, FColor::Orange);
+	// DrawDebugSphere(GetWorld(), AccelerationSurfaceImpact + (AccelerationSurfaceNormal * 50.0), 1.0f, 6, FColor::Orange);
+	// DrawDebugLine(GetWorld(), AccelerationSurfaceImpact, AccelerationSurfaceImpact + (AccelerationSurfaceNormal * 50.0), FColor::Orange);
 
 	AcceleratingDirection = 0.0;
 }
 
 
-void AMowerRC::AddForceToGroundedWheel(FHitResult& RayCast, double Force)
+FVector AMowerRC::GetAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup)
 {
-	FVector SurfaceNormal{};
+	double AccelerationSurface{};
 
-	if (Force < 0) SurfaceNormal = -FVector::CrossProduct(PhysicsBodyRightVector, RayCast.ImpactNormal);
-	if (Force > 0) SurfaceNormal = FVector::CrossProduct(PhysicsBodyRightVector, RayCast.ImpactNormal);
+	if (RayCastGroup.FR.bBlockingHit) AccelerationSurface += RayCastGroup.FR.ImpactPoint.Z;
+	if (RayCastGroup.FL.bBlockingHit) AccelerationSurface += RayCastGroup.FL.ImpactPoint.Z;
+	if (RayCastGroup.BR.bBlockingHit) AccelerationSurface += RayCastGroup.BR.ImpactPoint.Z;
+	if (RayCastGroup.BL.bBlockingHit) AccelerationSurface += RayCastGroup.BL.ImpactPoint.Z;
 
-	PhysicsBody->AddForceAtLocation(SurfaceNormal * abs(Force), RayCast.ImpactPoint);
+	FVector AccelerationSurfaceImpact{ PhysicsBodyLocation };
 
-	// DrawDebugSphere(GetWorld(), RayCast.ImpactPoint + (SurfaceNormal * 25.0), 6.0, 6, FColor::Cyan);
+	if (GroundedWheels) AccelerationSurfaceImpact.Z = AccelerationSurface / GroundedWheels;
+
+	return AccelerationSurfaceImpact;
 }
 
 
-void AMowerRC::ApplyBrakeFriction()
+FVector AMowerRC::GetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
+{
+	FVector AccelerationSurfaceNormal{};
+
+	if (RayCastGroup.FR.bBlockingHit) AccelerationSurfaceNormal += RayCastGroup.FR.ImpactNormal;
+	if (RayCastGroup.FL.bBlockingHit) AccelerationSurfaceNormal += RayCastGroup.FL.ImpactNormal;
+	if (RayCastGroup.BR.bBlockingHit) AccelerationSurfaceNormal += RayCastGroup.BR.ImpactNormal;
+	if (RayCastGroup.BL.bBlockingHit) AccelerationSurfaceNormal += RayCastGroup.BL.ImpactNormal;
+
+	if (GroundedWheels) return FVector::CrossProduct(PhysicsBodyRightVector, AccelerationSurfaceNormal / GroundedWheels);
+	else return AccelerationSurfaceNormal;
+}
+
+
+void AMowerRC::ApplyBrakeFriction(float DeltaTime)
+{
+	if (GroundedWheels) AccelerationRatio -= AcceleratingDirection * DeltaTime;
+
+}
+
+
+void AMowerRC::ApplyAccelerationForce()
 {
 
 
+
 }
+
+
+
 
 
 void AMowerRC::UpdatePhysicsBodyPositionalData()
@@ -276,6 +318,9 @@ void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& R
 }
 
 
+// Wheel Animation Functions
+
+
 void AMowerRC::DrawRayCasts(RayCastGroup& RayCasts)
 {
 	DrawRayCast(RayCasts.FR);
@@ -297,27 +342,13 @@ void AMowerRC::DrawRayCast(FHitResult& RayCast)
 	
 	DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
 	DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0, 6, FColor::Green);
-
-	const FVector ImpactPointForwardNormal{ FVector::CrossProduct(PhysicsBodyRightVector, RayCast.ImpactNormal) };
-	const FVector ImpactPointBackwardNormal{ FVector::CrossProduct(-PhysicsBodyRightVector, RayCast.ImpactNormal) };
-	const FVector ImpactPointLeftNormal{ FVector::CrossProduct(-PhysicsBodyForwardVector, -RayCast.ImpactNormal) };
-	const FVector ImpactPointRightNormal{ FVector::CrossProduct(PhysicsBodyForwardVector, -RayCast.ImpactNormal) };
-
-	// DrawDebugLine(GetWorld(), RayCast.ImpactPoint, RayCast.ImpactPoint + (ImpactPointForwardNormal * 10.0), FColor::Cyan);
-	// DrawDebugLine(GetWorld(), RayCast.ImpactPoint, RayCast.ImpactPoint + (ImpactPointBackwardNormal * 10.0), FColor::Yellow);
-	// DrawDebugLine(GetWorld(), RayCast.ImpactPoint, RayCast.ImpactPoint + (ImpactPointLeftNormal * 10.0), FColor::Magenta);
-	// DrawDebugLine(GetWorld(), RayCast.ImpactPoint, RayCast.ImpactPoint + (ImpactPointRightNormal * 10.0), FColor::White);
 }
 
 
-void AMowerRC::AddAdditionalDragForce(RayCastGroup& RayCasts)
+void AMowerRC::ApplyDragForces()
 {
 	AngularDragForces.Add(abs(AccelerationForce * GroundedWheels) * AngularDragForceMultiplier);
-}
-
-
-void AMowerRC::ApplyDragForce()
-{
+	
 	double TotalLinearDragForce{ 0.01 };
 	double TotalAngularDragForce{};
 
@@ -327,11 +358,11 @@ void AMowerRC::ApplyDragForce()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
-	// UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
-	// UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
-
 	LinearDragForces.Reset();
 	AngularDragForces.Reset();
+
+	UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
+	UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
 }
 
 
