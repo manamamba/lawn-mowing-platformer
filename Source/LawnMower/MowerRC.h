@@ -113,7 +113,7 @@ private:
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
 	const double MinArmPitch{ -89.0 };
-	const double MaxArmPitch{ 5.0 };
+	const double MaxArmPitch{ 1.5 };
 	const double RayCastLength{ 8.9 };
 	const double WheelCount{ 4.0 };
 	const double PhysicsBodyMass{ 30.0 };
@@ -126,7 +126,7 @@ private:
 
 	const double AngularDragForceMultiplier{ 0.003 };
 
-	const double AccelerationForceMaximum{ 15000.0 };
+	const double AccelerationForceMaximum{ 3500.0 };
 	const double AccelerationDecayRate{ 0.3 };
 	const double AccelerationRatioMaximum{ 3.0 };
 
