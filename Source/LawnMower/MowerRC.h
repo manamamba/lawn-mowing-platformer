@@ -57,16 +57,11 @@ private:
 	void UpdateAccelerationData(RayCastGroup& RayCastGroup, float DeltaTime);
 	void UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
 	void UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
-
-	void ApplyBrakeFriction(float DeltaTime);
-
-
 	void ApplyAccelerationForce();
 	void DecayAcceleration();
 	void ResetDragForceData();
 
 	void UpdatePhysicsBodyPositionalData();
-	void UpdatePhysicsBodyForceData(float DeltaTime);
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
@@ -104,8 +99,6 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 
-	
-
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
 
@@ -136,14 +129,16 @@ private:
 	const double GravitationalAcceleration{ 980.0 };
 	const double AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
-	const double AccelerationForceMaximum{ 10000.0 };
-	const double AccelerationRatioMaximum{ 3.0 };
-	const double AcceleratingDirectionDecayRate{ 0.5 };
-	
 	const double DragForceCompressionRatioMinimum{ 0.25 };
 	const double MaxWheelDragForce{ 2.0 };
 	const double AngularDragForceMultiplier{ 0.000015 };
 	const double AngularAirTimeDrag{ 5.0 };
+
+	const double AccelerationForceMaximum{ 10000.0 };
+	const double AccelerationRatioMaximum{ 3.0 };
+	const double AcceleratingDirectionDecayRate{ 0.5 };
+	
+	const double BrakingForce{ 1.0 };
 
 	FTransform PhysicsBodyTransform{};
 
@@ -151,16 +146,6 @@ private:
 	FVector PhysicsBodyUpVector{};
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
-
-	FVector PhysicsBodyVelocity{};
-	FVector PhysicsBodyFinalVelocity{};
-	FVector PhysicsBodyInitiallVelocity{};
-	FVector PhysicsBodyLastTicklVelocity{};
-	FVector PhysicsBodyVelocityNormal{};
-
-	double PhysicsBodyChangeInVelocity{};
-	double PhysicsBodyAcceleration{};
-	double PhysicsBodyForce{};
 
 	FHitResult FRForceRayCast{};
 	FHitResult FLForceRayCast{};
@@ -175,6 +160,14 @@ private:
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
+	int32 GroundedWheels{};
+
+	TArray<double> LinearDragForces{};
+	TArray<double> AngularDragForces{};
+
+	double TotalLinearDragForce{};
+	double TotalAngularDragForce{};
+
 	FVector AccelerationSurfaceNormal{};
 	FVector AccelerationSurfaceImpact{};
 
@@ -183,14 +176,6 @@ private:
 	double AccelerationForce{};
 	double AcceleratingDirectionDecay{};
 
-	double BrakeFriction{};
-
-	int32 GroundedWheels{};
-
-	TArray<double> LinearDragForces{};
-	TArray<double> AngularDragForces{};
-
-	double TotalLinearDragForce{};
-	double TotalAngularDragForce{};
+	double Braking{};
 
 };
