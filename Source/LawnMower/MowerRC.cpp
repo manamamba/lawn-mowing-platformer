@@ -139,11 +139,10 @@ void AMowerRC::UpdateAccelerationData(RayCastGroup& RayCastGroup, float DeltaTim
 	UpdateAccelerationSurfaceImpact(RayCastGroup);
 	UpdateAccelerationSurfaceNormal(RayCastGroup);
 
-	if (Braking) AcceleratingDirection = 0.0;
-	if (Braking && GroundedWheels && AccelerationRatio < 0) AccelerationRatio += BrakingForce * DeltaTime;
-	if (Braking && GroundedWheels && AccelerationRatio > 0) AccelerationRatio += -BrakingForce * DeltaTime;
+	if (WheelsGrounded && !Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
-	if (GroundedWheels) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	if ((WheelsGrounded && Braking) && AccelerationRatio < 0) AccelerationRatio += BrakingForce * DeltaTime;
+	if ((WheelsGrounded && Braking) && AccelerationRatio > 0) AccelerationRatio += -BrakingForce * DeltaTime;
 
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
 	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
@@ -167,7 +166,7 @@ void AMowerRC::UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup)
 
 	AccelerationSurfaceImpact = PhysicsBodyLocation;
 
-	if (GroundedWheels) AccelerationSurfaceImpact.Z = AccelerationSurface / GroundedWheels;
+	if (WheelsGrounded) AccelerationSurfaceImpact.Z = AccelerationSurface / WheelsGrounded;
 }
 
 
@@ -180,7 +179,7 @@ void AMowerRC::UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
 	if (RayCastGroup.BR.bBlockingHit) SurfaceNormalAverage += RayCastGroup.BR.ImpactNormal;
 	if (RayCastGroup.BL.bBlockingHit) SurfaceNormalAverage += RayCastGroup.BL.ImpactNormal;
 
-	if (GroundedWheels) SurfaceNormalAverage = FVector::CrossProduct(PhysicsBodyRightVector, SurfaceNormalAverage / GroundedWheels);
+	if (WheelsGrounded) SurfaceNormalAverage = FVector::CrossProduct(PhysicsBodyRightVector, SurfaceNormalAverage / WheelsGrounded);
 	
 	AccelerationSurfaceNormal = SurfaceNormalAverage;
 }
@@ -194,12 +193,14 @@ void AMowerRC::ApplyAccelerationForce()
 
 void AMowerRC::DecayAcceleration()
 {
-	if (!AcceleratingDirection)
+	if (!AcceleratingDirection || (Braking && WheelsGrounded))
 	{
 		if (AccelerationRatio < 0) AccelerationRatio += AcceleratingDirectionDecay;
 		if (AccelerationRatio > 0) AccelerationRatio -= AcceleratingDirectionDecay;
 		if (AccelerationRatio < 0.1 && AccelerationRatio > -0.1) AccelerationRatio = 0.0;
 	}
+
+
 
 	UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
 	UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
@@ -215,7 +216,7 @@ void AMowerRC::ResetDragForceData()
 	LinearDragForces.Reset();
 	AngularDragForces.Reset();
 
-	GroundedWheels = 0;
+	WheelsGrounded = 0;
 }
 
 
@@ -263,7 +264,7 @@ void AMowerRC::AddForcesOnRayCastHit(FHitResult& RayCast)
 
 void AMowerRC::AddDragForceOnRayCastHit(double CompressionRatio)
 {
-	++GroundedWheels;
+	++WheelsGrounded;
 	
 	double DragForce{};
 
@@ -342,9 +343,9 @@ void AMowerRC::DrawAcceleration()
 
 void AMowerRC::ApplyDragForces()
 {
-	if (!GroundedWheels) AngularDragForces.Add(AngularAirTimeDrag);
+	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
 
-	AngularDragForces.Add(abs(AccelerationForce * GroundedWheels) * AngularDragForceMultiplier);
+	AngularDragForces.Add(abs(AccelerationForce * WheelsGrounded) * AngularDragForceMultiplier);
 	
 	TotalLinearDragForce = 0.01;
 	TotalAngularDragForce = 0.0;

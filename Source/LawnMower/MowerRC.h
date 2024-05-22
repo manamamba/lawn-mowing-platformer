@@ -160,7 +160,7 @@ private:
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
-	int32 GroundedWheels{};
+	int32 WheelsGrounded{};
 
 	TArray<double> LinearDragForces{};
 	TArray<double> AngularDragForces{};
