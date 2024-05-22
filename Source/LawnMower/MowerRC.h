@@ -56,18 +56,19 @@ private:
 
 	void ApplyAccelerationInputToGroundedWheels(RayCastGroup& RayCastGroup, float DeltaTime);
 	void AddForceToGroundedWheel(FHitResult& RayCast, double Force);
+	void ApplyBrakeFriction();
 
 	void UpdatePhysicsBodyPositionalData();
 	void UpdatePhysicsBodyForceData(float DeltaTime);
-	
+
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForceOnRayCastHit(FHitResult& RayCast);
 	void AddDragForceOnRayCastHit(double CompressionRatio);
 	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
-	
-	void AddAngularDragForce();
+
+	void AddAdditionalDragForce(RayCastGroup& RayCasts);
 
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(FHitResult& RayCast);
@@ -77,7 +78,8 @@ private:
 public:
 	void MoveCamera(const FInputActionValue& Value);
 	void Accelerate(const FInputActionValue& Value);
-
+	void Brake(const FInputActionValue& Value);
+	void Steer(const FInputActionValue& Value);
 
 private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
@@ -93,8 +95,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -10.0 };
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
@@ -112,8 +117,10 @@ private:
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
-	const double MinArmPitch{ -89.0 };
-	const double MaxArmPitch{ 1.5 };
+	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
+	
+	const double MinCameraArmPitch{ -89.0 };
+	const double MaxCameraArmPitch{ 3.0 };
 	const double RayCastLength{ 8.9 };
 	const double WheelCount{ 4.0 };
 	const double PhysicsBodyMass{ 30.0 };
@@ -123,12 +130,11 @@ private:
 
 	const double DragForceCompressionRatioMinimum{ 0.25 };
 	const double MaxWheelDragForce{ 2.0 };
+	const double AngularDragForceMultiplier{ 0.0004 };
 
-	const double AngularDragForceMultiplier{ 0.003 };
-
-	const double AccelerationForceMaximum{ 3500.0 };
-	const double AccelerationDecayRate{ 0.3 };
+	const double AccelerationForceMaximum{ 16000.0 };
 	const double AccelerationRatioMaximum{ 3.0 };
+	const double AccelerationDecayRate{ 0.5 };
 
 	FTransform PhysicsBodyTransform{};
 
@@ -160,10 +166,15 @@ private:
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
+	int32 GroundedWheels{};
+
 	TArray<double> LinearDragForces{};
 	TArray<double> AngularDragForces{};
 
-	double AccelerationRatio{};
 	double AcceleratingDirection{};
+	double AccelerationRatio{};
+	double AccelerationForce{};
+
+	double BrakeFriction{};
 
 };
