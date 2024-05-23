@@ -54,9 +54,8 @@ private:
 
 	void FloatMower();
 
-	void UpdateAcceleration(const RayCastGroup& RayCastGroup, float DeltaTime);
-	void UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
-	void UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
+	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
+	void SetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
 	void DecayAcceleration(float DecayRate);
 	void ApplyAcceleration();
 

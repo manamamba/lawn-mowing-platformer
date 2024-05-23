@@ -115,9 +115,7 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateAccelerationSurfaceImpact(ForceRayCasts);
-	UpdateAccelerationSurfaceNormal(ForceRayCasts);
-	UpdateAcceleration(ForceRayCasts, DeltaTime);
+	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 	ApplyAcceleration();
 
 	ResetDragForces();
@@ -140,12 +138,16 @@ void AMowerRC::Tick(float DeltaTime)
 void AMowerRC::FloatMower() { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
 
 
-void AMowerRC::UpdateAcceleration(const RayCastGroup& RayCastGroup, float DeltaTime)
+void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
 {
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 	
+	AccelerationSurfaceImpact = PhysicsBodyLocation + (PhysicsBodyUpVector * -15.0);
+
+	SetAccelerationSurfaceNormal(RayCastGroup);
+
 	if (WheelsGrounded && !Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
 	if ((WheelsGrounded && Braking) && AccelerationRatio < 0.0f) AccelerationRatio += Braking * DeltaTime;
@@ -162,48 +164,7 @@ void AMowerRC::UpdateAcceleration(const RayCastGroup& RayCastGroup, float DeltaT
 }
 
 
-void AMowerRC::UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup)
-{
-	/* UB using draw debugs???
-	const bool FrontImpact{ RayCastGroup.FR.bBlockingHit && RayCastGroup.FL.bBlockingHit };
-	const bool BackImpact{ RayCastGroup.BR.bBlockingHit && RayCastGroup.BL.bBlockingHit };
-
-	FVector FrontMiddle{};
-	FVector BackMiddle{};
-
-	if (FrontImpact) FrontMiddle = ((RayCastGroup.FR.ImpactPoint + RayCastGroup.FL.ImpactPoint) / 2.0);
-	if (BackImpact) BackMiddle = ((RayCastGroup.BR.ImpactPoint + RayCastGroup.BL.ImpactPoint) / 2.0);
-
-	if (FrontImpact && BackImpact) AccelerationSurfaceImpact = ((FrontMiddle + BackMiddle) / 2.0);
-	else if (FrontImpact && !BackImpact) AccelerationSurfaceImpact = FrontMiddle;
-	else if (!FrontImpact && BackImpact) AccelerationSurfaceImpact = BackMiddle;
-	else AccelerationSurfaceImpact = PhysicsBodyLocation;
-
-	// DrawDebugSphere(GetWorld(), FrontMiddle, 1.0f, 6, FColor::Blue);
-	// DrawDebugSphere(GetWorld(), BackMiddle, 1.0f, 6, FColor::Purple);
-	// DrawDebugSphere(GetWorld(), AccelerationSurfaceImpact, 1.0f, 6, FColor::Cyan);
-	*/
-
-	/*
-	const bool FrontImpact{ RayCastGroup.FR.bBlockingHit && RayCastGroup.FL.bBlockingHit };
-	const bool BackImpact{ RayCastGroup.BR.bBlockingHit && RayCastGroup.BL.bBlockingHit };
-
-	if (FrontImpact) AccelerationSurfaceImpact += ((RayCastGroup.FR.ImpactPoint + RayCastGroup.FL.ImpactPoint) / 2.0);
-	if (BackImpact) AccelerationSurfaceImpact += ((RayCastGroup.BR.ImpactPoint + RayCastGroup.BL.ImpactPoint) / 2.0);
-
-	if (FrontImpact && BackImpact) AccelerationSurfaceImpact /= 2.0;
-	if (!FrontImpact && !BackImpact) AccelerationSurfaceImpact = PhysicsBodyLocation;
-	*/
-
-	AccelerationSurfaceImpact = PhysicsBodyLocation + (PhysicsBodyUpVector * -15.0);
-
-	//UE_LOG(LogTemp, Warning, TEXT("FrontImpact %u"), FrontImpact);
-	//UE_LOG(LogTemp, Warning, TEXT("FrontImpact %u"), BackImpact);
-	//UE_LOG(LogTemp, Warning, TEXT("AccelerationSurfaceImpact %s"), *AccelerationSurfaceImpact.ToString());
-}
-
-
-void AMowerRC::UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
+void AMowerRC::SetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
 {
 	FVector NormalAverage{};
 	
