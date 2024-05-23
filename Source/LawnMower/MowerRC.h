@@ -55,15 +55,15 @@ private:
 	void FloatMower();
 
 	void UpdateAcceleration(RayCastGroup& RayCastGroup, float DeltaTime);
-	FVector GetAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
-	FVector GetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
+	void UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
+	void UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
 	void DecayAcceleration(float DecayRate);
-
-	void DrawAcceleration(const FVector Impact, const FVector Normal);
+	void ApplyAcceleration();
 
 	void ResetDragForces();
 
-	void UpdatePhysicsBodyPositionalData();
+	void UpdatePhysicsBodyPositionData();
+
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
@@ -74,7 +74,9 @@ private:
 
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(const FHitResult& RayCast);
+	void DrawAcceleration();
 
+	void AddAngularDragForces();
 	void ApplyDragForces();
 
 public:
@@ -84,21 +86,21 @@ public:
 	void Steer(const FInputActionValue& Value);
 
 private:
-	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FRWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FLWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BRWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BLWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FRWheel{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FLWheel{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BRWheel{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BLWheel{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm{};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera{};
 
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction {};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
-	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction{};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
@@ -156,6 +158,9 @@ private:
 	float TotalAngularDragForce{};
 
 	float WheelsGrounded{};
+
+	FVector AccelerationSurfaceImpact{};
+	FVector AccelerationSurfaceNormal{};
 	
 	float AccelerationForce{};
 	float AccelerationRatio{};
