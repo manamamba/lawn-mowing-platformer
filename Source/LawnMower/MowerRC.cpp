@@ -147,7 +147,7 @@ void AMowerRC::UpdateAccelerationData(RayCastGroup& RayCastGroup, float DeltaTim
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
 	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
 
-	AccelerationForce = (AccelerationForceMaximum * AccelerationRatio) * TotalLinearDragForce;
+	AccelerationForce = (AccelerationForceMaximum * AccelerationRatio) * (TotalLinearDragForce * TotalLinearDragForce);
 
 	if (AccelerationForce < 0.0) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
 
@@ -157,16 +157,16 @@ void AMowerRC::UpdateAccelerationData(RayCastGroup& RayCastGroup, float DeltaTim
 
 void AMowerRC::UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup)
 {
-	double AccelerationSurface{};
+	double AccelerationSurfaceAverage{};
 
-	if (RayCastGroup.FR.bBlockingHit) AccelerationSurface += RayCastGroup.FR.ImpactPoint.Z;
-	if (RayCastGroup.FL.bBlockingHit) AccelerationSurface += RayCastGroup.FL.ImpactPoint.Z;
-	if (RayCastGroup.BR.bBlockingHit) AccelerationSurface += RayCastGroup.BR.ImpactPoint.Z;
-	if (RayCastGroup.BL.bBlockingHit) AccelerationSurface += RayCastGroup.BL.ImpactPoint.Z;
+	if (RayCastGroup.FR.bBlockingHit) AccelerationSurfaceAverage += RayCastGroup.FR.ImpactPoint.Z;
+	if (RayCastGroup.FL.bBlockingHit) AccelerationSurfaceAverage += RayCastGroup.FL.ImpactPoint.Z;
+	if (RayCastGroup.BR.bBlockingHit) AccelerationSurfaceAverage += RayCastGroup.BR.ImpactPoint.Z;
+	if (RayCastGroup.BL.bBlockingHit) AccelerationSurfaceAverage += RayCastGroup.BL.ImpactPoint.Z;
 
 	AccelerationSurfaceImpact = PhysicsBodyLocation;
 
-	if (WheelsGrounded) AccelerationSurfaceImpact.Z = AccelerationSurface / WheelsGrounded;
+	if (WheelsGrounded) AccelerationSurfaceImpact.Z = AccelerationSurfaceAverage / WheelsGrounded;
 }
 
 
@@ -178,9 +178,9 @@ void AMowerRC::UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
 	if (RayCastGroup.FL.bBlockingHit) SurfaceNormalAverage += RayCastGroup.FL.ImpactNormal;
 	if (RayCastGroup.BR.bBlockingHit) SurfaceNormalAverage += RayCastGroup.BR.ImpactNormal;
 	if (RayCastGroup.BL.bBlockingHit) SurfaceNormalAverage += RayCastGroup.BL.ImpactNormal;
-
-	if (WheelsGrounded) SurfaceNormalAverage = FVector::CrossProduct(PhysicsBodyRightVector, SurfaceNormalAverage / WheelsGrounded);
 	
+	if (WheelsGrounded) SurfaceNormalAverage = FVector::CrossProduct(PhysicsBodyRightVector, SurfaceNormalAverage / WheelsGrounded);
+
 	AccelerationSurfaceNormal = SurfaceNormalAverage;
 }
 
@@ -200,13 +200,12 @@ void AMowerRC::DecayAcceleration()
 		if (AccelerationRatio < 0.1 && AccelerationRatio > -0.1) AccelerationRatio = 0.0;
 	}
 
-
-
 	UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
 	UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 	UE_LOG(LogTemp, Warning, TEXT(" "));
 
 	AcceleratingDirection = 0.0;
+	WheelsGrounded = 0;
 	Braking = 0.0;
 }
 
@@ -215,8 +214,6 @@ void AMowerRC::ResetDragForceData()
 {
 	LinearDragForces.Reset();
 	AngularDragForces.Reset();
-
-	WheelsGrounded = 0;
 }
 
 
@@ -343,10 +340,10 @@ void AMowerRC::DrawAcceleration()
 
 void AMowerRC::ApplyDragForces()
 {
-	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
-
 	AngularDragForces.Add(abs(AccelerationForce * WheelsGrounded) * AngularDragForceMultiplier);
 	
+	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
+
 	TotalLinearDragForce = 0.01;
 	TotalAngularDragForce = 0.0;
 

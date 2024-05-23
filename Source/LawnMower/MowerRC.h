@@ -134,10 +134,9 @@ private:
 	const double AngularDragForceMultiplier{ 0.000015 };
 	const double AngularAirTimeDrag{ 5.0 };
 
-	const double AccelerationForceMaximum{ 10000.0 };
+	const double AccelerationForceMaximum{ 1200.0 };
 	const double AccelerationRatioMaximum{ 3.0 };
 	const double AcceleratingDirectionDecayRate{ 0.5 };
-	
 	const double BrakingForce{ 1.0 };
 
 	FTransform PhysicsBodyTransform{};
