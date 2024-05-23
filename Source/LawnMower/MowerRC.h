@@ -54,25 +54,26 @@ private:
 
 	void FloatMower();
 
-	void UpdateAccelerationData(RayCastGroup& RayCastGroup, float DeltaTime);
-	void UpdateAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
-	void UpdateAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
-	void ApplyAccelerationForce();
-	void DecayAcceleration();
-	void ResetDragForceData();
+	void UpdateAcceleration(RayCastGroup& RayCastGroup, float DeltaTime);
+	FVector GetAccelerationSurfaceImpact(const RayCastGroup& RayCastGroup);
+	FVector GetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
+	void DecayAcceleration(float DecayRate);
+
+	void DrawAcceleration(const FVector Impact, const FVector Normal);
+
+	void ResetDragForces();
 
 	void UpdatePhysicsBodyPositionalData();
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
-	void AddDragForceOnRayCastHit(double CompressionRatio);
+	void AddDragForceOnRayCastHit(float CompressionRatio);
 
 	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 
 	void DrawRayCasts(RayCastGroup& RayCasts);
 	void DrawRayCast(const FHitResult& RayCast);
-	void DrawAcceleration();
 
 	void ApplyDragForces();
 
@@ -112,32 +113,21 @@ private:
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
 
+	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
+
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
-
-	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
 	
 	const double MinCameraArmPitch{ -89.0 };
 	const double MaxCameraArmPitch{ 3.0 };
+
 	const double RayCastLength{ 8.9 };
-	const double WheelCount{ 4.0 };
-	const double PhysicsBodyMass{ 30.0 };
+
+	const float PhysicsBodyMass{ 30.0f };
+	const float GravitationalAcceleration{ 980.0f };
+	const float AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
-	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass/2.0 };
-
-	const double GravitationalAcceleration{ 980.0 };
-	const double AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
-
-	const double DragForceCompressionRatioMinimum{ 0.25 };
-	const double MaxWheelDragForce{ 2.0 };
-	const double AngularDragForceMultiplier{ 0.000015 };
-	const double AngularAirTimeDrag{ 5.0 };
-
-	const double AccelerationForceMaximum{ 1200.0 };
-	const double AccelerationRatioMaximum{ 3.0 };
-	const double AcceleratingDirectionDecayRate{ 0.5 };
-	const double BrakingForce{ 1.0 };
 
 	FTransform PhysicsBodyTransform{};
 
@@ -159,22 +149,19 @@ private:
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
-	int32 WheelsGrounded{};
+	TArray<float> LinearDragForces{};
+	TArray<float> AngularDragForces{};
 
-	TArray<double> LinearDragForces{};
-	TArray<double> AngularDragForces{};
+	float TotalLinearDragForce{};
+	float TotalAngularDragForce{};
 
-	double TotalLinearDragForce{};
-	double TotalAngularDragForce{};
+	float WheelsGrounded{};
+	
+	float AccelerationForce{};
+	float AccelerationRatio{};
+	
+	float AcceleratingDirection{};
+	float Braking{};
 
-	FVector AccelerationSurfaceNormal{};
-	FVector AccelerationSurfaceImpact{};
-
-	double AcceleratingDirection{};
-	double AccelerationRatio{};
-	double AccelerationForce{};
-	double AcceleratingDirectionDecay{};
-
-	double Braking{};
 
 };
