@@ -35,56 +35,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 {
 	GENERATED_BODY()
 
-public:
-	AMowerRC();
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-protected:
-	virtual void BeginPlay() override;
-
-private:
-	void CreateAndAssignComponentSubObjects();
-	void SetupComponentAttachments();
-	void SetComponentProperties();
-	void SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location);
-
-	void AddInputMappingContextToLocalPlayerSubsystem();
-	void SetPhysicsBodyMassProperties();
-
-	void FloatMower();
-
-	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
-	void SetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup);
-	void DecayAcceleration(float DecayRate);
-	void ApplyAcceleration();
-
-	void ResetDragForces();
-
-	void UpdatePhysicsBodyPositionData();
-
-	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
-	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
-	void AddForcesOnRayCastHit(FHitResult& RayCast);
-	void AddDragForceOnRayCastHit(float CompressionRatio);
-
-	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
-	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
-
-	void DrawRayCasts(RayCastGroup& RayCasts);
-	void DrawRayCast(const FHitResult& RayCast);
-	void DrawAcceleration();
-
-	void AddAngularDragForces();
-	void ApplyDragForces();
-
-public:
-	void MoveCamera(const FInputActionValue& Value);
-	void Accelerate(const FInputActionValue& Value);
-	void Brake(const FInputActionValue& Value);
-	void Steer(const FInputActionValue& Value);
-
-private:
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body{};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle{};
@@ -101,6 +51,10 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
+	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
+
+	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
 
@@ -114,21 +68,105 @@ private:
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
 
-	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
-
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
-	
-	const double MinCameraArmPitch{ -89.0 };
-	const double MaxCameraArmPitch{ 3.0 };
-
-	const double RayCastLength{ 8.9 };
 
 	const float PhysicsBodyMass{ 30.0f };
 	const float GravitationalAcceleration{ 980.0f };
 	const float AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
-	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
+
+	const double MinCameraArmPitch{ -89.0 };
+	const double MaxCameraArmPitch{ 3.0 };
+
+	const double SurfaceImpactOffset{ -15.0 };
+
+	const float AccelerationForceMaximum{ 10000.0f };
+	const float AccelerationRatioMaximum{ 3.0f };
+	const float AcceleratingDecayRate{ 0.5f };
+
+	const double RayCastLength{ 8.9 };
+
+	const float CompressionRatioMinimum{ 0.25f };
+	const float MaxDragForce{ 2.0f };
+	const float WheelTotal{ 4.0f };
+
+	const float AngularDragForceMultiplier{ 0.00002f };
+	const float AngularAirTimeDrag{ 5.0f };
+	const float LinearBrakingDrag{ 50.0f };
+
+public:
+	AMowerRC();
+
+private:
+	void CreateAndAssignComponentSubObjects();
+	void SetupComponentAttachments();
+	void SetComponentProperties();
+	void SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location);	
+
+protected:
+	virtual void BeginPlay() override;
+	
+private:
+	void AddInputMappingContextToLocalPlayerSubsystem() const;
+	void SetPhysicsBodyMassProperties();
+
+protected:
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	void MoveCamera(const FInputActionValue& Value);
+	void Accelerate(const FInputActionValue& Value);
+	void Brake(const FInputActionValue& Value);
+	void Steer(const FInputActionValue& Value);
+
+private:
+	float AcceleratingDirection{};
+	float Braking{};
+
+public:
+	virtual void Tick(float DeltaTime) override;
+
+private:
+	void FloatMower() const;
+
+	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
+	void DecayAcceleration(float DecayRate);
+	void ApplyAcceleration() const;
+
+	void ResetDragForces();
+
+	void UpdatePhysicsBodyPositionData();
+
+	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
+	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
+	void AddForcesOnRayCastHit(FHitResult& RayCast);
+	void AddDragForceOnRayCastHit(float CompressionRatio);
+
+	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
+	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
+
+	void DrawRayCasts(RayCastGroup& RayCasts) const;
+	void DrawRayCast(const FHitResult& RayCast) const;
+	void DrawAcceleration() const;
+
+	void AddAdditionalDragForces();
+	void ApplyDragForces();
+
+private:
+	FVector AccelerationSurfaceImpact{};
+	FVector AccelerationSurfaceNormal{};
+
+	float AccelerationForce{};
+	float AccelerationRatio{};
+	
+	float TotalLinearDragForce{};
+	float TotalAngularDragForce{};
+
+	float WheelsGrounded{};
+
+	TArray<float> LinearDragForces{};
+	TArray<float> AngularDragForces{};
 
 	FTransform PhysicsBodyTransform{};
 
@@ -149,22 +187,5 @@ private:
 	
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
-
-	TArray<float> LinearDragForces{};
-	TArray<float> AngularDragForces{};
-
-	float TotalLinearDragForce{};
-	float TotalAngularDragForce{};
-
-	float WheelsGrounded{};
-
-	FVector AccelerationSurfaceImpact{};
-	FVector AccelerationSurfaceNormal{};
-	
-	float AccelerationForce{};
-	float AccelerationRatio{};
-	
-	float AcceleratingDirection{};
-	float Braking{};
 
 };

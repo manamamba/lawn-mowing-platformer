@@ -90,7 +90,7 @@ void AMowerRC::BeginPlay()
 }
 
 
-void AMowerRC::AddInputMappingContextToLocalPlayerSubsystem()
+void AMowerRC::AddInputMappingContextToLocalPlayerSubsystem() const
 {
 	APlayerController* PlayerController{};
 	UEnhancedInputLocalPlayerSubsystem* Subsystem{};
@@ -104,16 +104,64 @@ void AMowerRC::AddInputMappingContextToLocalPlayerSubsystem()
 
 void AMowerRC::SetPhysicsBodyMassProperties()
 {
-	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
-	
 	PhysicsBody->SetMassOverrideInKg(NAME_None, PhysicsBodyMass);
 	PhysicsBody->SetCenterOfMass(PhysicsBodyCenterOfMass);
+}
+
+
+void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
+		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
+		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
+		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
+	}
+}
+
+
+void AMowerRC::MoveCamera(const FInputActionValue& Value)
+{
+	const FVector2D InputVector{ Value.Get<FVector2D>() };
+
+	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
+
+	ArmPosition.Yaw += InputVector.X;
+	ArmPosition.Pitch += InputVector.Y;
+
+	if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
+	if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
+
+	CameraArm->SetRelativeRotation(ArmPosition);
+}
+
+
+void AMowerRC::Accelerate(const FInputActionValue& Value)
+{
+	AcceleratingDirection = Value.Get<float>();
+}
+
+
+void AMowerRC::Brake(const FInputActionValue& Value)
+{
+	Braking = Value.Get<float>();
+}
+
+
+void AMowerRC::Steer(const FInputActionValue& Value)
+{
+
 }
 
 
 void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	// FloatMower();
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 	ApplyAcceleration();
@@ -130,23 +178,18 @@ void AMowerRC::Tick(float DeltaTime)
 	DrawRayCasts(WheelRayCasts);
 	DrawAcceleration();
 
-	AddAngularDragForces();
+	AddAdditionalDragForces();
 	ApplyDragForces();
 }
 
 
-void AMowerRC::FloatMower() { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
+void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
 {
-	const float AccelerationForceMaximum{ 10000.0f };
-	const float AccelerationRatioMaximum{ 3.0f };
-	const float AcceleratingDecayRate{ 0.5f };
-	
-	AccelerationSurfaceImpact = PhysicsBodyLocation + (PhysicsBodyUpVector * -15.0);
-
-	SetAccelerationSurfaceNormal(RayCastGroup);
+	AccelerationSurfaceImpact = PhysicsBodyLocation + (PhysicsBodyUpVector * SurfaceImpactOffset);
+	AccelerationSurfaceNormal = PhysicsBodyForwardVector;
 
 	if (WheelsGrounded && !Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
@@ -164,21 +207,6 @@ void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float De
 }
 
 
-void AMowerRC::SetAccelerationSurfaceNormal(const RayCastGroup& RayCastGroup)
-{
-	FVector NormalAverage{};
-	
-	if (RayCastGroup.FR.bBlockingHit) NormalAverage += RayCastGroup.FR.ImpactNormal;
-	if (RayCastGroup.FL.bBlockingHit) NormalAverage += RayCastGroup.FL.ImpactNormal;
-	if (RayCastGroup.BR.bBlockingHit) NormalAverage += RayCastGroup.BR.ImpactNormal;
-	if (RayCastGroup.BL.bBlockingHit) NormalAverage += RayCastGroup.BL.ImpactNormal;
-	
-	if (WheelsGrounded) NormalAverage = FVector::CrossProduct(PhysicsBodyRightVector, NormalAverage / WheelsGrounded);
-
-	AccelerationSurfaceNormal = NormalAverage;
-}
-
-
 void AMowerRC::DecayAcceleration(float DecayRate)
 {
 	if (!AcceleratingDirection || (Braking && WheelsGrounded))
@@ -189,15 +217,10 @@ void AMowerRC::DecayAcceleration(float DecayRate)
 	}
 
 	AcceleratingDirection = 0.0f;
-	Braking = 0.0f;
-
-	// UE_LOG(LogTemp, Warning, TEXT(" "));
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 }
 
 
-void AMowerRC::ApplyAcceleration()
+void AMowerRC::ApplyAcceleration() const
 {
 	if (AccelerationForce == 0.0f) return;
 	
@@ -259,9 +282,6 @@ void AMowerRC::AddForcesOnRayCastHit(FHitResult& RayCast)
 
 void AMowerRC::AddDragForceOnRayCastHit(float CompressionRatio)
 {
-	const float CompressionRatioMinimum{ 0.25f };
-	const float MaxDragForce{ 2.0f };
-	const float WheelTotal{ 4.0f };
 	float DragForce{};
 
 	++WheelsGrounded;
@@ -302,7 +322,7 @@ void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& R
 // Wheel Animation Functions
 
 
-void AMowerRC::DrawRayCasts(RayCastGroup& RayCasts)
+void AMowerRC::DrawRayCasts(RayCastGroup& RayCasts) const
 {
 	DrawRayCast(RayCasts.FR);
 	DrawRayCast(RayCasts.FL);
@@ -311,7 +331,7 @@ void AMowerRC::DrawRayCasts(RayCastGroup& RayCasts)
 }
 
 
-void AMowerRC::DrawRayCast(const FHitResult& RayCast)
+void AMowerRC::DrawRayCast(const FHitResult& RayCast) const
 {
 	if (!RayCast.bBlockingHit)
 	{
@@ -326,7 +346,7 @@ void AMowerRC::DrawRayCast(const FHitResult& RayCast)
 }
 
 
-void AMowerRC::DrawAcceleration()
+void AMowerRC::DrawAcceleration() const
 {
 	const double DrawLineLength{ abs(AccelerationRatio * 15.0) };
 	const FVector DrawStart{ AccelerationSurfaceImpact };
@@ -335,17 +355,22 @@ void AMowerRC::DrawAcceleration()
 	DrawDebugSphere(GetWorld(), DrawStart, 1.0f, 6, FColor::Orange);
 	DrawDebugLine(GetWorld(), DrawStart, DrawEnd, FColor::Orange);
 	DrawDebugSphere(GetWorld(), DrawEnd, 1.0f, 6, FColor::Yellow);
+
+	// UE_LOG(LogTemp, Warning, TEXT(" "));
+	// UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
+	// UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 }
 
 
-void AMowerRC::AddAngularDragForces()
+void AMowerRC::AddAdditionalDragForces()
 {
-	const float AngularDragForceMultiplier{ 0.00002f };
-	const float AngularAirTimeDrag{ 5.0f };
-
 	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
 
 	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
+
+	if (WheelsGrounded && Braking && !AccelerationRatio) LinearDragForces.Add(LinearBrakingDrag);
+
+	Braking = 0.0f;
 }
 
 
@@ -361,52 +386,4 @@ void AMowerRC::ApplyDragForces()
 	// UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
-}
-
-
-void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) 
-	{
-		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
-		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
-		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
-		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
-	}
-}
-
-
-void AMowerRC::MoveCamera(const FInputActionValue& Value)
-{
-	const FVector2D InputVector{ Value.Get<FVector2D>() };
-	
-	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
-
-	ArmPosition.Yaw += InputVector.X;
-	ArmPosition.Pitch += InputVector.Y;
-
-	if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
-	if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
-
-	CameraArm->SetRelativeRotation(ArmPosition);
-}
-
-
-void AMowerRC::Accelerate(const FInputActionValue& Value)
-{
-	AcceleratingDirection = Value.Get<float>();
-}
-
-
-void AMowerRC::Brake(const FInputActionValue& Value)
-{
-	Braking = Value.Get<float>();
-}
-
-
-void AMowerRC::Steer(const FInputActionValue& Value)
-{
-
 }
