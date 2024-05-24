@@ -164,6 +164,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// FloatMower();
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
+
 	ApplyAcceleration();
 
 	ResetDragForces();
@@ -175,10 +176,13 @@ void AMowerRC::Tick(float DeltaTime)
 	SendWheelRayCasts(WheelRayCasts, WheelRayCastOrigins);
 
 	DrawRayCasts(ForceRayCasts);
-	DrawRayCasts(WheelRayCasts);
+
+	// DrawRayCasts(WheelRayCasts);
+
 	DrawAcceleration();
 
-	AddAdditionalDragForces();
+	AddAdditionalDragForces(DeltaTime);
+
 	ApplyDragForces();
 }
 
@@ -286,8 +290,8 @@ void AMowerRC::AddDragForceOnRayCastHit(float CompressionRatio)
 
 	++WheelsGrounded;
 
-	if (CompressionRatio < CompressionRatioMinimum) DragForce = MaxDragForce;
-	else DragForce = MaxDragForce / (CompressionRatio * WheelTotal);
+	if (CompressionRatio < CompressionRatioMinimum) DragForce = MaxWheelDragForce;
+	else DragForce = MaxWheelDragForce / (CompressionRatio * WheelTotal);
 	
 	LinearDragForces.Add(DragForce);
 	AngularDragForces.Add(DragForce);
@@ -356,21 +360,28 @@ void AMowerRC::DrawAcceleration() const
 	DrawDebugLine(GetWorld(), DrawStart, DrawEnd, FColor::Orange);
 	DrawDebugSphere(GetWorld(), DrawEnd, 1.0f, 6, FColor::Yellow);
 
-	// UE_LOG(LogTemp, Warning, TEXT(" "));
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
+	UE_LOG(LogTemp, Warning, TEXT(" "));
+	UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
+	UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 }
 
 
-void AMowerRC::AddAdditionalDragForces()
+void AMowerRC::AddAdditionalDragForces(float DeltaTime)
 {
-	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
+	if (WheelsGrounded && Braking && !AccelerationRatio) BrakingDrag += LinearBrakingDragMultiplier * Braking * DeltaTime;
+	else BrakingDrag = 0.0f;
+
+	if (BrakingDrag > LinearBrakingDragLimit) BrakingDrag = LinearBrakingDragLimit;
+
+	LinearDragForces.Add(BrakingDrag);
 
 	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
 
-	if (WheelsGrounded && Braking && !AccelerationRatio) LinearDragForces.Add(LinearBrakingDrag);
+	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
 
 	Braking = 0.0f;
+
+	UE_LOG(LogTemp, Warning, TEXT("BrakingDrag %f"), BrakingDrag);
 }
 
 
@@ -382,8 +393,8 @@ void AMowerRC::ApplyDragForces()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
-	// UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
-	// UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
+	UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
+	UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 }

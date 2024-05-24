@@ -89,12 +89,14 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double RayCastLength{ 8.9 };
 
 	const float CompressionRatioMinimum{ 0.25f };
-	const float MaxDragForce{ 2.0f };
+	const float MaxWheelDragForce{ 2.0f };
 	const float WheelTotal{ 4.0f };
 
+	const float LinearBrakingDragLimit{ 50.0f };
+	const float LinearBrakingDragMultiplier{ 25.0f };
 	const float AngularDragForceMultiplier{ 0.00002f };
 	const float AngularAirTimeDrag{ 5.0f };
-	const float LinearBrakingDrag{ 50.0f };
+	
 
 public:
 	AMowerRC();
@@ -150,7 +152,7 @@ private:
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
 
-	void AddAdditionalDragForces();
+	void AddAdditionalDragForces(float DeltaTime);
 	void ApplyDragForces();
 
 private:
@@ -167,6 +169,8 @@ private:
 
 	TArray<float> LinearDragForces{};
 	TArray<float> AngularDragForces{};
+
+	float BrakingDrag{};
 
 	FTransform PhysicsBodyTransform{};
 
