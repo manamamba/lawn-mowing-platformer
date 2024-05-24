@@ -110,7 +110,10 @@ void AMowerRC::SetPhysicsBodyMassProperties()
 
 void AMowerRC::SetCameraRotation()
 {
-	// CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
+	UE_LOG(LogTemp, Warning, TEXT("CameraArm Local %s"), *CameraArm->GetRelativeRotation().ToString());
+	UE_LOG(LogTemp, Warning, TEXT("CameraArm World %s"), *CameraArm->GetComponentRotation().ToString());
+
+	//CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
 }
 
 
@@ -132,15 +135,28 @@ void AMowerRC::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
 
-	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
+	FRotator LocalArmPosition{ CameraArm->GetRelativeRotation()};
 
-	ArmPosition.Pitch += RotatingDirection.Y;
-	ArmPosition.Yaw += RotatingDirection.X;
+	UE_LOG(LogTemp, Warning, TEXT(" "));
+	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Old %s"), *LocalArmPosition.ToString());
 
-	if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
-	if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
+	LocalArmPosition += FRotator{ RotatingDirection.Y, RotatingDirection.X, 0.0 };
 
-	CameraArm->SetRelativeRotation(ArmPosition);
+	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Add %s"), *LocalArmPosition.ToString());
+
+	if (LocalArmPosition.Pitch > MaxCameraArmPitch) LocalArmPosition.Pitch = MaxCameraArmPitch;
+	if (LocalArmPosition.Pitch < MinCameraArmPitch) LocalArmPosition.Pitch = MinCameraArmPitch;
+
+	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Fix %s"), *LocalArmPosition.ToString());
+
+	FRotator WorldArmPosition{ UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalArmPosition) };
+
+	UE_LOG(LogTemp, Warning, TEXT("WorldArmPosition New %s"), *WorldArmPosition.ToString());
+	
+	CameraArm->SetWorldRotation(WorldArmPosition);
+	CameraArm->SetRelativeRotation(LocalArmPosition);
+
+	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition New %s"), *CameraArm->GetRelativeRotation().ToString());
 }
 
 
