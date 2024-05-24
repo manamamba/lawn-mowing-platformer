@@ -57,8 +57,12 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
 	CameraArm->SetRelativeRotation(CameraArmRotationOffset);
+	CameraArm->SetUsingAbsoluteRotation(true);
 	CameraArm->TargetArmLength = 250.0f;
 	CameraArm->ProbeSize = 5.0f;
+	CameraArm->bInheritPitch = false;
+	CameraArm->bInheritYaw = false;
+	CameraArm->bInheritRoll = false;
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
 	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
@@ -110,10 +114,9 @@ void AMowerRC::SetPhysicsBodyMassProperties()
 
 void AMowerRC::SetCameraRotation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("CameraArm Local %s"), *CameraArm->GetRelativeRotation().ToString());
-	UE_LOG(LogTemp, Warning, TEXT("CameraArm World %s"), *CameraArm->GetComponentRotation().ToString());
+	PhysicsBodyTransform = PhysicsBody->GetComponentTransform();
 
-	//CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
+	CameraArm->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalCameraArmRotation));
 }
 
 
@@ -135,28 +138,14 @@ void AMowerRC::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
 
-	FRotator LocalArmPosition{ CameraArm->GetRelativeRotation()};
+	LocalCameraArmRotation += FRotator{ RotatingDirection.Y, RotatingDirection.X, 0.0 };
 
-	UE_LOG(LogTemp, Warning, TEXT(" "));
-	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Old %s"), *LocalArmPosition.ToString());
+	if (LocalCameraArmRotation.Pitch > MaxCameraArmPitch) LocalCameraArmRotation.Pitch = MaxCameraArmPitch;
+	if (LocalCameraArmRotation.Pitch < MinCameraArmPitch) LocalCameraArmRotation.Pitch = MinCameraArmPitch;
 
-	LocalArmPosition += FRotator{ RotatingDirection.Y, RotatingDirection.X, 0.0 };
+	FRotator WorldCameraArmPosition{ UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalCameraArmRotation) };
 
-	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Add %s"), *LocalArmPosition.ToString());
-
-	if (LocalArmPosition.Pitch > MaxCameraArmPitch) LocalArmPosition.Pitch = MaxCameraArmPitch;
-	if (LocalArmPosition.Pitch < MinCameraArmPitch) LocalArmPosition.Pitch = MinCameraArmPitch;
-
-	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition Fix %s"), *LocalArmPosition.ToString());
-
-	FRotator WorldArmPosition{ UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalArmPosition) };
-
-	UE_LOG(LogTemp, Warning, TEXT("WorldArmPosition New %s"), *WorldArmPosition.ToString());
-	
-	CameraArm->SetWorldRotation(WorldArmPosition);
-	CameraArm->SetRelativeRotation(LocalArmPosition);
-
-	UE_LOG(LogTemp, Warning, TEXT("LocalArmPosition New %s"), *CameraArm->GetRelativeRotation().ToString());
+	CameraArm->SetWorldRotation(WorldCameraArmPosition);
 }
 
 

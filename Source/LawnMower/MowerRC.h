@@ -162,6 +162,10 @@ private:
 	void ApplyDragForces();
 
 private:
+	FRotator LocalCameraArmRotation{ -20.0, 0.0, 0.0 };
+	FRotator WorldCameraArmRotationThisTick{};
+	FRotator WorldCameraArmRotationLastTick{};
+
 	float TickCount{};
 
 	FVector AccelerationSurfaceImpact{};
