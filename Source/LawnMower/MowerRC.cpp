@@ -59,7 +59,7 @@ void AMowerRC::SetComponentProperties()
 	CameraArm->SetRelativeRotation(CameraArmRotationOffset);
 	CameraArm->SetUsingAbsoluteRotation(true);
 	CameraArm->TargetArmLength = 250.0f;
-	CameraArm->ProbeSize = 5.0f;
+	CameraArm->ProbeSize = 8.0f;
 	CameraArm->bInheritPitch = false;
 	CameraArm->bInheritYaw = false;
 	CameraArm->bInheritRoll = false;
@@ -88,8 +88,8 @@ void AMowerRC::BeginPlay()
 	Super::BeginPlay();
 
 	AddInputMappingContextToLocalPlayerSubsystem();
-	SetPhysicsBodyMassProperties();
-	SetCameraRotation();
+	SetPhysicsBodyProperties();
+	SetCameraArmWorldRotation();
 }
 
 
@@ -105,18 +105,20 @@ void AMowerRC::AddInputMappingContextToLocalPlayerSubsystem() const
 }
 
 
-void AMowerRC::SetPhysicsBodyMassProperties()
+void AMowerRC::SetPhysicsBodyProperties()
 {
 	PhysicsBody->SetMassOverrideInKg(NAME_None, PhysicsBodyMass);
 	PhysicsBody->SetCenterOfMass(PhysicsBodyCenterOfMass);
+
+	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
 }
 
 
-void AMowerRC::SetCameraRotation()
+void AMowerRC::SetCameraArmWorldRotation()
 {
-	PhysicsBodyTransform = PhysicsBody->GetComponentTransform();
+	WorldCameraArmRotation = UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalCameraArmRotation);
 
-	CameraArm->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalCameraArmRotation));
+	CameraArm->SetWorldRotation(WorldCameraArmRotation);
 }
 
 
@@ -127,6 +129,7 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
+		EnhancedInputComponent->BindAction(ResetCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::ResetCamera);
 		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
 		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
@@ -143,9 +146,15 @@ void AMowerRC::MoveCamera(const FInputActionValue& Value)
 	if (LocalCameraArmRotation.Pitch > MaxCameraArmPitch) LocalCameraArmRotation.Pitch = MaxCameraArmPitch;
 	if (LocalCameraArmRotation.Pitch < MinCameraArmPitch) LocalCameraArmRotation.Pitch = MinCameraArmPitch;
 
-	FRotator WorldCameraArmPosition{ UKismetMathLibrary::TransformRotation(PhysicsBodyTransform, LocalCameraArmRotation) };
+	SetCameraArmWorldRotation();
+}
 
-	CameraArm->SetWorldRotation(WorldCameraArmPosition);
+
+void AMowerRC::ResetCamera()
+{
+	LocalCameraArmRotation = CameraArmRotationOffset;
+
+	SetCameraArmWorldRotation();
 }
 
 
@@ -182,6 +191,8 @@ void AMowerRC::Tick(float DeltaTime)
 	ResetDragForces();
 
 	UpdatePhysicsBodyPositionData();
+
+	UpdateCameraRotation();
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 
@@ -265,12 +276,21 @@ void AMowerRC::ResetDragForces()
 
 void AMowerRC::UpdatePhysicsBodyPositionData()
 {
-	PhysicsBodyTransform = PhysicsBody->GetComponentTransform();
+	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
+	PhysicsBodyLocalTransform = PhysicsBody->GetRelativeTransform();
 
 	PhysicsBodyLocation = PhysicsBody->GetComponentLocation();
 	PhysicsBodyUpVector = PhysicsBody->GetUpVector();
 	PhysicsBodyForwardVector = PhysicsBody->GetForwardVector();
 	PhysicsBodyRightVector = PhysicsBody->GetRightVector();
+}
+
+
+void AMowerRC::UpdateCameraRotation()
+{	
+	FRotator LocalCameraArmRotationThisTick{ UKismetMathLibrary::InverseTransformRotation(PhysicsBodyLocalTransform, WorldCameraArmRotation) };
+	
+	if (LocalCameraArmRotationThisTick != LocalCameraArmRotation) SetCameraArmWorldRotation();
 }
 
 
@@ -287,7 +307,7 @@ bool AMowerRC::RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin)
 {
 	RayCast.Reset();
 	
-	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, LocalOrigin) };
+	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalOrigin) };
 	const FVector RayCastEnd{ RayCastStart + (-PhysicsBodyUpVector * RayCastLength) };
 
 	return GetWorld()->LineTraceSingleByChannel(RayCast, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
@@ -334,7 +354,7 @@ void AMowerRC::ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& R
 
 	double RayCastLengthDifference{};
 
-	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyTransform, LocalOrigin) };
+	const FVector WheelStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalOrigin) };
 	const FVector WheelEnd{ WheelStart + (-PhysicsBodyUpVector * RayCastLength) };
 	const bool Grounded{ GetWorld()->LineTraceSingleByChannel(RayCast, WheelStart, WheelEnd, ECC_GameTraceChannel1) };
 
