@@ -56,12 +56,9 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
-	CameraArm->TargetArmLength = 200.0f;
+	CameraArm->SetRelativeRotation(CameraArmRotationOffset);
+	CameraArm->TargetArmLength = 250.0f;
 	CameraArm->ProbeSize = 5.0f;
-	CameraArm->bUsePawnControlRotation = true;
-	CameraArm->bInheritPitch = false;
-	CameraArm->bInheritYaw = false;
-	CameraArm->bInheritRoll = false;
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
 	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
@@ -113,7 +110,7 @@ void AMowerRC::SetPhysicsBodyMassProperties()
 
 void AMowerRC::SetCameraRotation()
 {
-	CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
+	// CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
 }
 
 
