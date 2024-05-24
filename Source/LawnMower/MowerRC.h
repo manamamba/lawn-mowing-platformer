@@ -82,7 +82,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
 
 	const double MinCameraArmPitch{ -89.9 };
-	const double MaxCameraArmPitch{ 5.0 };
+	const double MaxCameraArmPitch{ 89.9 };
 
 	const double SurfaceImpactOffset{ -15.0 };
 
