@@ -51,7 +51,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
-	const FRotator CameraArmRotation{ -20.0, 0.0, 0.0 };
+	const float TickCountMax{ 1.0f };
+	const float TickMultipler{ 4.0f };
+	
+	const FRotator CameraArmRotationOffset{ -20.0, 0.0, 0.0 };
 
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 
@@ -77,8 +80,8 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
 
-	const double MinCameraArmPitch{ -89.0 };
-	const double MaxCameraArmPitch{ 3.0 };
+	const double MinCameraArmPitch{ -89.9 };	// may not need
+	const double MaxCameraArmPitch{ 8.9 };		// may not need
 
 	const double SurfaceImpactOffset{ -15.0 };
 
@@ -113,6 +116,7 @@ protected:
 private:
 	void AddInputMappingContextToLocalPlayerSubsystem() const;
 	void SetPhysicsBodyMassProperties();
+	void SetCameraRotation();
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -130,7 +134,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	void TickCounter(float DeltaTime);
+
 	void FloatMower() const;
+
+	void UpdateCameraRotation(float DeltaTime);
 
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DecayRate);
@@ -156,6 +164,10 @@ private:
 	void ApplyDragForces();
 
 private:
+	float TickCount{};
+	
+	FVector2D RotatingCameraDirection{};
+
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 

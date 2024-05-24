@@ -56,10 +56,10 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
-	CameraArm->SetRelativeRotation(CameraArmRotation);
 	CameraArm->TargetArmLength = 200.0f;
 	CameraArm->ProbeSize = 5.0f;
 	CameraArm->bInheritPitch = false;
+	CameraArm->bInheritYaw = false;
 	CameraArm->bInheritRoll = false;
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
@@ -87,6 +87,7 @@ void AMowerRC::BeginPlay()
 
 	AddInputMappingContextToLocalPlayerSubsystem();
 	SetPhysicsBodyMassProperties();
+	SetCameraRotation();
 }
 
 
@@ -109,6 +110,12 @@ void AMowerRC::SetPhysicsBodyMassProperties()
 }
 
 
+void AMowerRC::SetCameraRotation()
+{
+	CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
+}
+
+
 void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
@@ -125,17 +132,16 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMowerRC::MoveCamera(const FInputActionValue& Value)
 {
-	const FVector2D InputVector{ Value.Get<FVector2D>() };
+	RotatingCameraDirection = Value.Get<FVector2D>();
 
-	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
-
-	ArmPosition.Yaw += InputVector.X;
-	ArmPosition.Pitch += InputVector.Y;
-
-	if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
-	if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
-
-	CameraArm->SetRelativeRotation(ArmPosition);
+	// const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
+	// FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
+	// ArmPosition.Pitch += RotatingDirection.Y;
+	// ArmPosition.Yaw += RotatingDirection.X;
+	// if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
+	// if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
+	// CameraArm->SetRelativeRotation(ArmPosition);
+	// UE_LOG(LogTemp, Warning, TEXT("CameraArmPosition %s"), *ArmPosition.Quaternion().ToString());
 }
 
 
@@ -153,7 +159,6 @@ void AMowerRC::Brake(const FInputActionValue& Value)
 
 void AMowerRC::Steer(const FInputActionValue& Value)
 {
-
 }
 
 
@@ -161,7 +166,11 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	TickCounter(DeltaTime);
+
 	// FloatMower();
+
+	UpdateCameraRotation(DeltaTime);
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 
@@ -187,7 +196,28 @@ void AMowerRC::Tick(float DeltaTime)
 }
 
 
+void AMowerRC::TickCounter(float DeltaTime)
+{
+	TickCount += TickMultipler * DeltaTime;
+
+	if (TickCount > TickCountMax) TickCount = 0.0f;
+}
+
+
 void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
+
+
+void AMowerRC::UpdateCameraRotation(float DeltaTime)
+{
+	// CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
+
+
+
+
+
+
+
+}
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
@@ -246,6 +276,7 @@ void AMowerRC::ResetDragForces()
 void AMowerRC::UpdatePhysicsBodyPositionData()
 {
 	PhysicsBodyTransform = PhysicsBody->GetComponentTransform();
+
 	PhysicsBodyLocation = PhysicsBody->GetComponentLocation();
 	PhysicsBodyUpVector = PhysicsBody->GetUpVector();
 	PhysicsBodyForwardVector = PhysicsBody->GetForwardVector();
@@ -360,9 +391,9 @@ void AMowerRC::DrawAcceleration() const
 	DrawDebugLine(GetWorld(), DrawStart, DrawEnd, FColor::Orange);
 	DrawDebugSphere(GetWorld(), DrawEnd, 1.0f, 6, FColor::Yellow);
 
-	UE_LOG(LogTemp, Warning, TEXT(" "));
-	UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
-	UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
+	// UE_LOG(LogTemp, Warning, TEXT(" "));
+	// UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
+	// UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 }
 
 
@@ -381,7 +412,7 @@ void AMowerRC::AddAdditionalDragForces(float DeltaTime)
 
 	Braking = 0.0f;
 
-	UE_LOG(LogTemp, Warning, TEXT("BrakingDrag %f"), BrakingDrag);
+	// UE_LOG(LogTemp, Warning, TEXT("BrakingDrag %f"), BrakingDrag);
 }
 
 
@@ -393,8 +424,8 @@ void AMowerRC::ApplyDragForces()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
-	UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
-	UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
+	// UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
+	// UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 }
