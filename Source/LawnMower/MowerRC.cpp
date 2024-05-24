@@ -58,6 +58,7 @@ void AMowerRC::SetComponentProperties()
 
 	CameraArm->TargetArmLength = 200.0f;
 	CameraArm->ProbeSize = 5.0f;
+	CameraArm->bUsePawnControlRotation = true;
 	CameraArm->bInheritPitch = false;
 	CameraArm->bInheritYaw = false;
 	CameraArm->bInheritRoll = false;
@@ -132,16 +133,17 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void AMowerRC::MoveCamera(const FInputActionValue& Value)
 {
-	RotatingCameraDirection = Value.Get<FVector2D>();
+	const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
 
-	// const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
-	// FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
-	// ArmPosition.Pitch += RotatingDirection.Y;
-	// ArmPosition.Yaw += RotatingDirection.X;
-	// if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
-	// if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
-	// CameraArm->SetRelativeRotation(ArmPosition);
-	// UE_LOG(LogTemp, Warning, TEXT("CameraArmPosition %s"), *ArmPosition.Quaternion().ToString());
+	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
+
+	ArmPosition.Pitch += RotatingDirection.Y;
+	ArmPosition.Yaw += RotatingDirection.X;
+
+	if (ArmPosition.Pitch > MaxCameraArmPitch) ArmPosition.Pitch = MaxCameraArmPitch;
+	if (ArmPosition.Pitch < MinCameraArmPitch) ArmPosition.Pitch = MinCameraArmPitch;
+
+	CameraArm->SetRelativeRotation(ArmPosition);
 }
 
 
@@ -159,6 +161,7 @@ void AMowerRC::Brake(const FInputActionValue& Value)
 
 void AMowerRC::Steer(const FInputActionValue& Value)
 {
+
 }
 
 
@@ -169,8 +172,6 @@ void AMowerRC::Tick(float DeltaTime)
 	TickCounter(DeltaTime);
 
 	// FloatMower();
-
-	UpdateCameraRotation(DeltaTime);
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 
@@ -205,19 +206,6 @@ void AMowerRC::TickCounter(float DeltaTime)
 
 
 void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
-
-
-void AMowerRC::UpdateCameraRotation(float DeltaTime)
-{
-	// CameraArm->SetRelativeRotation(PhysicsBody->GetComponentRotation() + CameraArmRotationOffset);
-
-
-
-
-
-
-
-}
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)

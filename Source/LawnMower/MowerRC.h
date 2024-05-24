@@ -80,8 +80,8 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
 
-	const double MinCameraArmPitch{ -89.9 };	// may not need
-	const double MaxCameraArmPitch{ 8.9 };		// may not need
+	const double MinCameraArmPitch{ -89.9 };
+	const double MaxCameraArmPitch{ 89.9 };
 
 	const double SurfaceImpactOffset{ -15.0 };
 
@@ -138,8 +138,6 @@ private:
 
 	void FloatMower() const;
 
-	void UpdateCameraRotation(float DeltaTime);
-
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DecayRate);
 	void ApplyAcceleration() const;
@@ -165,8 +163,6 @@ private:
 
 private:
 	float TickCount{};
-	
-	FVector2D RotatingCameraDirection{};
 
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
