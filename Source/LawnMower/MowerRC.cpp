@@ -137,33 +137,10 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 }
 
 
-void AMowerRC::MoveCamera(const FInputActionValue& Value)
-{
-	const FVector2D RotatingDirection{ Value.Get<FVector2D>() };
-
-	LocalCameraArmRotation += FRotator{ RotatingDirection.Y, RotatingDirection.X, 0.0 };
-
-	if (LocalCameraArmRotation.Pitch > MaxCameraArmPitch) LocalCameraArmRotation.Pitch = MaxCameraArmPitch;
-	if (LocalCameraArmRotation.Pitch < MinCameraArmPitch) LocalCameraArmRotation.Pitch = MinCameraArmPitch;
-
-	SetCameraArmWorldRotation();
-}
-
-
-void AMowerRC::ResetCamera()
-{
-	LocalCameraArmRotation = CameraArmRotationOffset;
-
-	SetCameraArmWorldRotation();
-}
-
-
+void AMowerRC::MoveCamera(const FInputActionValue& Value) { RotatingCameraDirection = Value.Get<FVector2D>(); }
+void AMowerRC::ResetCamera(const FInputActionValue& Value) { CameraReset = Value.Get<bool>(); }
 void AMowerRC::Accelerate(const FInputActionValue& Value) { AcceleratingDirection = Value.Get<float>(); }
-
-
 void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>(); }
-
-
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 
 
@@ -171,9 +148,8 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	SetTickRate(DeltaTime);
 	TickCounter(DeltaTime);
-
-	// move camera stuff here
 
 	// FloatMower();
 
@@ -198,9 +174,12 @@ void AMowerRC::Tick(float DeltaTime)
 
 	AddBrakingDrag(DeltaTime);
 	AddAirTimeAngularDrag();
-	AddAccelerationAngularDrag();
+	AddAcceleratingAngularDrag();
 	ApplyDragForces();
 }
+
+
+void AMowerRC::SetTickRate(float DeltaTime) { TickRate = (1 / DeltaTime) / 60; }
 
 
 void AMowerRC::TickCounter(float DeltaTime)
@@ -215,7 +194,7 @@ void AMowerRC::TickCounter(float DeltaTime)
 }
 
 
-void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
+void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); }
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
@@ -261,13 +240,13 @@ void AMowerRC::ApplyAcceleration() const
 
 void AMowerRC::ApplySteeringTorque(float DeltaTime)
 {
-	const double TorqueForce{ SteeringForce * Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum };
-	const FVector SteeringDirection{ PhysicsBodyLocation + (PhysicsBodyUpVector * TorqueForce) };
+	const double SteeringForce{ SteeringForceMultiplier * Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum };
+	const FVector SteeringTorque{ PhysicsBodyLocation + (PhysicsBodyUpVector * SteeringForce) };
 
-	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(SteeringDirection);
+	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(SteeringTorque);
 	
-	if (Steering)DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 50.0, 6, FColor::Orange, false, 4.0f);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("WheelTorqueForce    %f"), TorqueForce);
+	if (Steering && TickReset) DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 10.0, 6, FColor::Orange, false, 7.5f);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce      %f"), SteeringForce);
 
 	Steering = 0.0f;
 }
@@ -294,14 +273,28 @@ void AMowerRC::UpdatePhysicsBodyPositionData()
 	PhysicsBodyUpVector = PhysicsBody->GetUpVector();
 	PhysicsBodyForwardVector = PhysicsBody->GetForwardVector();
 	PhysicsBodyRightVector = PhysicsBody->GetRightVector();
+
+	LocationLastTick = LocationThisTick;
+	LocationThisTick = PhysicsBodyLocation;
+	const double Speed{ abs(FVector::Dist(LocationThisTick, LocationLastTick)) * TickRate };
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), Speed);
 }
 
 
 void AMowerRC::UpdateCameraRotation()
 {	
+	if (CameraReset) LocalCameraArmRotation = CameraArmRotationOffset;
+	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
+
+	if (LocalCameraArmRotation.Pitch > MaxCameraArmPitch) LocalCameraArmRotation.Pitch = MaxCameraArmPitch;
+	if (LocalCameraArmRotation.Pitch < MinCameraArmPitch) LocalCameraArmRotation.Pitch = MinCameraArmPitch;
+
 	FRotator LocalCameraArmRotationThisTick{ UKismetMathLibrary::InverseTransformRotation(PhysicsBodyLocalTransform, WorldCameraArmRotation) };
 	
 	if (LocalCameraArmRotationThisTick != LocalCameraArmRotation) SetCameraArmWorldRotation();
+
+	RotatingCameraDirection = FVector2D::Zero();
+	CameraReset = false;
 }
 
 
@@ -436,7 +429,7 @@ void AMowerRC::AddBrakingDrag(float DeltaTime)
 void AMowerRC::AddAirTimeAngularDrag() { if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag); }
 
 
-void AMowerRC::AddAccelerationAngularDrag() { AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier); }
+void AMowerRC::AddAcceleratingAngularDrag() { AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier); }
 
 
 void AMowerRC::ApplyDragForces()

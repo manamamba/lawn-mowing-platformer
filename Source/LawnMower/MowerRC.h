@@ -53,11 +53,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
 	const float TickCountMax{ 1.0f };
-	const float TickMultipler{ 8.0f };
+	const float TickMultipler{ 1.0f };
 	
-	const FRotator CameraArmRotationOffset{ -25.0, 0.0, 0.0 };
-
-	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+	const float GravitationalAcceleration{ 980.0f };
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
@@ -76,13 +74,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
 	const float PhysicsBodyMass{ 30.0f };
-	const float GravitationalAcceleration{ 980.0f };
-	const float AntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
+	const float PhysicsBodyAntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
+	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
-
-	const double MinCameraArmPitch{ -89.9 };
-	const double MaxCameraArmPitch{ 89.9 };
 
 	const double SurfaceImpactOffset{ -15.0 };
 
@@ -90,7 +85,12 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
-	const double SteeringForce{ 600.0 };  // was at 40,000 with DT 2.0 without mass
+	const double SteeringForceMultiplier{ 600.0 };
+
+	const FRotator CameraArmRotationOffset{ -25.0, 0.0, 0.0 };
+
+	const double MinCameraArmPitch{ -89.9 };
+	const double MaxCameraArmPitch{ 89.9 };
 
 	const double RayCastLength{ 8.9 };
 
@@ -124,12 +124,16 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 	void MoveCamera(const FInputActionValue& Value);
-	void ResetCamera();
+	void ResetCamera(const FInputActionValue& Value);
 	void Accelerate(const FInputActionValue& Value);
 	void Brake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
 
 private:
+	FVector2D RotatingCameraDirection{};
+
+	bool CameraReset{};
+
 	float AcceleratingDirection{};
 	float Braking{};
 	float Steering{};
@@ -138,13 +142,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	void SetTickRate(float DeltaTime);
 	void TickCounter(float DeltaTime);
 
 	void FloatMower() const;
-
-
-
-	void UpdateCameraRotation();
 
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DeltaTime);
@@ -155,6 +156,8 @@ private:
 	void ResetDragForces();
 
 	void UpdatePhysicsBodyPositionData();
+
+	void UpdateCameraRotation();
 
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
@@ -170,30 +173,20 @@ private:
 
 	void AddBrakingDrag(float DeltaTime);
 	void AddAirTimeAngularDrag();
-	void AddAccelerationAngularDrag();
+	void AddAcceleratingAngularDrag();
 	void ApplyDragForces();
 
 private:
+	float TickRate{};
 	float TickCount{};
 
 	bool TickReset{};
 
-	FVector AccelerationSurfaceImpact{};
-	FVector AccelerationSurfaceNormal{};
-
 	float AccelerationForce{};
 	float AccelerationRatio{};
-	
-	float TotalLinearDragForce{};
-	float TotalAngularDragForce{};
 
-	float WheelsGrounded{};
-
-	float LinearBrakingDrag{};
-	float AngularBrakingDrag{};
-
-	TArray<float> LinearDragForces{};
-	TArray<float> AngularDragForces{};
+	FVector AccelerationSurfaceImpact{};
+	FVector AccelerationSurfaceNormal{};
 
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
@@ -218,5 +211,20 @@ private:
 	
 	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
+
+	TArray<float> LinearDragForces{};
+	TArray<float> AngularDragForces{};
+
+	float TotalLinearDragForce{};
+	float TotalAngularDragForce{};
+
+	float LinearBrakingDrag{};
+	float AngularBrakingDrag{};
+
+	float WheelsGrounded{};
+
+
+	FVector LocationThisTick{};
+	FVector LocationLastTick{};
 
 };
