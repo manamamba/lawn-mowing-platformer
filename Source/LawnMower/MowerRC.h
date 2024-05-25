@@ -55,7 +55,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float TickCountMax{ 1.0f };
 	const float TickMultipler{ 8.0f };
 	
-	const FRotator CameraArmRotationOffset{ -30.0, 0.0, 0.0 };
+	const FRotator CameraArmRotationOffset{ -25.0, 0.0, 0.0 };
 
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 
@@ -90,7 +90,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
-	const double SteeringForce{ 6000000.0 };
+	const double SteeringForce{ 600.0 };  // was at 40,000 with DT 2.0 without mass
 
 	const double RayCastLength{ 8.9 };
 
@@ -142,12 +142,15 @@ private:
 
 	void FloatMower() const;
 
+
+
 	void UpdateCameraRotation();
 
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DeltaTime);
 	void ApplyAcceleration() const;
-	void ApplyWheelTorque(float DeltaTime);
+
+	void ApplySteeringTorque(float DeltaTime);
 
 	void ResetDragForces();
 
@@ -187,6 +190,7 @@ private:
 	float WheelsGrounded{};
 
 	float LinearBrakingDrag{};
+	float AngularBrakingDrag{};
 
 	TArray<float> LinearDragForces{};
 	TArray<float> AngularDragForces{};

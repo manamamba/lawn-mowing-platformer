@@ -158,22 +158,13 @@ void AMowerRC::ResetCamera()
 }
 
 
-void AMowerRC::Accelerate(const FInputActionValue& Value)
-{
-	AcceleratingDirection = Value.Get<float>();
-}
+void AMowerRC::Accelerate(const FInputActionValue& Value) { AcceleratingDirection = Value.Get<float>(); }
 
 
-void AMowerRC::Brake(const FInputActionValue& Value)
-{
-	Braking = Value.Get<float>();
-}
+void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>(); }
 
 
-void AMowerRC::Steer(const FInputActionValue& Value)
-{
-	Steering = Value.Get<float>();
-}
+void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 
 
 void AMowerRC::Tick(float DeltaTime)
@@ -182,15 +173,15 @@ void AMowerRC::Tick(float DeltaTime)
 
 	TickCounter(DeltaTime);
 
+	// move camera stuff here
+
 	// FloatMower();
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
-
 	DecayAcceleration(DeltaTime);
-
 	ApplyAcceleration();
 
-	ApplyWheelTorque(DeltaTime);
+	ApplySteeringTorque(DeltaTime);
 
 	ResetDragForces();
 
@@ -199,21 +190,15 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateCameraRotation();
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
-
 	SendWheelRayCasts(WheelRayCasts, WheelRayCastOrigins);
 
 	// DrawRayCasts(ForceRayCasts);
-
 	// DrawRayCasts(WheelRayCasts);
-
 	// DrawAcceleration();
 
 	AddBrakingDrag(DeltaTime);
-
 	AddAirTimeAngularDrag();
-
 	AddAccelerationAngularDrag();
-
 	ApplyDragForces();
 }
 
@@ -230,10 +215,7 @@ void AMowerRC::TickCounter(float DeltaTime)
 }
 
 
-void AMowerRC::FloatMower() const 
-{ 
-	PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); 
-}
+void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
@@ -243,8 +225,8 @@ void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float De
 
 	if (WheelsGrounded && !Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
-	if ((WheelsGrounded && Braking) && AccelerationRatio < 0.0f) AccelerationRatio += Braking * DeltaTime;
-	if ((WheelsGrounded && Braking) && AccelerationRatio > 0.0f) AccelerationRatio += -Braking * DeltaTime;
+	if (WheelsGrounded && Braking && AccelerationRatio < 0.0f) AccelerationRatio += Braking * DeltaTime;
+	if (WheelsGrounded && Braking && AccelerationRatio > 0.0f) AccelerationRatio += -Braking * DeltaTime;
 
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
 	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
@@ -277,16 +259,17 @@ void AMowerRC::ApplyAcceleration() const
 }
 
 
-void AMowerRC::ApplyWheelTorque(float DeltaTime)
+void AMowerRC::ApplySteeringTorque(float DeltaTime)
 {
-	const double TorqueForce{ SteeringForce * Steering * WheelsGrounded * AccelerationRatio  };
-	const FVector TurningDirection{ PhysicsBodyLocation + (PhysicsBodyUpVector * TorqueForce) };
+	const double TorqueForce{ SteeringForce * Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum };
+	const FVector SteeringDirection{ PhysicsBodyLocation + (PhysicsBodyUpVector * TorqueForce) };
 
-	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(TurningDirection);
+	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(SteeringDirection);
+	
+	if (Steering)DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 50.0, 6, FColor::Orange, false, 4.0f);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("WheelTorqueForce    %f"), TorqueForce);
 
 	Steering = 0.0f;
-
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TorqueForce         %f"), TorqueForce);
 }
 
 
@@ -297,6 +280,7 @@ void AMowerRC::ResetDragForces()
 
 	TotalLinearDragForce = 0.01f;
 	TotalAngularDragForce = 0.0f;
+
 	WheelsGrounded = 0.0f;
 }
 
@@ -420,9 +404,8 @@ void AMowerRC::DrawRayCast(const FHitResult& RayCast) const
 
 void AMowerRC::DrawAcceleration() const
 {
-	const double DrawLineLength{ abs(AccelerationRatio * 15.0) };
 	const FVector DrawStart{ AccelerationSurfaceImpact };
-	const FVector DrawEnd{ AccelerationSurfaceImpact + (AccelerationSurfaceNormal * DrawLineLength) };
+	const FVector DrawEnd{ AccelerationSurfaceImpact + (AccelerationSurfaceNormal * abs(AccelerationRatio) * RayCastLength) };
 
 	DrawDebugSphere(GetWorld(), DrawStart, 1.0f, 6, FColor::Orange);
 	DrawDebugLine(GetWorld(), DrawStart, DrawEnd, FColor::Orange);
@@ -432,10 +415,17 @@ void AMowerRC::DrawAcceleration() const
 
 void AMowerRC::AddBrakingDrag(float DeltaTime)
 {
-	if (WheelsGrounded && Braking && !AccelerationRatio) LinearBrakingDrag += LinearBrakingDragMultiplier * Braking * DeltaTime;
+	if (WheelsGrounded && Braking && !AccelerationRatio) LinearBrakingDrag += LinearBrakingDragMultiplier * DeltaTime;
 	else LinearBrakingDrag = 0.0f;
 
 	if (LinearBrakingDrag > LinearBrakingDragLimit) LinearBrakingDrag = LinearBrakingDragLimit;
+
+	// if (WheelsGrounded && Braking && Steering && AccelerationRatio)
+	// AddAccelerationAngularDrag() is adding around 20 at top speed
+	// subtract up to that limit based on 
+	// do not want to go below 8 for stable hover
+	// AngularDragForceMultiplier 0.00002
+	// AngularDragForces.Add(AngularBrakingDrag);
 
 	LinearDragForces.Add(LinearBrakingDrag);
 
@@ -443,16 +433,10 @@ void AMowerRC::AddBrakingDrag(float DeltaTime)
 }
 
 
-void AMowerRC::AddAirTimeAngularDrag()
-{
-	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
-}
+void AMowerRC::AddAirTimeAngularDrag() { if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag); }
 
 
-void AMowerRC::AddAccelerationAngularDrag()
-{
-	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
-}
+void AMowerRC::AddAccelerationAngularDrag() { AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier); }
 
 
 void AMowerRC::ApplyDragForces()
