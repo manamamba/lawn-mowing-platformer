@@ -53,7 +53,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
 	const float TickCountMax{ 1.0f };
-	const float TickMultipler{ 4.0f };
+	const float TickMultipler{ 8.0f };
 	
 	const FRotator CameraArmRotationOffset{ -30.0, 0.0, 0.0 };
 
@@ -90,6 +90,8 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
+	const double SteeringForce{ 6000000.0 };
+
 	const double RayCastLength{ 8.9 };
 
 	const float CompressionRatioMinimum{ 0.25f };
@@ -100,7 +102,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float LinearBrakingDragMultiplier{ 25.0f };
 	const float AngularDragForceMultiplier{ 0.00002f };
 	const float AngularAirTimeDrag{ 5.0f };
-	
 
 public:
 	AMowerRC();
@@ -131,6 +132,7 @@ protected:
 private:
 	float AcceleratingDirection{};
 	float Braking{};
+	float Steering{};
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -143,8 +145,9 @@ private:
 	void UpdateCameraRotation();
 
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
-	void DecayAcceleration(float DecayRate);
+	void DecayAcceleration(float DeltaTime);
 	void ApplyAcceleration() const;
+	void ApplyWheelTorque(float DeltaTime);
 
 	void ResetDragForces();
 
@@ -162,11 +165,15 @@ private:
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
 
-	void AddAdditionalDragForces(float DeltaTime);
+	void AddBrakingDrag(float DeltaTime);
+	void AddAirTimeAngularDrag();
+	void AddAccelerationAngularDrag();
 	void ApplyDragForces();
 
 private:
 	float TickCount{};
+
+	bool TickReset{};
 
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
@@ -179,10 +186,10 @@ private:
 
 	float WheelsGrounded{};
 
+	float LinearBrakingDrag{};
+
 	TArray<float> LinearDragForces{};
 	TArray<float> AngularDragForces{};
-
-	float BrakingDrag{};
 
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};

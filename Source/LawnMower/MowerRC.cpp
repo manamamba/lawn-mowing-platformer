@@ -172,7 +172,7 @@ void AMowerRC::Brake(const FInputActionValue& Value)
 
 void AMowerRC::Steer(const FInputActionValue& Value)
 {
-
+	Steering = Value.Get<float>();
 }
 
 
@@ -186,7 +186,11 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 
+	DecayAcceleration(DeltaTime);
+
 	ApplyAcceleration();
+
+	ApplyWheelTorque(DeltaTime);
 
 	ResetDragForces();
 
@@ -198,13 +202,17 @@ void AMowerRC::Tick(float DeltaTime)
 
 	SendWheelRayCasts(WheelRayCasts, WheelRayCastOrigins);
 
-	DrawRayCasts(ForceRayCasts);
+	// DrawRayCasts(ForceRayCasts);
 
 	// DrawRayCasts(WheelRayCasts);
 
-	DrawAcceleration();
+	// DrawAcceleration();
 
-	AddAdditionalDragForces(DeltaTime);
+	AddBrakingDrag(DeltaTime);
+
+	AddAirTimeAngularDrag();
+
+	AddAccelerationAngularDrag();
 
 	ApplyDragForces();
 }
@@ -215,10 +223,17 @@ void AMowerRC::TickCounter(float DeltaTime)
 	TickCount += TickMultipler * DeltaTime;
 
 	if (TickCount > TickCountMax) TickCount = 0.0f;
+
+	TickCount == 0.0f ? TickReset = true : TickReset = false;
+
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 }
 
 
-void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); }
+void AMowerRC::FloatMower() const 
+{ 
+	PhysicsBody->AddForce(FVector::UpVector * AntiGravitationalForce); 
+}
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
@@ -237,17 +252,15 @@ void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float De
 	AccelerationForce = AccelerationForceMaximum * TotalLinearDragForce * AccelerationRatio;
 
 	if (AccelerationForce < 0.0f) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
-
-	DecayAcceleration(AcceleratingDecayRate * DeltaTime);
 }
 
 
-void AMowerRC::DecayAcceleration(float DecayRate)
+void AMowerRC::DecayAcceleration(float DeltaTime)
 {
 	if (!AcceleratingDirection || (Braking && WheelsGrounded))
 	{
-		if (AccelerationRatio < 0.0f) AccelerationRatio += DecayRate;
-		if (AccelerationRatio > 0.0f) AccelerationRatio -= DecayRate;
+		if (AccelerationRatio < 0.0f) AccelerationRatio += AcceleratingDecayRate * DeltaTime;
+		if (AccelerationRatio > 0.0f) AccelerationRatio -= AcceleratingDecayRate * DeltaTime;
 		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
 	}
 
@@ -257,9 +270,23 @@ void AMowerRC::DecayAcceleration(float DecayRate)
 
 void AMowerRC::ApplyAcceleration() const
 {
-	if (AccelerationForce == 0.0f) return;
-	
-	PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * abs(AccelerationForce), AccelerationSurfaceImpact);
+	if (AccelerationForce) PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * abs(AccelerationForce), AccelerationSurfaceImpact);
+
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+}
+
+
+void AMowerRC::ApplyWheelTorque(float DeltaTime)
+{
+	const double TorqueForce{ SteeringForce * Steering * WheelsGrounded * AccelerationRatio  };
+	const FVector TurningDirection{ PhysicsBodyLocation + (PhysicsBodyUpVector * TorqueForce) };
+
+	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(TurningDirection);
+
+	Steering = 0.0f;
+
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TorqueForce         %f"), TorqueForce);
 }
 
 
@@ -400,29 +427,31 @@ void AMowerRC::DrawAcceleration() const
 	DrawDebugSphere(GetWorld(), DrawStart, 1.0f, 6, FColor::Orange);
 	DrawDebugLine(GetWorld(), DrawStart, DrawEnd, FColor::Orange);
 	DrawDebugSphere(GetWorld(), DrawEnd, 1.0f, 6, FColor::Yellow);
-
-	// UE_LOG(LogTemp, Warning, TEXT(" "));
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationForce %f"), AccelerationForce);
-	// UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio %f"), AccelerationRatio);
 }
 
 
-void AMowerRC::AddAdditionalDragForces(float DeltaTime)
+void AMowerRC::AddBrakingDrag(float DeltaTime)
 {
-	if (WheelsGrounded && Braking && !AccelerationRatio) BrakingDrag += LinearBrakingDragMultiplier * Braking * DeltaTime;
-	else BrakingDrag = 0.0f;
+	if (WheelsGrounded && Braking && !AccelerationRatio) LinearBrakingDrag += LinearBrakingDragMultiplier * Braking * DeltaTime;
+	else LinearBrakingDrag = 0.0f;
 
-	if (BrakingDrag > LinearBrakingDragLimit) BrakingDrag = LinearBrakingDragLimit;
+	if (LinearBrakingDrag > LinearBrakingDragLimit) LinearBrakingDrag = LinearBrakingDragLimit;
 
-	LinearDragForces.Add(BrakingDrag);
-
-	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
-
-	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
+	LinearDragForces.Add(LinearBrakingDrag);
 
 	Braking = 0.0f;
+}
 
-	// UE_LOG(LogTemp, Warning, TEXT("BrakingDrag %f"), BrakingDrag);
+
+void AMowerRC::AddAirTimeAngularDrag()
+{
+	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag);
+}
+
+
+void AMowerRC::AddAccelerationAngularDrag()
+{
+	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
 }
 
 
@@ -434,8 +463,11 @@ void AMowerRC::ApplyDragForces()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
-	// UE_LOG(LogTemp, Warning, TEXT("TotalLinearDragForce %f"), TotalLinearDragForce);
-	// UE_LOG(LogTemp, Warning, TEXT("TotalAngularDragForce %f"), TotalAngularDragForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("=========DragForces========="));
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearBraking       %f"), LinearBrakingDrag);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 }
