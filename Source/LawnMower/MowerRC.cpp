@@ -56,7 +56,7 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
-	CameraArm->SetRelativeRotation(CameraArmRotationOffset);
+	CameraArm->SetRelativeRotation(DefaultLocalCameraArmRotation);
 	CameraArm->SetUsingAbsoluteRotation(true);
 	CameraArm->TargetArmLength = 250.0f;
 	CameraArm->ProbeSize = 8.0f;
@@ -144,6 +144,13 @@ void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 
 
+void PhysicsTick(float SubstepDeltaTime)
+{
+
+
+}
+
+
 void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -184,9 +191,9 @@ void AMowerRC::SetTickRate(float DeltaTime) { TickRate = (1 / DeltaTime) / 60; }
 
 void AMowerRC::TickCounter(float DeltaTime)
 {
-	TickCount += TickMultipler * DeltaTime;
+	TickCount += 1.0 * DeltaTime;
 
-	if (TickCount > TickCountMax) TickCount = 0.0f;
+	if (TickCount > 1.0) TickCount = 0.0f;
 
 	TickCount == 0.0f ? TickReset = true : TickReset = false;
 
@@ -199,7 +206,7 @@ void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * Ph
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
 {
-	AccelerationSurfaceImpact = PhysicsBodyLocation + (PhysicsBodyUpVector * SurfaceImpactOffset);
+	AccelerationSurfaceImpact = PhysicsBodyLocation + (-PhysicsBodyUpVector * PhysicsBodyCenterOfMassOffset);
 	AccelerationSurfaceNormal = PhysicsBodyForwardVector;
 
 	if (WheelsGrounded && !Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
@@ -283,11 +290,11 @@ void AMowerRC::UpdatePhysicsBodyPositionData()
 
 void AMowerRC::UpdateCameraRotation()
 {	
-	if (CameraReset) LocalCameraArmRotation = CameraArmRotationOffset;
+	if (CameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
 	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
 
-	if (LocalCameraArmRotation.Pitch > MaxCameraArmPitch) LocalCameraArmRotation.Pitch = MaxCameraArmPitch;
-	if (LocalCameraArmRotation.Pitch < MinCameraArmPitch) LocalCameraArmRotation.Pitch = MinCameraArmPitch;
+	if (LocalCameraArmRotation.Pitch > MaxLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MaxLocalCameraArmPitch;
+	if (LocalCameraArmRotation.Pitch < MinLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MinLocalCameraArmPitch;
 
 	FRotator LocalCameraArmRotationThisTick{ UKismetMathLibrary::InverseTransformRotation(PhysicsBodyLocalTransform, WorldCameraArmRotation) };
 	

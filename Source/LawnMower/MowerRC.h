@@ -52,11 +52,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction{};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction{};
 
-	const float TickCountMax{ 1.0f };
-	const float TickMultipler{ 1.0f };
-	
-	const float GravitationalAcceleration{ 980.0f };
-
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
 
@@ -73,13 +68,14 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
+	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
 	const float PhysicsBodyAntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 
-	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
-	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyMass / 2.0 };
+	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
 
-	const double SurfaceImpactOffset{ -15.0 };
+	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
@@ -87,10 +83,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const double SteeringForceMultiplier{ 600.0 };
 
-	const FRotator CameraArmRotationOffset{ -25.0, 0.0, 0.0 };
+	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
 
-	const double MinCameraArmPitch{ -89.9 };
-	const double MaxCameraArmPitch{ 89.9 };
+	const double MinLocalCameraArmPitch{ -89.9 };
+	const double MaxLocalCameraArmPitch{ 89.9 };
 
 	const double RayCastLength{ 8.9 };
 
@@ -139,8 +135,14 @@ private:
 	float Steering{};
 
 public:
-	virtual void Tick(float DeltaTime) override;
+	void PhysicsTick(float SubstepDeltaTime);
 
+private: // functions
+private: // variables
+
+public:
+	virtual void Tick(float DeltaTime) override;
+	
 private:
 	void SetTickRate(float DeltaTime);
 	void TickCounter(float DeltaTime);
@@ -196,7 +198,7 @@ private:
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
 
-	FRotator LocalCameraArmRotation{ CameraArmRotationOffset };
+	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
 
 	FHitResult FRForceRayCast{};
@@ -222,7 +224,6 @@ private:
 	float AngularBrakingDrag{};
 
 	float WheelsGrounded{};
-
 
 	FVector LocationThisTick{};
 	FVector LocationLastTick{};
