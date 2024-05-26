@@ -76,7 +76,7 @@ void AMowerRC::SetComponentProperties()
 void AMowerRC::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location)
 {
 	if (!Mesh) return;
-	
+
 	Mesh->SetRelativeLocation(Location);
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetCollisionProfileName("NoCollision");
@@ -144,13 +144,6 @@ void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 
 
-void PhysicsTick(float SubstepDeltaTime)
-{
-
-
-}
-
-
 void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -162,9 +155,9 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 	DecayAcceleration(DeltaTime);
-	ApplyAcceleration();
+	ApplyAccelerationForce();
 
-	ApplySteeringTorque(DeltaTime);
+	ApplySteeringForce(SteeringForce, DeltaTime);
 
 	ResetDragForces();
 
@@ -191,7 +184,7 @@ void AMowerRC::SetTickRate(float DeltaTime) { TickRate = (1 / DeltaTime) / 60; }
 
 void AMowerRC::TickCounter(float DeltaTime)
 {
-	TickCount += 1.0 * DeltaTime;
+	TickCount += 8.0 * DeltaTime;
 
 	if (TickCount > 1.0) TickCount = 0.0f;
 
@@ -236,7 +229,7 @@ void AMowerRC::DecayAcceleration(float DeltaTime)
 }
 
 
-void AMowerRC::ApplyAcceleration() const
+void AMowerRC::ApplyAccelerationForce() const
 {
 	if (AccelerationForce) PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * abs(AccelerationForce), AccelerationSurfaceImpact);
 
@@ -245,17 +238,25 @@ void AMowerRC::ApplyAcceleration() const
 }
 
 
-void AMowerRC::ApplySteeringTorque(float DeltaTime)
+void AMowerRC::ApplySteeringForce(double Force, float DeltaTime)
 {
-	const double SteeringForce{ SteeringForceMultiplier * Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum };
-	const FVector SteeringTorque{ PhysicsBodyLocation + (PhysicsBodyUpVector * SteeringForce) };
+	if (Steering == 0.0f && AccelerationRatio == 0.0f) return;
 
-	if (Steering && WheelsGrounded && AccelerationRatio) PhysicsBody->AddTorqueInDegrees(SteeringTorque);
-	
-	if (Steering && TickReset) DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 10.0, 6, FColor::Orange, false, 7.5f);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce      %f"), SteeringForce);
+	double ForceVariance{ 1.0 };
 
-	Steering = 0.0f;
+	if (DeltaTime > 0.02 ) ForceVariance = DTSteeringForceVariance;
+
+	const FVector FrontSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, FrontSteeringLocalPosition) };
+	const FVector BackSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, BackSteeringLocalPosition) };
+
+	const FVector FrontSteeringDirection{ PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * ForceVariance) };
+	const FVector BackSteeringDirection{ -PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * ForceVariance) };
+
+	PhysicsBody->AddForceAtLocation(FrontSteeringDirection, FrontSteeringWorldPosition);
+	PhysicsBody->AddForceAtLocation(BackSteeringDirection, BackSteeringWorldPosition);
+
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), Force * Steering * AccelerationRatio * WheelsGrounded);
+	if (TickReset) DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 15.0, 6, FColor::Orange, true, 5.0);
 }
 
 
@@ -289,7 +290,7 @@ void AMowerRC::UpdatePhysicsBodyPositionData()
 
 
 void AMowerRC::UpdateCameraRotation()
-{	
+{
 	if (CameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
 	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
 
@@ -297,7 +298,7 @@ void AMowerRC::UpdateCameraRotation()
 	if (LocalCameraArmRotation.Pitch < MinLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MinLocalCameraArmPitch;
 
 	FRotator LocalCameraArmRotationThisTick{ UKismetMathLibrary::InverseTransformRotation(PhysicsBodyLocalTransform, WorldCameraArmRotation) };
-	
+
 	if (LocalCameraArmRotationThisTick != LocalCameraArmRotation) SetCameraArmWorldRotation();
 
 	RotatingCameraDirection = FVector2D::Zero();
@@ -317,7 +318,7 @@ void AMowerRC::SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins&
 bool AMowerRC::RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin)
 {
 	RayCast.Reset();
-	
+
 	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalOrigin) };
 	const FVector RayCastEnd{ RayCastStart + (-PhysicsBodyUpVector * RayCastLength) };
 
@@ -331,7 +332,7 @@ void AMowerRC::AddForcesOnRayCastHit(FHitResult& RayCast)
 	const double Force{ PhysicsBodyMass * GravitationalAcceleration * CompressionRatio };
 
 	PhysicsBody->AddForceAtLocation(RayCast.ImpactNormal * Force, RayCast.TraceStart);
-	
+
 	AddDragForceOnRayCastHit(CompressionRatio);
 }
 
@@ -344,7 +345,7 @@ void AMowerRC::AddDragForceOnRayCastHit(float CompressionRatio)
 
 	if (CompressionRatio < CompressionRatioMinimum) DragForce = MaxWheelDragForce;
 	else DragForce = MaxWheelDragForce / (CompressionRatio * WheelTotal);
-	
+
 	LinearDragForces.Add(DragForce);
 	AngularDragForces.Add(DragForce);
 }
@@ -396,7 +397,7 @@ void AMowerRC::DrawRayCast(const FHitResult& RayCast) const
 
 		return;
 	}
-	
+
 	DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
 	DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0, 6, FColor::Green);
 }
@@ -420,16 +421,10 @@ void AMowerRC::AddBrakingDrag(float DeltaTime)
 
 	if (LinearBrakingDrag > LinearBrakingDragLimit) LinearBrakingDrag = LinearBrakingDragLimit;
 
-	// if (WheelsGrounded && Braking && Steering && AccelerationRatio)
-	// AddAccelerationAngularDrag() is adding around 20 at top speed
-	// subtract up to that limit based on 
-	// do not want to go below 8 for stable hover
-	// AngularDragForceMultiplier 0.00002
-	// AngularDragForces.Add(AngularBrakingDrag);
-
 	LinearDragForces.Add(LinearBrakingDrag);
 
 	Braking = 0.0f;
+	Steering = 0.0f;
 }
 
 
