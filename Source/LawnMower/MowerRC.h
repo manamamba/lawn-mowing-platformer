@@ -64,7 +64,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
 
-
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
 
@@ -75,14 +74,17 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 
+	const float AccelerationForceVarianceRate{ 1.18f };
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
+	const float SteeringForceVarianceRate{ 3.9f };
+
 	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
 	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
 	const double SteeringForce{ 3000.0 };
-	const double DTSteeringForceVariance{ 3.0 };
+	const double DeltaTimeSteeringForceVariance{ 0.89 };
 
 	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
 	const double MinLocalCameraArmPitch{ -89.9 };
@@ -135,20 +137,21 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void SetTickRate(float DeltaTime);
 	void TickCounter(float DeltaTime);
 
 	void FloatMower() const;
 
+	void UpdateAccelerationForceVariance(float DeltaTime);
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DeltaTime);
 	void ApplyAccelerationForce() const;
 
-	void ApplySteeringForce(double Force, float DeltaTime);
+	void UpdateSteeringForceVariance(float DeltaTime);
+	void ApplySteeringForce(double Force);
 
 	void ResetDragForces();
 
-	void UpdatePhysicsBodyPositionData();
+	void UpdatePhysicsBodyPositionData(float DeltaTime);
 
 	void UpdateCameraRotation();
 
@@ -169,25 +172,28 @@ private:
 	void AddAcceleratingAngularDrag();
 	void ApplyDragForces();
 
+	void ResetPlayerInputData();
+
 private:
-	float TickRate{};
+	bool TickReset{};
 	float TickCount{};
 
-	bool TickReset{};
-
+	float AccelerationForceVariance{};
 	float AccelerationForce{};
 	float AccelerationRatio{};
-
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 
+	float SteeringForceVariance{};
+
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
-
 	FVector PhysicsBodyLocation{};
 	FVector PhysicsBodyUpVector{};
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
+	FVector LocationThisTick{};
+	FVector LocationLastTick{};
 
 	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
@@ -207,16 +213,11 @@ private:
 
 	TArray<float> LinearDragForces{};
 	TArray<float> AngularDragForces{};
-
 	float TotalLinearDragForce{};
 	float TotalAngularDragForce{};
-
 	float LinearBrakingDrag{};
 	float AngularBrakingDrag{};
 
 	float WheelsGrounded{};
-
-	FVector LocationThisTick{};
-	FVector LocationLastTick{};
 
 };

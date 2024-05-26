@@ -148,20 +148,21 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	SetTickRate(DeltaTime);
 	TickCounter(DeltaTime);
 
 	// FloatMower();
 
+	UpdateAccelerationForceVariance(DeltaTime);
 	UpdateAccelerationData(ForceRayCasts, DeltaTime);
 	DecayAcceleration(DeltaTime);
 	ApplyAccelerationForce();
 
-	ApplySteeringForce(SteeringForce, DeltaTime);
+	UpdateSteeringForceVariance(DeltaTime);
+	ApplySteeringForce(SteeringForce);
 
 	ResetDragForces();
 
-	UpdatePhysicsBodyPositionData();
+	UpdatePhysicsBodyPositionData(DeltaTime);
 
 	UpdateCameraRotation();
 
@@ -176,17 +177,18 @@ void AMowerRC::Tick(float DeltaTime)
 	AddAirTimeAngularDrag();
 	AddAcceleratingAngularDrag();
 	ApplyDragForces();
+
+	ResetPlayerInputData();
 }
-
-
-void AMowerRC::SetTickRate(float DeltaTime) { TickRate = (1 / DeltaTime) / 60; }
 
 
 void AMowerRC::TickCounter(float DeltaTime)
 {
-	TickCount += 8.0 * DeltaTime;
+	const float TickCountMultiplier{ 8.0f };
+	
+	TickCount += TickCountMultiplier * DeltaTime;
 
-	if (TickCount > 1.0) TickCount = 0.0f;
+	if (TickCount > 1.0f) TickCount = 0.0f;
 
 	TickCount == 0.0f ? TickReset = true : TickReset = false;
 
@@ -194,7 +196,18 @@ void AMowerRC::TickCounter(float DeltaTime)
 }
 
 
-void AMowerRC::FloatMower() const { PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); }
+void AMowerRC::FloatMower() const 
+{ 
+	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); 
+}
+
+
+void AMowerRC::UpdateAccelerationForceVariance(float DeltaTime)
+{
+	if (DeltaTime < 0.02f) return;
+
+	if (AccelerationRatio >= 3.0f) AccelerationForceVariance = AccelerationForceVarianceRate;
+}
 
 
 void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime)
@@ -210,7 +223,7 @@ void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float De
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
 	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
 
-	AccelerationForce = AccelerationForceMaximum * TotalLinearDragForce * AccelerationRatio;
+	AccelerationForce = AccelerationForceMaximum * TotalLinearDragForce * AccelerationRatio * AccelerationForceVariance;
 
 	if (AccelerationForce < 0.0f) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
 }
@@ -224,8 +237,6 @@ void AMowerRC::DecayAcceleration(float DeltaTime)
 		if (AccelerationRatio > 0.0f) AccelerationRatio -= AcceleratingDecayRate * DeltaTime;
 		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
 	}
-
-	AcceleratingDirection = 0.0f;
 }
 
 
@@ -233,30 +244,39 @@ void AMowerRC::ApplyAccelerationForce() const
 {
 	if (AccelerationForce) PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * abs(AccelerationForce), AccelerationSurfaceImpact);
 
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 }
 
 
-void AMowerRC::ApplySteeringForce(double Force, float DeltaTime)
+void AMowerRC::UpdateSteeringForceVariance(float DeltaTime)
+{
+	if (DeltaTime < 0.02f) return;
+
+	SteeringForceVariance = AccelerationRatio / DeltaTimeSteeringForceVariance;
+
+	const bool AccelerationForceVarianceActive{ AccelerationForceVariance == AccelerationForceVarianceRate };
+
+	if (AccelerationRatio >= 3.0f) SteeringForceVariance = SteeringForceVarianceRate;
+	if (AccelerationForceVarianceActive) SteeringForceVariance = 12.0f;
+}
+
+
+void AMowerRC::ApplySteeringForce(double Force)
 {
 	if (Steering == 0.0f && AccelerationRatio == 0.0f) return;
-
-	double ForceVariance{ 1.0 };
-
-	if (DeltaTime > 0.02 ) ForceVariance = DTSteeringForceVariance;
 
 	const FVector FrontSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, FrontSteeringLocalPosition) };
 	const FVector BackSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, BackSteeringLocalPosition) };
 
-	const FVector FrontSteeringDirection{ PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * ForceVariance) };
-	const FVector BackSteeringDirection{ -PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * ForceVariance) };
+	const FVector FrontSteeringDirection{ PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * SteeringForceVariance) };
+	const FVector BackSteeringDirection{ -PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * SteeringForceVariance) };
 
 	PhysicsBody->AddForceAtLocation(FrontSteeringDirection, FrontSteeringWorldPosition);
 	PhysicsBody->AddForceAtLocation(BackSteeringDirection, BackSteeringWorldPosition);
 
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), Force * Steering * AccelerationRatio * WheelsGrounded);
-	if (TickReset) DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 15.0, 6, FColor::Orange, true, 5.0);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForceRatio  %f"), SteeringForceVariance);
+	// if (TickReset) DrawDebugSphere(GetWorld(), PhysicsBodyLocation, 15.0, 6, FColor::Orange, true, 5.0);
 }
 
 
@@ -272,7 +292,7 @@ void AMowerRC::ResetDragForces()
 }
 
 
-void AMowerRC::UpdatePhysicsBodyPositionData()
+void AMowerRC::UpdatePhysicsBodyPositionData(float DeltaTime)
 {
 	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
 	PhysicsBodyLocalTransform = PhysicsBody->GetRelativeTransform();
@@ -284,7 +304,10 @@ void AMowerRC::UpdatePhysicsBodyPositionData()
 
 	LocationLastTick = LocationThisTick;
 	LocationThisTick = PhysicsBodyLocation;
+
+	const float TickRate = (1.0f / DeltaTime) / 60.0f;
 	const double Speed{ abs(FVector::Dist(LocationThisTick, LocationLastTick)) * TickRate };
+
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), Speed);
 }
 
@@ -300,9 +323,6 @@ void AMowerRC::UpdateCameraRotation()
 	FRotator LocalCameraArmRotationThisTick{ UKismetMathLibrary::InverseTransformRotation(PhysicsBodyLocalTransform, WorldCameraArmRotation) };
 
 	if (LocalCameraArmRotationThisTick != LocalCameraArmRotation) SetCameraArmWorldRotation();
-
-	RotatingCameraDirection = FVector2D::Zero();
-	CameraReset = false;
 }
 
 
@@ -393,13 +413,13 @@ void AMowerRC::DrawRayCast(const FHitResult& RayCast) const
 	if (!RayCast.bBlockingHit)
 	{
 		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceEnd, FColor::Red);
-		DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0, 6, FColor::Red);
+		DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0f, 6, FColor::Red);
 
 		return;
 	}
 
 	DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
-	DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0, 6, FColor::Green);
+	DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green);
 }
 
 
@@ -422,16 +442,19 @@ void AMowerRC::AddBrakingDrag(float DeltaTime)
 	if (LinearBrakingDrag > LinearBrakingDragLimit) LinearBrakingDrag = LinearBrakingDragLimit;
 
 	LinearDragForces.Add(LinearBrakingDrag);
-
-	Braking = 0.0f;
-	Steering = 0.0f;
 }
 
 
-void AMowerRC::AddAirTimeAngularDrag() { if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag); }
+void AMowerRC::AddAirTimeAngularDrag() 
+{ 
+	if (!WheelsGrounded) AngularDragForces.Add(AngularAirTimeDrag); 
+}
 
 
-void AMowerRC::AddAcceleratingAngularDrag() { AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier); }
+void AMowerRC::AddAcceleratingAngularDrag() 
+{ 
+	AngularDragForces.Add(abs(AccelerationForce) * WheelsGrounded * AngularDragForceMultiplier); 
+}
 
 
 void AMowerRC::ApplyDragForces()
@@ -449,4 +472,17 @@ void AMowerRC::ApplyDragForces()
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
+}
+
+
+void AMowerRC::ResetPlayerInputData()
+{
+	RotatingCameraDirection = FVector2D::Zero();
+	CameraReset = false;
+	AcceleratingDirection = 0.0f;
+	Braking = 0.0f;
+	Steering = 0.0f;
+
+	AccelerationForceVariance = 1.0f;
+	SteeringForceVariance = 1.0f;
 }
