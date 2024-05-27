@@ -79,6 +79,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AcceleratingDecayRate{ 0.5f };
 
 	const double SteeringForce{ 3000.0 };
+	const float SteeringVarianceAngularDrag{ 20.0f };
 	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
 	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
 	
@@ -164,6 +165,7 @@ private:
 	void AddBrakingLinearDrag(float DeltaTime);
 	void AddAirTimeAngularDrag();
 	void AddAcceleratingAngularDrag();
+	void AddMostlyGroundedVarianceAngularDrag(float DeltaTime);
 	void ApplyDragForces();
 
 	void ResetPlayerInputData();

@@ -175,6 +175,7 @@ void AMowerRC::Tick(float DeltaTime)
 	AddBrakingLinearDrag(DeltaTime);
 	AddAirTimeAngularDrag();
 	AddAcceleratingAngularDrag();
+	AddMostlyGroundedVarianceAngularDrag(DeltaTime);
 	ApplyDragForces();
 
 	ResetPlayerInputData();
@@ -254,10 +255,10 @@ void AMowerRC::ApplySteeringForce(double Force)
 
 	const double TotalSteeringForce{ Steering * AccelerationRatio * WheelsGrounded * Force * SteeringForceVariance };
 
-	// modify if 1 to 3 wheels
-
 	PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * TotalSteeringForce, FrontSteeringWorldPosition);
 	PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * TotalSteeringForce, BackSteeringWorldPosition);
+
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalSteeringForce %f"), TotalSteeringForce);
 
 	SteeringForceVariance = 1.0f;
 }
@@ -445,6 +446,13 @@ void AMowerRC::AddAcceleratingAngularDrag()
 }
 
 
+void AMowerRC::AddMostlyGroundedVarianceAngularDrag(float DeltaTime)
+{
+	if (DeltaTime < 0.02) return;
+
+	if (WheelsGrounded > 0 && WheelsGrounded < 4) AngularDragForces.Add(WheelsGrounded * SteeringVarianceAngularDrag);
+}
+
 void AMowerRC::ApplyDragForces()
 {
 	for (float Force : LinearDragForces) TotalLinearDragForce += Force;
@@ -453,15 +461,15 @@ void AMowerRC::ApplyDragForces()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("PhysicsBodyVelocity %f"), PhysicsBodyVelocity);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearBraking       %f"), LinearBrakingDrag);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("PhysicsBodyVelocity %f"), PhysicsBodyVelocity);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearBraking       %f"), LinearBrakingDrag);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 }
