@@ -156,7 +156,8 @@ void AMowerRC::Tick(float DeltaTime)
 	DecayAcceleration(DeltaTime);
 	ApplyAccelerationForce();
 
-	ApplySteeringForce(SteeringForce);
+	ApplySteeringTorque(SteeringForce);
+	ApplyBrakingTorque(BrakingForce);
 
 	ResetDragForces();
 
@@ -219,7 +220,7 @@ void AMowerRC::UpdateAccelerationData(const RayCastGroup& RayCastGroup, float De
 
 void AMowerRC::DecayAcceleration(float DeltaTime)
 {
-	if (!AcceleratingDirection || (Braking && WheelsGrounded))
+	if (AcceleratingDirection == 0.0f || (Braking && WheelsGrounded))
 	{
 		if (AccelerationRatio < 0.0f) AccelerationRatio += AcceleratingDecayRate * DeltaTime;
 		if (AccelerationRatio > 0.0f) AccelerationRatio -= AcceleratingDecayRate * DeltaTime;
@@ -234,21 +235,20 @@ void AMowerRC::ApplyAccelerationForce() const
 }
 
 
-void AMowerRC::ApplySteeringForce(double Force)
+void AMowerRC::ApplySteeringTorque(double Force)
 {
 	if (Steering == 0.0f || AccelerationRatio == 0.0f || !WheelsGrounded) return;
+	
+	Force *= Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
 
-	const FVector FrontSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, FrontSteeringLocalPosition) };
-	const FVector BackSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, BackSteeringLocalPosition) };
-	const double TotalSteeringForce{ Steering * AccelerationRatio * WheelsGrounded * Force };
-
-	PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * TotalSteeringForce, FrontSteeringWorldPosition);
-	PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * TotalSteeringForce, BackSteeringWorldPosition);
+	PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyUpVector * Force));
 }
 
 
-// testing git clone
-// braking drift
+void AMowerRC::ApplyBrakingTorque(double Force)
+{
+	if (Braking) ApplySteeringTorque(Force);
+}
 
 
 void AMowerRC::ResetDragForces()
@@ -440,15 +440,15 @@ void AMowerRC::ApplyDragForces()
 
 	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("PhysicsBodySpeed    %f"), PhysicsBodySpeed);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearBraking       %f"), LinearBrakingDrag);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("BrakingDrag         %f"), LinearBrakingDrag);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationDrag    %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDragForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDragForce);
 }
 
 

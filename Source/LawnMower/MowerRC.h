@@ -78,9 +78,11 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
-	const double SteeringForce{ 3000.0 };
+	const double SteeringForce{ 850.0 };
 	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
 	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
+
+	const double BrakingForce{ 200.0 };
 	
 	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
 	const double MinLocalCameraArmPitch{ -89.9 };
@@ -139,7 +141,8 @@ private:
 	void DecayAcceleration(float DeltaTime);
 	void ApplyAccelerationForce() const;
 
-	void ApplySteeringForce(double Force);
+	void ApplySteeringTorque(double Force);
+	void ApplyBrakingTorque(double Force);
 
 	void ResetDragForces();
 
@@ -209,7 +212,5 @@ private:
 	float LinearBrakingDrag{};
 	float AngularBrakingDrag{};
 	float WheelsGrounded{};
-
-	float NotAComment{};
 
 };
