@@ -54,6 +54,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
+
 	const FVector FRWheelPosition{ 26.0, 24.0, -9.0 };
 	const FVector FLWheelPosition{ 26.0, -24.0, -9.0 };
 	const FVector BRWheelPosition{ -26.0, 24.0, -9.0 };
@@ -63,24 +64,30 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector FLRayCastPosition{ 25.0, -15.0, -9.0 };
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
+
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
+
 	const double RayCastLength{ 8.9 };
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
 	const float PhysicsBodyAntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
+
 	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
+
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 	
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AcceleratingDecayRate{ 0.5f };
+
 	const double BrakingForceOffset{ 25.0 };
 	const double SteeringForce{ 850.0 };
 
 	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
+
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
 
@@ -173,6 +180,7 @@ private:
 
 	float AccelerationForce{};
 	float AccelerationRatio{};
+
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 

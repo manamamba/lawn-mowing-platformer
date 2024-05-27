@@ -217,6 +217,8 @@ void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
 	}
 
+	// keep braking from fulling decaying ratio while direction is held
+
 	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
 	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
 }
@@ -234,8 +236,6 @@ void AMowerRC::UpdateAccelerationPositionData()
 void AMowerRC::UpdateAccelerationForce()
 {
 	AccelerationForce = AccelerationForceMaximum * TotalLinearDrag * abs(AccelerationRatio);
-
-	// if (AcceleratingDirection != 0.0f && AccelerationForce == 0.0f) AccelerationRatio
 }
 
 
@@ -257,10 +257,8 @@ void AMowerRC::ApplySteeringTorque() const
 
 void AMowerRC::ApplyBrakingForce()
 {
-	if (Steering == 0.0f && !Braking && !WheelsGrounded) return;
-	
-	const FVector BrakingForceLocation{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
-	
+	// if (Steering == 0.0f && !Braking && !WheelsGrounded) return;
+	// const FVector BrakingForceLocation{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
 	// const FVector BrakingForce{ (PhysicsBodyRightVector * )}
 	// alway apply this force if braking?
 	// if (Braking && WheelsGrounded ) ApplySteeringTorque(Force);
