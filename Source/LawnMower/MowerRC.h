@@ -73,26 +73,22 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
-
-	const float AccelerationForceMaximum{ 10000.0f };
-	const float AccelerationRatioMaximum{ 3.0f };
-	const float AcceleratingDecayRate{ 0.5f };
-
-	const double SteeringForce{ 850.0 };
-	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
-	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
-
-	const double BrakingForce{ 200.0 };
 	
+	const float AccelerationRatioMaximum{ 3.0f };
+	const float AccelerationForceMaximum{ 10000.0f };
+	const float AcceleratingDecayRate{ 0.5f };
+	const double BrakingForceOffset{ 25.0 };
+	const double SteeringForce{ 850.0 };
+
 	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
 
 	const float CompressionRatioMinimum{ 0.25f };
-	const float MaxWheelDragForce{ 2.0f };
+	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
+	const float BrakingLinearDragIncreaseRate{ 0.1f };
 	const float BrakingLinearDragLimit{ 50.0f };
-	const float BrakingLinearDragMultiplier{ 25.0f };
 	const float AcceleratingAngularDragMultiplier{ 0.00002f };
 	const float AirTimeAngularDrag{ 5.0f };
 
@@ -137,38 +133,39 @@ private:
 
 	void FloatMower() const;
 
-	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
-	void DecayAcceleration(float DeltaTime);
+	void UpdateAccelerationRatio(float DeltaTime);
+	void UpdateAccelerationPositionData();
+	void UpdateAccelerationForce();
 	void ApplyAccelerationForce() const;
+	void ApplySteeringTorque() const;
+	void ApplyBrakingForce();
 
-	void ApplySteeringTorque(double Force);
-	void ApplyBrakingTorque(double Force);
+	void ResetDrag();
 
-	void ResetDragForces();
-
-	void UpdatePhysicsBodyPositionData(float DeltaTime);
+	void UpdatePhysicsBodyPositionData();
 	void UpdatePhysicsBodySpeed(float DeltaTime);
-
 	void UpdateCameraRotation();
 
 	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	bool RayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
-	void AddDragForceOnRayCastHit(float CompressionRatio);
+	void AddDragOnRayCastHit(float CompressionRatio);
 
 	void SendWheelRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
 	void ApplySuspensionOnWheel(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 
-	void DrawRayCasts(RayCastGroup& RayCasts) const;
-	void DrawRayCast(const FHitResult& RayCast) const;
-	void DrawAcceleration() const;
-
-	void AddBrakingLinearDrag(float DeltaTime);
-	void AddAirTimeAngularDrag();
+	void AddBrakingLinearDrag();
 	void AddAcceleratingAngularDrag();
-	void ApplyDragForces();
+	void AddAirTimeAngularDrag();
+	void ApplyDrag();
 
 	void ResetPlayerInputData();
+
+	void LogData();
+	void DrawRayCasts(RayCastGroup& RayCasts) const;
+	void DrawRayCast(const FHitResult& RayCast) const;
+	void DrawForces() const;
+	
 
 private:
 	bool TickReset{};
@@ -205,12 +202,11 @@ private:
 	FHitResult BLWheelRayCast{};
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
-	TArray<float> LinearDragForces{};
-	TArray<float> AngularDragForces{};
-	float TotalLinearDragForce{};
-	float TotalAngularDragForce{};
+	TArray<float> LinearDragArray{};
+	TArray<float> AngularDragArray{};
+	float TotalLinearDrag{};
+	float TotalAngularDrag{};
 	float LinearBrakingDrag{};
-	float AngularBrakingDrag{};
 	float WheelsGrounded{};
 
 };
