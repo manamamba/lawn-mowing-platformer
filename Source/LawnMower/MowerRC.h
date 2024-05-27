@@ -63,9 +63,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector FLRayCastPosition{ 25.0, -15.0, -9.0 };
 	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
 	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
-
 	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
 	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
+	const double RayCastLength{ 8.9 };
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
@@ -74,31 +74,26 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 
-	const float AccelerationForceVarianceRate{ 1.18f };
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AcceleratingDecayRate{ 0.5f };
 
-	const float SteeringForceVarianceRate{ 3.9f };
-
+	const double SteeringForce{ 3000.0 };
 	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
 	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
-	const double SteeringForce{ 3000.0 };
-	const double DeltaTimeSteeringForceVariance{ 0.89 };
-
+	
 	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
 
-	const double RayCastLength{ 8.9 };
-
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDragForce{ 2.0f };
 	const float WheelTotal{ 4.0f };
-	const float LinearBrakingDragLimit{ 50.0f };
-	const float LinearBrakingDragMultiplier{ 25.0f };
-	const float AngularDragForceMultiplier{ 0.00002f };
-	const float AngularAirTimeDrag{ 5.0f };
+	const float SteeringVarianceAngularDrag{ 20.0f };
+	const float BrakingLinearDragLimit{ 50.0f };
+	const float BrakingLinearDragMultiplier{ 25.0f };
+	const float AcceleratingAngularDragMultiplier{ 0.00002f };
+	const float AirTimeAngularDrag{ 5.0f };
 
 public:
 	AMowerRC();
@@ -141,7 +136,6 @@ private:
 
 	void FloatMower() const;
 
-	void UpdateAccelerationForceVariance(float DeltaTime);
 	void UpdateAccelerationData(const RayCastGroup& RayCastGroup, float DeltaTime);
 	void DecayAcceleration(float DeltaTime);
 	void ApplyAccelerationForce() const;
@@ -152,6 +146,7 @@ private:
 	void ResetDragForces();
 
 	void UpdatePhysicsBodyPositionData(float DeltaTime);
+	void UpdatePhysicsBodyVelocity(float DeltaTime);
 
 	void UpdateCameraRotation();
 
@@ -167,7 +162,8 @@ private:
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
 
-	void AddBrakingDrag(float DeltaTime);
+	void AddSteeringVarianceAngularDrag(float DeltaTime);
+	void AddBrakingLinearDrag(float DeltaTime);
 	void AddAirTimeAngularDrag();
 	void AddAcceleratingAngularDrag();
 	void ApplyDragForces();
@@ -178,7 +174,6 @@ private:
 	bool TickReset{};
 	float TickCount{};
 
-	float AccelerationForceVariance{};
 	float AccelerationForce{};
 	float AccelerationRatio{};
 	FVector AccelerationSurfaceImpact{};
@@ -192,8 +187,10 @@ private:
 	FVector PhysicsBodyUpVector{};
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
+
 	FVector LocationThisTick{};
 	FVector LocationLastTick{};
+	double PhysicsBodyVelocity{};
 
 	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
@@ -202,13 +199,12 @@ private:
 	FHitResult FLForceRayCast{};
 	FHitResult BRForceRayCast{};
 	FHitResult BLForceRayCast{};
+	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 
 	FHitResult FRWheelRayCast{};
 	FHitResult FLWheelRayCast{};
 	FHitResult BRWheelRayCast{};
 	FHitResult BLWheelRayCast{};
-
-	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
 	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
 
 	TArray<float> LinearDragForces{};
@@ -217,7 +213,5 @@ private:
 	float TotalAngularDragForce{};
 	float LinearBrakingDrag{};
 	float AngularBrakingDrag{};
-
 	float WheelsGrounded{};
-
 };
