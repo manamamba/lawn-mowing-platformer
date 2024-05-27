@@ -156,13 +156,12 @@ void AMowerRC::Tick(float DeltaTime)
 	DecayAcceleration(DeltaTime);
 	ApplyAccelerationForce();
 
-	UpdateSteeringForceVariance(DeltaTime);
 	ApplySteeringForce(SteeringForce);
 
 	ResetDragForces();
 
 	UpdatePhysicsBodyPositionData(DeltaTime);
-	UpdatePhysicsBodyVelocity(DeltaTime);
+	UpdatePhysicsBodySpeed(DeltaTime);
 	UpdateCameraRotation();
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
@@ -175,7 +174,6 @@ void AMowerRC::Tick(float DeltaTime)
 	AddBrakingLinearDrag(DeltaTime);
 	AddAirTimeAngularDrag();
 	AddAcceleratingAngularDrag();
-	AddMostlyGroundedVarianceAngularDrag(DeltaTime);
 	ApplyDragForces();
 
 	ResetPlayerInputData();
@@ -236,31 +234,16 @@ void AMowerRC::ApplyAccelerationForce() const
 }
 
 
-void AMowerRC::UpdateSteeringForceVariance(float DeltaTime)
-{
-	if (DeltaTime < 0.02f) return;
-
-	const float AccelerationPercentage{ abs(AccelerationRatio) / AccelerationRatioMaximum };
-
-	SteeringForceVariance = (abs(AccelerationRatio) - 0.1f) + FMath::Pow(AccelerationPercentage, 2.0f);
-}
-
-
 void AMowerRC::ApplySteeringForce(double Force)
 {
 	if (Steering == 0.0f || AccelerationRatio == 0.0f || !WheelsGrounded) return;
 
 	const FVector FrontSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, FrontSteeringLocalPosition) };
 	const FVector BackSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, BackSteeringLocalPosition) };
-
-	const double TotalSteeringForce{ Steering * AccelerationRatio * WheelsGrounded * Force * SteeringForceVariance };
+	const double TotalSteeringForce{ Steering * AccelerationRatio * WheelsGrounded * Force };
 
 	PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * TotalSteeringForce, FrontSteeringWorldPosition);
 	PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * TotalSteeringForce, BackSteeringWorldPosition);
-
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalSteeringForce %f"), TotalSteeringForce);
-
-	SteeringForceVariance = 1.0f;
 }
 
 
@@ -291,13 +274,13 @@ void AMowerRC::UpdatePhysicsBodyPositionData(float DeltaTime)
 }
 
 
-void AMowerRC::UpdatePhysicsBodyVelocity(float DeltaTime)
+void AMowerRC::UpdatePhysicsBodySpeed(float DeltaTime)
 {
-	const float TickRate = (1.0f / DeltaTime) / 60.0f;
+	const float ChangeInTime = (1.0f / DeltaTime) / 60.0f;
 
 	LocationLastTick = LocationThisTick;
 	LocationThisTick = PhysicsBodyLocation;
-	PhysicsBodyVelocity = abs(FVector::Dist(LocationThisTick, LocationLastTick)) * TickRate;
+	PhysicsBodySpeed = abs(FVector::Dist(LocationThisTick, LocationLastTick)) * ChangeInTime;
 }
 
 
@@ -446,13 +429,6 @@ void AMowerRC::AddAcceleratingAngularDrag()
 }
 
 
-void AMowerRC::AddMostlyGroundedVarianceAngularDrag(float DeltaTime)
-{
-	if (DeltaTime < 0.02) return;
-
-	if (WheelsGrounded > 0 && WheelsGrounded < 4) AngularDragForces.Add(WheelsGrounded * SteeringVarianceAngularDrag);
-}
-
 void AMowerRC::ApplyDragForces()
 {
 	for (float Force : LinearDragForces) TotalLinearDragForce += Force;
@@ -461,8 +437,10 @@ void AMowerRC::ApplyDragForces()
 	PhysicsBody->SetLinearDamping(TotalLinearDragForce);
 	PhysicsBody->SetAngularDamping(TotalAngularDragForce);
 
+	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
+
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("PhysicsBodyVelocity %f"), PhysicsBodyVelocity);
+	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("PhysicsBodySpeed    %f"), PhysicsBodySpeed);
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
@@ -470,8 +448,6 @@ void AMowerRC::ApplyDragForces()
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
 	// if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
-
-	if (TotalLinearDragForce == 0.01f) TotalLinearDragForce = 0.0f;
 }
 
 

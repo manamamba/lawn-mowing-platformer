@@ -79,7 +79,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AcceleratingDecayRate{ 0.5f };
 
 	const double SteeringForce{ 3000.0 };
-	const float SteeringVarianceAngularDrag{ 20.0f };
 	const FVector FrontSteeringLocalPosition{ 25.0, 0.0, -15.0 };
 	const FVector BackSteeringLocalPosition{ -25.0, 0.0, -15.0 };
 	
@@ -140,13 +139,12 @@ private:
 	void DecayAcceleration(float DeltaTime);
 	void ApplyAccelerationForce() const;
 
-	void UpdateSteeringForceVariance(float DeltaTime);
 	void ApplySteeringForce(double Force);
 
 	void ResetDragForces();
 
 	void UpdatePhysicsBodyPositionData(float DeltaTime);
-	void UpdatePhysicsBodyVelocity(float DeltaTime);
+	void UpdatePhysicsBodySpeed(float DeltaTime);
 
 	void UpdateCameraRotation();
 
@@ -165,7 +163,6 @@ private:
 	void AddBrakingLinearDrag(float DeltaTime);
 	void AddAirTimeAngularDrag();
 	void AddAcceleratingAngularDrag();
-	void AddMostlyGroundedVarianceAngularDrag(float DeltaTime);
 	void ApplyDragForces();
 
 	void ResetPlayerInputData();
@@ -179,8 +176,6 @@ private:
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 
-	float SteeringForceVariance{};
-
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
 	FVector PhysicsBodyLocation{};
@@ -190,7 +185,7 @@ private:
 
 	FVector LocationThisTick{};
 	FVector LocationLastTick{};
-	double PhysicsBodyVelocity{};
+	double PhysicsBodySpeed{};
 
 	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
@@ -214,4 +209,5 @@ private:
 	float LinearBrakingDrag{};
 	float AngularBrakingDrag{};
 	float WheelsGrounded{};
+
 };
