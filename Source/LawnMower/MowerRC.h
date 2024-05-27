@@ -210,4 +210,6 @@ private:
 	float AngularBrakingDrag{};
 	float WheelsGrounded{};
 
+	float NotAComment{};
+
 };
