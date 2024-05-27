@@ -175,7 +175,6 @@ void AMowerRC::Tick(float DeltaTime)
 	AddBrakingLinearDrag(DeltaTime);
 	AddAirTimeAngularDrag();
 	AddAcceleratingAngularDrag();
-	AddSteeringVarianceAngularDrag(DeltaTime);
 	ApplyDragForces();
 
 	ResetPlayerInputData();
@@ -240,9 +239,9 @@ void AMowerRC::UpdateSteeringForceVariance(float DeltaTime)
 {
 	if (DeltaTime < 0.02f) return;
 
-	const float AccelerationPercentage{ AccelerationRatio / AccelerationRatioMaximum };
+	const float AccelerationPercentage{ abs(AccelerationRatio) / AccelerationRatioMaximum };
 
-	SteeringForceVariance = (AccelerationRatio - 0.1f) + FMath::Pow(AccelerationPercentage, 2.0f);
+	SteeringForceVariance = (abs(AccelerationRatio) - 0.1f) + FMath::Pow(AccelerationPercentage, 2.0f);
 }
 
 
@@ -253,18 +252,18 @@ void AMowerRC::ApplySteeringForce(double Force)
 	const FVector FrontSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, FrontSteeringLocalPosition) };
 	const FVector BackSteeringWorldPosition{ UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, BackSteeringLocalPosition) };
 
-	const FVector FrontSteeringDirection{ PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * SteeringForceVariance) };
-	const FVector BackSteeringDirection{ -PhysicsBodyRightVector * (Force * Steering * AccelerationRatio * WheelsGrounded * SteeringForceVariance) };
+	const double TotalSteeringForce{ Steering * AccelerationRatio * WheelsGrounded * Force * SteeringForceVariance };
 
-	PhysicsBody->AddForceAtLocation(FrontSteeringDirection, FrontSteeringWorldPosition);
-	PhysicsBody->AddForceAtLocation(BackSteeringDirection, BackSteeringWorldPosition);
+	// modify if 1 to 3 wheels
+
+	PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * TotalSteeringForce, FrontSteeringWorldPosition);
+	PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * TotalSteeringForce, BackSteeringWorldPosition);
 
 	SteeringForceVariance = 1.0f;
 }
 
 
 // braking drift
-
 
 
 void AMowerRC::ResetDragForces()
@@ -446,14 +445,6 @@ void AMowerRC::AddAcceleratingAngularDrag()
 }
 
 
-void AMowerRC::AddSteeringVarianceAngularDrag(float DeltaTime)
-{
-	if (DeltaTime < 0.02f) return;
-
-	if (WheelsGrounded > 0 && WheelsGrounded < 4) AngularDragForces.Add(SteeringVarianceAngularDrag * PhysicsBodyVelocity);
-}
-
-
 void AMowerRC::ApplyDragForces()
 {
 	for (float Force : LinearDragForces) TotalLinearDragForce += Force;
@@ -469,7 +460,6 @@ void AMowerRC::ApplyDragForces()
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearBraking       %f"), LinearBrakingDrag);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularAcceleration %f"), abs(AccelerationForce) * WheelsGrounded * AcceleratingAngularDragMultiplier);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularSteeringVar  %f"), SteeringVarianceAngularDrag * PhysicsBodyVelocity);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalLinear         %f"), TotalLinearDragForce);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("TotalAngular        %f"), TotalAngularDragForce);
 

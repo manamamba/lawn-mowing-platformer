@@ -89,7 +89,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDragForce{ 2.0f };
 	const float WheelTotal{ 4.0f };
-	const float SteeringVarianceAngularDrag{ 20.0f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float BrakingLinearDragMultiplier{ 25.0f };
 	const float AcceleratingAngularDragMultiplier{ 0.00002f };
@@ -162,7 +161,6 @@ private:
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
 
-	void AddSteeringVarianceAngularDrag(float DeltaTime);
 	void AddBrakingLinearDrag(float DeltaTime);
 	void AddAirTimeAngularDrag();
 	void AddAcceleratingAngularDrag();
