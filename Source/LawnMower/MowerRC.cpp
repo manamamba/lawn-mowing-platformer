@@ -160,7 +160,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateAcceleratingDirection();
 	ApplyAccelerationForce();
 	ApplySteeringTorque();
-	ApplyDriftingForce();
+	ApplyDriftingForce(DeltaTime);
 
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
@@ -317,19 +317,20 @@ void AMowerRC::ApplySteeringTorque()
 }
 
 
-void AMowerRC::ApplyDriftingForce()
+void AMowerRC::ApplyDriftingForce(float DeltaTime)
 {
-	
-	
-	
-	// if (Steering == 0.0f && !Braking && !WheelsGrounded) return;
-	// const FVector BrakingForceLocation{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
-	// const FVector BrakingForce{ (PhysicsBodyRightVector * )}
-	// alway apply this force if braking?
-	// if (Braking && WheelsGrounded ) ApplySteeringTorque(Force);
-	// PhysicsBodyRightVector
-	// BrakingForcePosition
-	// PhysicsBody->AddForceAtLocation()
+	if (Braking && Steering != 0.0f) DriftingRatio += Steering * DeltaTime;
+
+
+
+
+
+
+
+	const FVector DriftingForcePosition{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset) };
+
+	if (Steering < 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingRatio * DriftingForceMaximum, DriftingForcePosition);
+	if (Steering > 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingRatio * DriftingForceMaximum, DriftingForcePosition);
 }
 
 
@@ -411,6 +412,16 @@ void AMowerRC::LogData(float DeltaTime)
 }
 
 
+void AMowerRC::UpdateTickCount(float DeltaTime)
+{
+	TickCount += TickCountMultiplier * DeltaTime;
+
+	if (TickCount > 1.0f) TickCount = 0.0f;
+
+	TickCount == 0.0f ? TickReset = true : TickReset = false;
+}
+
+
 void AMowerRC::ResetDrag()
 {
 	LinearDragArray.Reset();
@@ -430,16 +441,6 @@ void AMowerRC::ResetPlayerInputData()
 	AcceleratingDirection = 0.0f;
 	Braking = 0.0f;
 	Steering = 0.0f;
-}
-
-
-void AMowerRC::UpdateTickCount(float DeltaTime)
-{
-	TickCount += TickCountMultiplier * DeltaTime;
-
-	if (TickCount > 1.0f) TickCount = 0.0f;
-
-	TickCount == 0.0f ? TickReset = true : TickReset = false;
 }
 
 
