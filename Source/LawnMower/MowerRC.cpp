@@ -352,8 +352,8 @@ void AMowerRC::ApplyDriftingForce()
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
 	DriftingForce = abs(DriftingRatio) * DriftingForceMaximum * WheelsGrounded;
 
-	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
-	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
+	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce * AcceleratingDirection, DriftingForcePosition);
+	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce * AcceleratingDirection, DriftingForcePosition);
 }
 
 
