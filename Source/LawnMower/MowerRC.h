@@ -90,18 +90,19 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationForceMaximum{ 20000.0f };
-	const float AccelerationDecayRate{ 0.25f };
-	const float AccelerationBrakingRate{ 2.0f };
-	const float AccelerationRatioBrakingMinimum{ 0.2f };
+	const float AccelerationDecayRate{ 0.5f };
+	const float AccelerationBrakingRate{ 1.75f };
+	const float AccelerationDecayBrakingRate{ 0.5f };
+	const float AccelerationRatioBrakingMinimum{ 0.15f };
 
 	const double SteeringTorque{ 300.0 };
-
 	const double DriftingForcePositionOffset{ 25.0 };
 	const double DriftingForceMaximum{ 5000.0 };
 
-	const float DriftingRatioMaximum{ 3.0f };
-	const float DriftingForceIncreaseRate{ 3.0f };
-	const float DriftingForceDecayRate{ 2.0f };
+	const float DriftingRatioMaximum{ 3.0f };				// decay slower, but start at a higher acc ratio
+	const float DriftingForceIncreaseRate{ 2.0f };
+	const float DriftingForceDecayRate{ 1.5f };
+	const float DriftingAccelerationMinimum{ 0.0f };
 	
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
@@ -164,6 +165,7 @@ private:
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
 	void AddDragOnRayCastHit(float CompressionRatio);
 
+	void UpdateAcceleratingConditionals();
 	void UpdateAccelerationRatio(float DeltaTime);
 	void UpdateDriftingRatio(float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, float DeltaTime);
@@ -217,19 +219,22 @@ private:
 
 	int32 WheelsGrounded{};
 
+	float AccelerationForce{};
 	float AccelerationRatio{};
 	float DriftingRatio{};
 
-	float AccelerationForce{};
-
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
-
 	FVector DriftingForcePosition{};
 
+	double SteeringForce{};
 	double DriftingForce{};
 
-	double SteeringForce{};
+	bool bMoving{};
+	bool bAccelerating{};
+	bool bSteering{};
+
+	bool bDriftingAccelerationMinimum{}; // remove?
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};

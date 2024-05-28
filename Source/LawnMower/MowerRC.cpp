@@ -158,6 +158,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 
+	UpdateAcceleratingConditionals();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
@@ -270,21 +271,32 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 }
 
 
+void AMowerRC::UpdateAcceleratingConditionals()
+{
+	bMoving = AccelerationRatio != 0.0f;
+	bAccelerating = AcceleratingDirection != 0.0f;
+	bSteering = Steering != 0.0f;
+}
+
+
 void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 {
-	if (AcceleratingDirection == 0.0f) DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
+	if (!bAccelerating) DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	if (!WheelsGrounded) return;
 
-	if (AcceleratingDirection != 0.0f) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
 
-	if (Braking)
-	{
-		if (AccelerationRatio > AccelerationRatioBrakingMinimum) AccelerationRatio += -Braking * AccelerationBrakingRate * DeltaTime;
-		if (AccelerationRatio < -AccelerationRatioBrakingMinimum) AccelerationRatio += Braking * AccelerationBrakingRate * DeltaTime;
-	}	
+	if (!Braking) return;
+
+	float BrakingRate{};
+
+	bAccelerating ? BrakingRate = AccelerationBrakingRate : BrakingRate = AccelerationDecayBrakingRate;
+
+	if (AccelerationRatio > AccelerationRatioBrakingMinimum) AccelerationRatio += -Braking * BrakingRate * DeltaTime;
+	if (AccelerationRatio < -AccelerationRatioBrakingMinimum) AccelerationRatio += Braking * BrakingRate * DeltaTime;
 }
 
 
@@ -293,12 +305,13 @@ void AMowerRC::UpdateDriftingRatio(float DeltaTime)
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
 	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
-	if (!Drifting || Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+	if (!Drifting || Braking || !bAccelerating) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
 
-	if (Drifting && Steering != 0.0f && AccelerationRatio != 0.0f && WheelsGrounded && !Braking)
-	{
-		DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
-	}
+	const bool CanDrift{ Drifting && WheelsGrounded && !Braking && bSteering};
+
+	const float DriftingRatioIncrease{ -Steering * DriftingForceIncreaseRate * DriftingForceIncreaseRate * DeltaTime };
+
+	if (CanDrift) DriftingRatio += DriftingRatioIncrease;
 
 	LimitRatio(DriftingRatio, DriftingRatioMaximum);
 }
@@ -339,7 +352,7 @@ void AMowerRC::ApplyAccelerationForce()
 
 void AMowerRC::ApplySteeringTorque()
 {
-	if (Steering == 0.0f || AccelerationRatio == 0.0f || !WheelsGrounded) return;
+	if (!bSteering || !bMoving || !WheelsGrounded) return;
 
 	SteeringForce = Steering * SteeringTorque * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
 
@@ -352,14 +365,16 @@ void AMowerRC::ApplyDriftingForce()
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
 	DriftingForce = abs(DriftingRatio) * DriftingForceMaximum * WheelsGrounded;
 
-	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce * AcceleratingDirection, DriftingForcePosition);
-	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce * AcceleratingDirection, DriftingForcePosition);
+	if (AccelerationRatio < 0.0f) DriftingForce = -DriftingForce;
+
+	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
+	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 }
 
 
 void AMowerRC::AddBrakingLinearDrag()
 {
-	if (WheelsGrounded && Braking && AccelerationRatio == 0.0f) LinearBrakingDrag += BrakingLinearDragIncreaseRate;
+	if (WheelsGrounded && Braking && !bMoving) LinearBrakingDrag += BrakingLinearDragIncreaseRate;
 	else LinearBrakingDrag = 0.0f;
 
 	if (LinearBrakingDrag > BrakingLinearDragLimit) LinearBrakingDrag = BrakingLinearDragLimit;
@@ -468,6 +483,11 @@ void AMowerRC::ResetPlayerInputData()
 	Braking = 0.0f;
 	Steering = 0.0f;
 	Drifting = 0.0f;
+
+	SteeringForce = 0.0;
+	bMoving = false;
+	bAccelerating = false;
+	bSteering = false;
 }
 
 
