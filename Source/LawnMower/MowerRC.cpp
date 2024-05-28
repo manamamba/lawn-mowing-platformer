@@ -148,24 +148,19 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	UpdateTickCount(DeltaTime);
-
 	// FloatMower();
-
-	UpdateAccelerationRatio(DeltaTime);
-	UpdateAcceleratingDirection();
-	UpdateAccelerationForce();
-	ApplyAccelerationForce();
-	ApplySteeringTorque();
-	ApplyBrakingForce();
-
-	ResetDrag();
 
 	UpdateTransforms();
 	UpdateSpeed();
 	UpdateCameraRotation();
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
+
+	UpdateAccelerationRatio(DeltaTime);
+	UpdateAcceleratingDirection();
+	ApplyAccelerationForce();
+	ApplySteeringTorque();
+	ApplyDriftingForce();
 
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
@@ -174,111 +169,20 @@ void AMowerRC::Tick(float DeltaTime)
 
 	SendWheelSuspensionRayCasts(WheelRayCasts, WheelRayCastOrigins);
 
+	LogData(DeltaTime);
+
+	ResetDrag();
 	ResetPlayerInputData();
 
-	LogData();
-	DrawRayCastGroup(ForceRayCasts);
-	DrawRayCastGroup(WheelRayCasts);
-	DrawAcceleration();
-}
-
-
-void AMowerRC::UpdateTickCount(float DeltaTime)
-{
-	TickCount += TickCountMultiplier * DeltaTime;
-
-	if (TickCount > 1.0f) TickCount = 0.0f;
-
-	TickCount == 0.0f ? TickReset = true : TickReset = false;
+	// DrawRayCastGroup(ForceRayCasts);
+	// DrawRayCastGroup(WheelRayCasts);
+	// DrawAcceleration();
 }
 
 
 void AMowerRC::FloatMower() const
 {
 	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce);
-}
-
-
-void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
-{
-	if (!WheelsGrounded && AcceleratingDirection != 0.0f) return;
-
-	if (!Braking) AccelerationRatio += AcceleratingDirection * DeltaTime;
-
-	if (Braking && AccelerationRatio < 0.0f) AccelerationRatio += Braking * DeltaTime;
-	if (Braking && AccelerationRatio > 0.0f) AccelerationRatio += -Braking * DeltaTime;
-
-	if (Braking || AcceleratingDirection == 0.0f)
-	{
-		if (AccelerationRatio < 0.0f) AccelerationRatio += AcceleratingDecayRate * DeltaTime;
-		if (AccelerationRatio > 0.0f) AccelerationRatio -= AcceleratingDecayRate * DeltaTime;
-		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
-	}
-
-	// keep braking from fulling decaying ratio while direction is held
-
-	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
-	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
-}
-
-
-void AMowerRC::UpdateAcceleratingDirection()
-{
-	AccelerationSurfaceImpact = PhysicsBodyLocation + (-PhysicsBodyUpVector * PhysicsBodyCenterOfMassOffset);
-	AccelerationSurfaceNormal = PhysicsBodyForwardVector;
-
-	if (AccelerationRatio < 0.0f) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
-}
-
-
-void AMowerRC::UpdateAccelerationForce()
-{
-	if (!WheelsGrounded) AccelerationForce = 0.0f;
-	else AccelerationForce = AccelerationForceMaximum * WheelsGrounded * abs(AccelerationRatio);
-}
-
-
-void AMowerRC::ApplyAccelerationForce() const
-{
-	if (AccelerationForce) PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * AccelerationForce, AccelerationSurfaceImpact);
-}
-
-
-void AMowerRC::ApplySteeringTorque() const
-{
-	if (Steering == 0.0f || AccelerationRatio == 0.0f || !WheelsGrounded) return;
-
-	const double Force = SteeringForce * Steering * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
-
-	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * Force));
-}
-
-
-void AMowerRC::ApplyBrakingForce()
-{
-	
-	
-	
-	// if (Steering == 0.0f && !Braking && !WheelsGrounded) return;
-	// const FVector BrakingForceLocation{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
-	// const FVector BrakingForce{ (PhysicsBodyRightVector * )}
-	// alway apply this force if braking?
-	// if (Braking && WheelsGrounded ) ApplySteeringTorque(Force);
-	// PhysicsBodyRightVector
-	// BrakingForcePosition
-	// PhysicsBody->AddForceAtLocation()
-}
-
-
-void AMowerRC::ResetDrag()
-{
-	LinearDragArray.Reset();
-	AngularDragArray.Reset();
-
-	TotalLinearDrag = 0.01f;
-	TotalAngularDrag = 0.0f;
-
-	WheelsGrounded = 0;
 }
 
 
@@ -361,6 +265,74 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 }
 
 
+void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
+{
+	if (AcceleratingDirection == 0.0f)
+	{
+		if (AccelerationRatio < 0.0f) AccelerationRatio += AccelerationDecayRate * DeltaTime;
+		if (AccelerationRatio > 0.0f) AccelerationRatio -= AccelerationDecayRate * DeltaTime;
+		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
+	}
+
+	if (!WheelsGrounded) return;
+
+	if (AcceleratingDirection != 0.0f) AccelerationRatio += AcceleratingDirection * DeltaTime;
+
+	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
+	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
+
+	if (Braking)
+	{
+		if (AccelerationRatio > AccelerationRatioBrakingMinimum) AccelerationRatio += -Braking * AccelerationBrakingRate * DeltaTime;
+		if (AccelerationRatio < -AccelerationRatioBrakingMinimum) AccelerationRatio += Braking * AccelerationBrakingRate * DeltaTime;
+	}	
+}
+
+
+void AMowerRC::UpdateAcceleratingDirection()
+{
+	AccelerationSurfaceImpact = PhysicsBodyLocation + (-PhysicsBodyUpVector * PhysicsBodyCenterOfMassOffset);
+	AccelerationSurfaceNormal = PhysicsBodyForwardVector;
+
+	if (AccelerationRatio < 0.0f) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
+}
+
+
+void AMowerRC::ApplyAccelerationForce()
+{
+	if (!WheelsGrounded) AccelerationForce = 0.0f;
+	else AccelerationForce = AccelerationForceMaximum * WheelsGrounded * abs(AccelerationRatio);
+	
+	PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * AccelerationForce, AccelerationSurfaceImpact);
+}
+
+
+void AMowerRC::ApplySteeringTorque()
+{
+	if (Steering == 0.0f || AccelerationRatio == 0.0f || !WheelsGrounded) return;
+
+	SteeringForce = Steering * SteeringTorque * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
+
+	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * SteeringForce));
+}
+
+
+void AMowerRC::ApplyDriftingForce()
+{
+	
+	
+	
+	// if (Steering == 0.0f && !Braking && !WheelsGrounded) return;
+	// const FVector BrakingForceLocation{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
+	// const FVector BrakingForce{ (PhysicsBodyRightVector * )}
+	// alway apply this force if braking?
+	// if (Braking && WheelsGrounded ) ApplySteeringTorque(Force);
+	// PhysicsBodyRightVector
+	// BrakingForcePosition
+	// PhysicsBody->AddForceAtLocation()
+}
+
+
 void AMowerRC::AddBrakingLinearDrag()
 {
 	if (WheelsGrounded && Braking && AccelerationRatio == 0.0f) LinearBrakingDrag += BrakingLinearDragIncreaseRate;
@@ -422,18 +394,10 @@ void AMowerRC::SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCa
 // Wheel Animations
 
 
-void AMowerRC::ResetPlayerInputData()
+void AMowerRC::LogData(float DeltaTime)
 {
-	RotatingCameraDirection = FVector2D::Zero();
-	CameraReset = false;
-	AcceleratingDirection = 0.0f;
-	Braking = 0.0f;
-	Steering = 0.0f;
-}
+	UpdateTickCount(DeltaTime);
 
-
-void AMowerRC::LogData()
-{
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
@@ -444,6 +408,38 @@ void AMowerRC::LogData()
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationDrag    %f"), AccelerationForce * WheelsGrounded * AcceleratingAngularDragMultiplier);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
+}
+
+
+void AMowerRC::ResetDrag()
+{
+	LinearDragArray.Reset();
+	AngularDragArray.Reset();
+
+	TotalLinearDrag = 0.01f;
+	TotalAngularDrag = 0.0f;
+
+	WheelsGrounded = 0;
+}
+
+
+void AMowerRC::ResetPlayerInputData()
+{
+	RotatingCameraDirection = FVector2D::Zero();
+	CameraReset = false;
+	AcceleratingDirection = 0.0f;
+	Braking = 0.0f;
+	Steering = 0.0f;
+}
+
+
+void AMowerRC::UpdateTickCount(float DeltaTime)
+{
+	TickCount += TickCountMultiplier * DeltaTime;
+
+	if (TickCount > 1.0f) TickCount = 0.0f;
+
+	TickCount == 0.0f ? TickReset = true : TickReset = false;
 }
 
 
