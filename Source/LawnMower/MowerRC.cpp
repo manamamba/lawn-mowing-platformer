@@ -25,10 +25,10 @@ void AMowerRC::CreateAndAssignComponentSubObjects()
 	PhysicsBody = CreateDefaultSubobject<UBoxComponent>(TEXT("PhysicsBody"));
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
-	FRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
-	FLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FLWheel"));
-	BRWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BRWheel"));
-	BLWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
+	FrWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
+	FlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FLWheel"));
+	BrWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BRWheel"));
+	BlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 }
@@ -39,10 +39,10 @@ void AMowerRC::SetupComponentAttachments()
 	RootComponent = PhysicsBody;
 	Body->SetupAttachment(RootComponent);
 	Handle->SetupAttachment(RootComponent);
-	FRWheel->SetupAttachment(RootComponent);
-	FLWheel->SetupAttachment(RootComponent);
-	BRWheel->SetupAttachment(RootComponent);
-	BLWheel->SetupAttachment(RootComponent);
+	FrWheel->SetupAttachment(RootComponent);
+	FlWheel->SetupAttachment(RootComponent);
+	BrWheel->SetupAttachment(RootComponent);
+	BlWheel->SetupAttachment(RootComponent);
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
 }
@@ -66,10 +66,10 @@ void AMowerRC::SetComponentProperties()
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
 	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
-	SetMeshComponentCollisionAndLocation(FRWheel, FRWheelPosition);
-	SetMeshComponentCollisionAndLocation(FLWheel, FLWheelPosition);
-	SetMeshComponentCollisionAndLocation(BRWheel, BRWheelPosition);
-	SetMeshComponentCollisionAndLocation(BLWheel, BLWheelPosition);
+	SetMeshComponentCollisionAndLocation(FrWheel, FrWheelPosition);
+	SetMeshComponentCollisionAndLocation(FlWheel, FlWheelPosition);
+	SetMeshComponentCollisionAndLocation(BrWheel, BrWheelPosition);
+	SetMeshComponentCollisionAndLocation(BlWheel, BlWheelPosition);
 }
 
 
@@ -133,15 +133,17 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
 		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
+		EnhancedInputComponent->BindAction(DriftInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Drift);
 	}
 }
 
 
 void AMowerRC::MoveCamera(const FInputActionValue& Value) { RotatingCameraDirection = Value.Get<FVector2D>(); }
-void AMowerRC::ResetCamera(const FInputActionValue& Value) { CameraReset = Value.Get<bool>(); }
+void AMowerRC::ResetCamera(const FInputActionValue& Value) { bCameraReset = Value.Get<bool>(); }
 void AMowerRC::Accelerate(const FInputActionValue& Value) { AcceleratingDirection = Value.Get<float>(); }
 void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>(); }
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
+void AMowerRC::Drift(const FInputActionValue& Value) { Drifting = Value.Get<float>(); }
 
 
 void AMowerRC::Tick(float DeltaTime)
@@ -179,7 +181,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
-	DrawAcceleration();
+	// DrawAcceleration();
 }
 
 
@@ -211,7 +213,7 @@ void AMowerRC::UpdateSpeed()
 
 void AMowerRC::UpdateCameraRotation()
 {
-	if (CameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
+	if (bCameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
 	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
 
 	if (LocalCameraArmRotation.Pitch > MaxLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MaxLocalCameraArmPitch;
@@ -223,12 +225,12 @@ void AMowerRC::UpdateCameraRotation()
 }
 
 
-void AMowerRC::SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins)
+void AMowerRC::SendForceRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins)
 {
-	if (ForceRayCastHit(RayCastGroup.FR, LocalOrigins.FR)) AddForcesOnRayCastHit(RayCastGroup.FR);
-	if (ForceRayCastHit(RayCastGroup.FL, LocalOrigins.FL)) AddForcesOnRayCastHit(RayCastGroup.FL);
-	if (ForceRayCastHit(RayCastGroup.BR, LocalOrigins.BR)) AddForcesOnRayCastHit(RayCastGroup.BR);
-	if (ForceRayCastHit(RayCastGroup.BL, LocalOrigins.BL)) AddForcesOnRayCastHit(RayCastGroup.BL);
+	if (ForceRayCastHit(RayCastGroup.Fr, LocalOrigins.Fr)) AddForcesOnRayCastHit(RayCastGroup.Fr);
+	if (ForceRayCastHit(RayCastGroup.Fl, LocalOrigins.Fl)) AddForcesOnRayCastHit(RayCastGroup.Fl);
+	if (ForceRayCastHit(RayCastGroup.Br, LocalOrigins.Br)) AddForcesOnRayCastHit(RayCastGroup.Br);
+	if (ForceRayCastHit(RayCastGroup.Bl, LocalOrigins.Bl)) AddForcesOnRayCastHit(RayCastGroup.Bl);
 }
 
 
@@ -291,9 +293,12 @@ void AMowerRC::UpdateDriftingRatio(float DeltaTime)
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
 	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
-	if (!Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+	if (!Drifting || Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
 
-	if (Braking && Steering != 0.0f && AccelerationRatio != 0.0f) DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
+	if (Drifting && Steering != 0.0f && AccelerationRatio != 0.0f && WheelsGrounded && !Braking)
+	{
+		DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
+	}
 
 	LimitRatio(DriftingRatio, DriftingRatioMaximum);
 }
@@ -385,12 +390,12 @@ void AMowerRC::ApplyDrag()
 }
 
 
-void AMowerRC::SendWheelSuspensionRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins)
+void AMowerRC::SendWheelSuspensionRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins)
 {
-	SetWheelSuspension(FRWheel, RayCastGroup.FR, LocalOrigins.FR);
-	SetWheelSuspension(FLWheel, RayCastGroup.FL, LocalOrigins.FL);
-	SetWheelSuspension(BRWheel, RayCastGroup.BR, LocalOrigins.BR);
-	SetWheelSuspension(BLWheel, RayCastGroup.BL, LocalOrigins.BL);
+	SetWheelSuspension(FrWheel, RayCastGroup.Fr, LocalOrigins.Fr);
+	SetWheelSuspension(FlWheel, RayCastGroup.Fl, LocalOrigins.Fl);
+	SetWheelSuspension(BrWheel, RayCastGroup.Br, LocalOrigins.Br);
+	SetWheelSuspension(BlWheel, RayCastGroup.Bl, LocalOrigins.Bl);
 }
 
 
@@ -417,19 +422,19 @@ void AMowerRC::LogData(float DeltaTime)
 {
 	UpdateTickCount(DeltaTime);
 
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), SteeringForce);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), SteeringForce);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
 }
 
 
@@ -439,7 +444,7 @@ void AMowerRC::UpdateTickCount(float DeltaTime)
 
 	if (TickCount > 1.0f) TickCount = 0.0f;
 
-	TickCount == 0.0f ? TickReset = true : TickReset = false;
+	TickCount == 0.0f ? bTickReset = true : bTickReset = false;
 }
 
 
@@ -458,19 +463,20 @@ void AMowerRC::ResetDrag()
 void AMowerRC::ResetPlayerInputData()
 {
 	RotatingCameraDirection = FVector2D::Zero();
-	CameraReset = false;
+	bCameraReset = false;
 	AcceleratingDirection = 0.0f;
 	Braking = 0.0f;
 	Steering = 0.0f;
+	Drifting = 0.0f;
 }
 
 
-void AMowerRC::DrawRayCastGroup(const RayCastGroup& RayCasts) const
+void AMowerRC::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
 {
-	DrawRayCast(RayCasts.FR);
-	DrawRayCast(RayCasts.FL);
-	DrawRayCast(RayCasts.BR);
-	DrawRayCast(RayCasts.BL);
+	DrawRayCast(RayCasts.Fr);
+	DrawRayCast(RayCasts.Fl);
+	DrawRayCast(RayCasts.Br);
+	DrawRayCast(RayCasts.Bl);
 }
 
 

@@ -15,18 +15,18 @@ class UInputAction;
 struct FInputActionValue;
 
 
-struct RayCastGroup {
-	FHitResult FR{};
-	FHitResult FL{};
-	FHitResult BR{};
-	FHitResult BL{};
+struct FRayCastGroup {
+	FHitResult Fr{};
+	FHitResult Fl{};
+	FHitResult Br{};
+	FHitResult Bl{};
 };
 
-struct LocalOrigins {
-	FVector FR{};
-	FVector FL{};
-	FVector BR{};
-	FVector BL{};
+struct FLocalOrigins {
+	FVector Fr{};
+	FVector Fl{};
+	FVector Br{};
+	FVector Bl{};
 };
 
 
@@ -38,10 +38,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FRWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FLWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BRWheel {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BLWheel {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FrWheel {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FlWheel {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BrWheel {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
 
@@ -51,6 +51,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
@@ -69,26 +70,26 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
 
-	const FVector FRWheelPosition{ 26.0, 24.0, -9.0 };
-	const FVector FLWheelPosition{ 26.0, -24.0, -9.0 };
-	const FVector BRWheelPosition{ -26.0, 24.0, -9.0 };
-	const FVector BLWheelPosition{ -26.0, -24.0, -9.0 };
+	const FVector FrWheelPosition{ 26.0, 24.0, -9.0 };
+	const FVector FlWheelPosition{ 26.0, -24.0, -9.0 };
+	const FVector BrWheelPosition{ -26.0, 24.0, -9.0 };
+	const FVector BlWheelPosition{ -26.0, -24.0, -9.0 };
 
-	const LocalOrigins WheelRayCastOrigins{ FRWheelPosition, FLWheelPosition, BRWheelPosition, BLWheelPosition };
+	const FLocalOrigins WheelRayCastOrigins{ FrWheelPosition, FlWheelPosition, BrWheelPosition, BlWheelPosition };
 
-	const FVector FRRayCastPosition{ 25.0, 15.0, -9.0 };
-	const FVector FLRayCastPosition{ 25.0, -15.0, -9.0 };
-	const FVector BRRayCastPosition{ -25.0, 15.0, -9.0 };
-	const FVector BLRayCastPosition{ -25.0, -15.0, -9.0 };
+	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
+	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
+	const FVector BrRayCastPosition{ -25.0, 15.0, -9.0 };
+	const FVector BlRayCastPosition{ -25.0, -15.0, -9.0 };
 
-	const LocalOrigins ForceRayCastOrigins{ FRRayCastPosition, FLRayCastPosition, BRRayCastPosition, BLRayCastPosition };
+	const FLocalOrigins ForceRayCastOrigins{ FrRayCastPosition, FlRayCastPosition, BrRayCastPosition, BlRayCastPosition };
 	
 	const double RayCastLength{ 8.9 };
 
 	const float TickCountMultiplier{ 8.0f };
 
-	const float AccelerationForceMaximum{ 20000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
+	const float AccelerationForceMaximum{ 20000.0f };
 	const float AccelerationDecayRate{ 0.25f };
 	const float AccelerationBrakingRate{ 2.0f };
 	const float AccelerationRatioBrakingMinimum{ 0.2f };
@@ -100,12 +101,12 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingForceIncreaseRate{ 3.0f };
-	const float DriftingForceDecayRate{ 0.5f };
+	const float DriftingForceDecayRate{ 2.0f };
 	
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
-	const float BrakingLinearDragIncreaseRate{ 0.1f };
+	const float BrakingLinearDragIncreaseRate{ 0.15f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float AcceleratingAngularDragMultiplier{ 0.00002f };
 	const float AirTimeAngularDrag{ 5.0f };
@@ -136,14 +137,32 @@ private:
 	void Accelerate(const FInputActionValue& Value);
 	void Brake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
+	void Drift(const FInputActionValue& Value);
+
+private:
+	FVector2D RotatingCameraDirection{};
+
+	bool bCameraReset{};
+
+	float AcceleratingDirection{};
+	float Braking{};
+	float Steering{};
+	float Drifting{};
 
 public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void UpdateTickCount(float DeltaTime);
-
 	void Float() const;
+
+	void UpdateTransforms();
+	void UpdateSpeed();
+	void UpdateCameraRotation();
+
+	void SendForceRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
+	bool ForceRayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
+	void AddForcesOnRayCastHit(FHitResult& RayCast);
+	void AddDragOnRayCastHit(float CompressionRatio);
 
 	void UpdateAccelerationRatio(float DeltaTime);
 	void UpdateDriftingRatio(float DeltaTime);
@@ -154,61 +173,25 @@ private:
 	void ApplySteeringTorque();
 	void ApplyDriftingForce();
 
-
-	void ResetDrag();
-
-	void UpdateTransforms();
-	void UpdateSpeed();
-	void UpdateCameraRotation();
-
-	void SendForceRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
-	bool ForceRayCastHit(FHitResult& RayCast, const FVector& LocalOrigin);
-	void AddForcesOnRayCastHit(FHitResult& RayCast);
-	void AddDragOnRayCastHit(float CompressionRatio);
-
-	void SendWheelSuspensionRayCasts(RayCastGroup& RayCastGroup, const LocalOrigins& LocalOrigins);
-	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
-
 	void AddBrakingLinearDrag();
 	void AddAcceleratingAngularDrag();
 	void AddAirTimeAngularDrag();
 	void ApplyDrag();
-
-	void ResetPlayerInputData();
+	
+	void SendWheelSuspensionRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
+	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 
 	void LogData(float DeltaTime);
+	void UpdateTickCount(float DeltaTime);
 
-	void DrawRayCastGroup(const RayCastGroup& RayCasts) const;
+	void ResetDrag();
+	void ResetPlayerInputData();
+
+	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
 
 private:
-	FVector2D RotatingCameraDirection{};
-
-	bool CameraReset{};
-
-	float AcceleratingDirection{};
-	float Braking{};
-	float Steering{};
-
-private:
-	bool TickReset{};
-
-	float TickCount{};
-
-	float AccelerationForce{};
-	float AccelerationRatio{};
-
-	FVector AccelerationSurfaceImpact{};
-	FVector AccelerationSurfaceNormal{};
-
-	double SteeringForce{};
-
-	FVector DriftingForcePosition{};
-
-	double DriftingForce{};
-	float DriftingRatio{};
-
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
 
@@ -225,19 +208,28 @@ private:
 	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
 
-	FHitResult FRForceRayCast{};
-	FHitResult FLForceRayCast{};
-	FHitResult BRForceRayCast{};
-	FHitResult BLForceRayCast{};
+	FHitResult FrForceRayCast{};
+	FHitResult FlForceRayCast{};
+	FHitResult BrForceRayCast{};
+	FHitResult BlForceRayCast{};
 
-	RayCastGroup ForceRayCasts{ FRForceRayCast, FLForceRayCast, BRForceRayCast, BLForceRayCast };
+	FRayCastGroup ForceRayCasts{ FrForceRayCast, FlForceRayCast, BrForceRayCast, BlForceRayCast };
 
-	FHitResult FRWheelRayCast{};
-	FHitResult FLWheelRayCast{};
-	FHitResult BRWheelRayCast{};
-	FHitResult BLWheelRayCast{};
+	int32 WheelsGrounded{};
 
-	RayCastGroup WheelRayCasts{ FRWheelRayCast, FLWheelRayCast, BRWheelRayCast, BLWheelRayCast };
+	float AccelerationRatio{};
+	float DriftingRatio{};
+
+	float AccelerationForce{};
+
+	FVector AccelerationSurfaceImpact{};
+	FVector AccelerationSurfaceNormal{};
+
+	FVector DriftingForcePosition{};
+
+	double DriftingForce{};
+
+	double SteeringForce{};
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};
@@ -246,6 +238,15 @@ private:
 	float TotalAngularDrag{};
 	float LinearBrakingDrag{};
 
-	int32 WheelsGrounded{};
+	FHitResult FrWheelRayCast{};
+	FHitResult FlWheelRayCast{};
+	FHitResult BrWheelRayCast{};
+	FHitResult BlWheelRayCast{};
+
+	FRayCastGroup WheelRayCasts{ FrWheelRayCast, FlWheelRayCast, BrWheelRayCast, BlWheelRayCast };
+
+	float TickCount{};
+
+	bool bTickReset{};
 
 };
