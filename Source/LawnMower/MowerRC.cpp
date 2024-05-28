@@ -363,9 +363,15 @@ void AMowerRC::ApplySteeringTorque()
 void AMowerRC::ApplyDriftingForce()
 {
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
-	DriftingForce = abs(DriftingRatio) * DriftingForceMaximum * WheelsGrounded;
+	
+	const double AccelerationForceAtRatioMaximum{ AccelerationForceMaximum * AccelerationRatioMaximum * WheelTotal };
+	const double AccelerationForceRatio{ AccelerationForce / AccelerationForceAtRatioMaximum };
+
+	DriftingForce = DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * WheelsGrounded;
 
 	if (AccelerationRatio < 0.0f) DriftingForce = -DriftingForce;
+
+	if (DriftingForce == 0.0) DriftingRatio = 0.0f;
 
 	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
@@ -440,6 +446,7 @@ void AMowerRC::LogData(float DeltaTime)
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
+
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), SteeringForce);

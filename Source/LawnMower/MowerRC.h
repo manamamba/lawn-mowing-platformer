@@ -62,7 +62,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 
-	const FRotator DefaultLocalCameraArmRotation{ -25.0, 0.0, 0.0 };
+	const FRotator DefaultLocalCameraArmRotation{ -20.0, 0.0, 0.0 };
 
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
@@ -99,10 +99,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double DriftingForcePositionOffset{ 25.0 };
 	const double DriftingForceMaximum{ 5000.0 };
 
-	const float DriftingRatioMaximum{ 3.0f };				// decay slower, but start at a higher acc ratio
+	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingForceIncreaseRate{ 2.0f };
 	const float DriftingForceDecayRate{ 1.5f };
-	const float DriftingAccelerationMinimum{ 0.0f };
 	
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
@@ -233,8 +232,6 @@ private:
 	bool bMoving{};
 	bool bAccelerating{};
 	bool bSteering{};
-
-	bool bDriftingAccelerationMinimum{}; // remove?
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};
