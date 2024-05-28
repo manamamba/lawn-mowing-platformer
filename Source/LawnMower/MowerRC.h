@@ -99,8 +99,8 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double DriftingForceMaximum{ 5000.0 };
 
 	const float DriftingRatioMaximum{ 3.0f };
-	const float DriftingForceIncreaseRate{ 2.0f };
-	const float DriftingForceDecayRate{ 0.25f };
+	const float DriftingForceIncreaseRate{ 3.0f };
+	const float DriftingForceDecayRate{ 0.5f };
 	
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
@@ -143,15 +143,17 @@ public:
 private:
 	void UpdateTickCount(float DeltaTime);
 
-	void FloatMower() const;
+	void Float() const;
 
 	void UpdateAccelerationRatio(float DeltaTime);
+	void UpdateDriftingRatio(float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, float DeltaTime);
 	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
 	void ApplyAccelerationForce();
 	void ApplySteeringTorque();
-	void ApplyDriftingForce(float DeltaTime);
+	void ApplyDriftingForce();
+
 
 	void ResetDrag();
 

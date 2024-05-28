@@ -148,7 +148,7 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// FloatMower();
+	// Float();
 
 	UpdateTransforms();
 	UpdateSpeed();
@@ -157,10 +157,11 @@ void AMowerRC::Tick(float DeltaTime)
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 
 	UpdateAccelerationRatio(DeltaTime);
+	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
 	ApplyAccelerationForce();
 	ApplySteeringTorque();
-	ApplyDriftingForce(DeltaTime);
+	ApplyDriftingForce();
 
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
@@ -168,6 +169,8 @@ void AMowerRC::Tick(float DeltaTime)
 	ApplyDrag();
 
 	SendWheelSuspensionRayCasts(WheelRayCasts, WheelRayCastOrigins);
+
+	// WheelAnimations
 
 	LogData(DeltaTime);
 
@@ -180,7 +183,7 @@ void AMowerRC::Tick(float DeltaTime)
 }
 
 
-void AMowerRC::FloatMower() const
+void AMowerRC::Float() const
 {
 	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce);
 }
@@ -267,19 +270,13 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 
 void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 {
-	if (AcceleratingDirection == 0.0f)
-	{
-		if (AccelerationRatio < 0.0f) AccelerationRatio += AccelerationDecayRate * DeltaTime;
-		if (AccelerationRatio > 0.0f) AccelerationRatio -= AccelerationDecayRate * DeltaTime;
-		if (AccelerationRatio < 0.1f && AccelerationRatio > -0.1f) AccelerationRatio = 0.0f;
-	}
+	if (AcceleratingDirection == 0.0f) DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	if (!WheelsGrounded) return;
 
 	if (AcceleratingDirection != 0.0f) AccelerationRatio += AcceleratingDirection * DeltaTime;
 
-	if (AccelerationRatio > AccelerationRatioMaximum) AccelerationRatio = AccelerationRatioMaximum;
-	if (AccelerationRatio < -AccelerationRatioMaximum) AccelerationRatio = -AccelerationRatioMaximum;
+	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
 
 	if (Braking)
 	{
@@ -289,19 +286,31 @@ void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 }
 
 
+void AMowerRC::UpdateDriftingRatio(float DeltaTime)
+{
+	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
+	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
+
+	if (!Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+
+	if (Braking && Steering != 0.0f && AccelerationRatio != 0.0f) DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
+
+	LimitRatio(DriftingRatio, DriftingRatioMaximum);
+}
+
+
 void AMowerRC::DecayRatio(float& Ratio, const float DecayRate, float DeltaTime)
 {
-
-
-
+	if (Ratio < 0.0f) Ratio += DecayRate * DeltaTime;
+	if (Ratio > 0.0f) Ratio -= DecayRate * DeltaTime;
+	if (Ratio < 0.1f && Ratio > -0.1f) Ratio = 0.0f;
 }
 
 
 void AMowerRC::LimitRatio(float& Ratio, const float RatioMaximum)
 {
-
-
-
+	if (Ratio > RatioMaximum) Ratio = RatioMaximum;
+	if (Ratio < -RatioMaximum) Ratio = -RatioMaximum;
 }
 
 
@@ -333,23 +342,8 @@ void AMowerRC::ApplySteeringTorque()
 }
 
 
-void AMowerRC::ApplyDriftingForce(float DeltaTime)
+void AMowerRC::ApplyDriftingForce()
 {
-	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
-	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
-
-	if (!Braking || AccelerationForce == 0.0f)
-	{
-		if (DriftingRatio < 0.0f) DriftingRatio += DriftingForceDecayRate * DeltaTime;
-		if (DriftingRatio > 0.0f) DriftingRatio -= DriftingForceDecayRate * DeltaTime;
-		if (DriftingRatio < 0.1f && DriftingRatio > -0.1f) DriftingRatio = 0.0f;
-	}
-
-	if (Braking && Steering != 0.0f && AccelerationForce != 0.0f) DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
-
-	if (DriftingRatio > DriftingRatioMaximum) DriftingRatio = DriftingRatioMaximum;
-	if (DriftingRatio < -DriftingRatioMaximum) DriftingRatio = -DriftingRatioMaximum;
-
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
 	DriftingForce = abs(DriftingRatio) * DriftingForceMaximum * WheelsGrounded;
 
@@ -426,12 +420,14 @@ void AMowerRC::LogData(float DeltaTime)
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), SteeringForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("BrakingDrag         %f"), LinearBrakingDrag);
-	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationDrag    %f"), AccelerationForce * WheelsGrounded * AcceleratingAngularDragMultiplier);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
 }
