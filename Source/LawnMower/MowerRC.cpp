@@ -176,7 +176,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
-	// DrawAcceleration();
+	DrawAcceleration();
 }
 
 
@@ -289,6 +289,22 @@ void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 }
 
 
+void AMowerRC::DecayRatio(float& Ratio, const float DecayRate, float DeltaTime)
+{
+
+
+
+}
+
+
+void AMowerRC::LimitRatio(float& Ratio, const float RatioMaximum)
+{
+
+
+
+}
+
+
 void AMowerRC::UpdateAcceleratingDirection()
 {
 	AccelerationSurfaceImpact = PhysicsBodyLocation + (-PhysicsBodyUpVector * PhysicsBodyCenterOfMassOffset);
@@ -319,18 +335,26 @@ void AMowerRC::ApplySteeringTorque()
 
 void AMowerRC::ApplyDriftingForce(float DeltaTime)
 {
-	if (Braking && Steering != 0.0f) DriftingRatio += Steering * DeltaTime;
+	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
+	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
+	if (!Braking || AccelerationForce == 0.0f)
+	{
+		if (DriftingRatio < 0.0f) DriftingRatio += DriftingForceDecayRate * DeltaTime;
+		if (DriftingRatio > 0.0f) DriftingRatio -= DriftingForceDecayRate * DeltaTime;
+		if (DriftingRatio < 0.1f && DriftingRatio > -0.1f) DriftingRatio = 0.0f;
+	}
 
+	if (Braking && Steering != 0.0f && AccelerationForce != 0.0f) DriftingRatio += -Steering * DriftingForceIncreaseRate * DeltaTime;
 
+	if (DriftingRatio > DriftingRatioMaximum) DriftingRatio = DriftingRatioMaximum;
+	if (DriftingRatio < -DriftingRatioMaximum) DriftingRatio = -DriftingRatioMaximum;
 
+	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
+	DriftingForce = abs(DriftingRatio) * DriftingForceMaximum * WheelsGrounded;
 
-
-
-	const FVector DriftingForcePosition{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset) };
-
-	if (Steering < 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingRatio * DriftingForceMaximum, DriftingForcePosition);
-	if (Steering > 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingRatio * DriftingForceMaximum, DriftingForcePosition);
+	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
+	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 }
 
 
@@ -404,6 +428,7 @@ void AMowerRC::LogData(float DeltaTime)
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("BrakingDrag         %f"), LinearBrakingDrag);
 	if (TickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationDrag    %f"), AccelerationForce * WheelsGrounded * AcceleratingAngularDragMultiplier);
@@ -476,7 +501,6 @@ void AMowerRC::DrawAcceleration() const
 	DrawDebugLine(GetWorld(), AccelerationSurfaceImpact, CurrentAcceleration, FColor::Yellow);
 	DrawDebugSphere(GetWorld(), CurrentAcceleration, 1.0f, 6, FColor::Yellow);
 
-	// const FVector BrakingForceStart{ AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * BrakingForceOffset) };
-	// DrawDebugSphere(GetWorld(), BrakingForceStart, 1.0f, 6, FColor::Magenta);
+	DrawDebugSphere(GetWorld(), DriftingForcePosition, 1.0f, 6, FColor::Magenta);
 }
 

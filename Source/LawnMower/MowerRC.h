@@ -89,16 +89,19 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const float AccelerationForceMaximum{ 20000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
-	const float AccelerationDecayRate{ 0.5f };
+	const float AccelerationDecayRate{ 0.25f };
 	const float AccelerationBrakingRate{ 2.0f };
-	const float AccelerationRatioBrakingMinimum{ 0.25f };
+	const float AccelerationRatioBrakingMinimum{ 0.2f };
 
 	const double SteeringTorque{ 300.0 };
-	const double DriftingForcePositionOffset{ 25.0 };
-	const double DriftingForceMaximum{ 500.0 };
-	const double DriftingRatioMaximum{ 3.0 };
-	
 
+	const double DriftingForcePositionOffset{ 25.0 };
+	const double DriftingForceMaximum{ 5000.0 };
+
+	const float DriftingRatioMaximum{ 3.0f };
+	const float DriftingForceIncreaseRate{ 2.0f };
+	const float DriftingForceDecayRate{ 0.25f };
+	
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
@@ -143,6 +146,8 @@ private:
 	void FloatMower() const;
 
 	void UpdateAccelerationRatio(float DeltaTime);
+	void DecayRatio(float& Ratio, const float DecayRate, float DeltaTime);
+	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
 	void ApplyAccelerationForce();
 	void ApplySteeringTorque();
@@ -196,7 +201,11 @@ private:
 	FVector AccelerationSurfaceNormal{};
 
 	double SteeringForce{};
-	double DriftingRatio{};
+
+	FVector DriftingForcePosition{};
+
+	double DriftingForce{};
+	float DriftingRatio{};
 
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
