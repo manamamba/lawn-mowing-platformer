@@ -172,17 +172,16 @@ void AMowerRC::Tick(float DeltaTime)
 	ApplyDrag();
 
 	SendWheelSuspensionRayCasts(WheelRayCasts, WheelRayCastOrigins);
+	UpdateWheelRotations(DeltaTime);
 
-	// WheelAnimations
-
-	LogData(DeltaTime);
-
-	ResetDrag();
-	ResetPlayerInputData();
+	// LogData(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
+
+	ResetDrag();
+	ResetPlayerInputData();
 }
 
 
@@ -279,7 +278,7 @@ void AMowerRC::UpdateAcceleratingConditionals()
 }
 
 
-void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
+void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
 	if (!bAccelerating) DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
@@ -300,24 +299,22 @@ void AMowerRC::UpdateAccelerationRatio(float DeltaTime)
 }
 
 
-void AMowerRC::UpdateDriftingRatio(float DeltaTime)
+void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 {
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
 	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
-	if (!Drifting || Braking || !bAccelerating) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+	if (!Drifting|| !bAccelerating || Braking ) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
 
 	const bool CanDrift{ Drifting && WheelsGrounded && !Braking && bSteering};
 
-	const float DriftingRatioIncrease{ -Steering * DriftingForceIncreaseRate * DriftingForceIncreaseRate * DeltaTime };
-
-	if (CanDrift) DriftingRatio += DriftingRatioIncrease;
+	if (CanDrift) DriftingRatio += -Steering * DriftingForceIncreaseRate * DriftingForceIncreaseRate * DeltaTime;
 
 	LimitRatio(DriftingRatio, DriftingRatioMaximum);
 }
 
 
-void AMowerRC::DecayRatio(float& Ratio, const float DecayRate, float DeltaTime)
+void AMowerRC::DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime)
 {
 	if (Ratio < 0.0f) Ratio += DecayRate * DeltaTime;
 	if (Ratio > 0.0f) Ratio -= DecayRate * DeltaTime;
@@ -354,7 +351,7 @@ void AMowerRC::ApplySteeringTorque()
 {
 	if (!bSteering || !bMoving || !WheelsGrounded) return;
 
-	SteeringForce = Steering * SteeringTorque * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
+	SteeringForce = Steering * SteeringForceMaximum * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
 
 	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * SteeringForce));
 }
@@ -436,10 +433,57 @@ void AMowerRC::SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCa
 }
 
 
-// Wheel Animations
+void AMowerRC::UpdateWheelRotations(const float DeltaTime)
+{
+	float DriftingRatioPitchDirection{ abs(DriftingRatio) };
+	
+	if (AccelerationRatio < 0.0f) DriftingRatioPitchDirection = -DriftingRatioPitchDirection;
+	
+	UpdateLocalWheelPitch(LocalFrontWheelAcceleration, AcceleratingWheelPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateLocalWheelPitch(LocalRearWheelAcceleration, AcceleratingWheelPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateLocalWheelPitch(LocalRearWheelAcceleration, DriftingWheelPitchRate, DriftingRatioPitchDirection, DriftingRatioMaximum, DeltaTime);
+
+	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelAcceleration);
+	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelAcceleration);
+	UpdateWorldWheelRotation(BrWheel, LocalRearWheelAcceleration);
+	UpdateWorldWheelRotation(BlWheel, LocalRearWheelAcceleration);
+
+	UpdateLocalWheelYaw(LocalFrontWheelAcceleration, DeltaTime);
+
+	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelSteering);
+	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelSteering);
+
+	UE_LOG(LogTemp, Warning, TEXT("LocalRearWheelAcceleration %f"), *LocalRearWheelAcceleration.ToString());
+}
 
 
-void AMowerRC::LogData(float DeltaTime)
+void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const float PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime)
+{
+	LocalRotation.Pitch += PitchRate * (Ratio / RatioMaximum) * DeltaTime;
+}
+
+
+void AMowerRC::UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime)
+{
+	LocalFrontWheelSteering = LocalRotation;
+	
+	if (!bSteering) DecayRatio(WheelSteeringRatio, WheelSteeringDecayRate, DeltaTime);
+
+	if (bSteering) WheelSteeringRatio += Steering * SteeringWheelRate * DeltaTime;
+		
+	LimitRatio(WheelSteeringRatio, WheelSteeringRatioMaximum);
+
+	LocalFrontWheelSteering.Yaw = WheelSteeringRatio;
+}
+
+
+void AMowerRC::UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const
+{
+	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
+}
+
+
+void AMowerRC::LogData(const float DeltaTime)
 {
 	UpdateTickCount(DeltaTime);
 
@@ -460,7 +504,7 @@ void AMowerRC::LogData(float DeltaTime)
 }
 
 
-void AMowerRC::UpdateTickCount(float DeltaTime)
+void AMowerRC::UpdateTickCount(const float DeltaTime)
 {
 	TickCount += TickCountMultiplier * DeltaTime;
 

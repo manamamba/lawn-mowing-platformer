@@ -77,6 +77,13 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const FLocalOrigins WheelRayCastOrigins{ FrWheelPosition, FlWheelPosition, BrWheelPosition, BlWheelPosition };
 
+	const double AcceleratingWheelPitchRate{ -1200.0 };
+	const double DriftingWheelPitchRate{ -300.0 };
+
+	const float WheelSteeringRatioMaximum{ 25.0 };
+	const float SteeringWheelRate{ 60.0 };
+	const float WheelSteeringDecayRate{ 90.0 };
+
 	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
 	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
 	const FVector BrRayCastPosition{ -25.0, 15.0, -9.0 };
@@ -95,7 +102,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationDecayBrakingRate{ 0.5f };
 	const float AccelerationRatioBrakingMinimum{ 0.15f };
 
-	const double SteeringTorque{ 300.0 };
+	const double SteeringForceMaximum{ 300.0 };
 	const double DriftingForcePositionOffset{ 25.0 };
 	const double DriftingForceMaximum{ 5000.0 };
 
@@ -165,9 +172,9 @@ private:
 	void AddDragOnRayCastHit(float CompressionRatio);
 
 	void UpdateAcceleratingConditionals();
-	void UpdateAccelerationRatio(float DeltaTime);
-	void UpdateDriftingRatio(float DeltaTime);
-	void DecayRatio(float& Ratio, const float DecayRate, float DeltaTime);
+	void UpdateAccelerationRatio(const float DeltaTime);
+	void UpdateDriftingRatio(const float DeltaTime);
+	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
 	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
 	void ApplyAccelerationForce();
@@ -182,15 +189,20 @@ private:
 	void SendWheelSuspensionRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
 	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 
-	void LogData(float DeltaTime);
-	void UpdateTickCount(float DeltaTime);
+	void UpdateWheelRotations(const float DeltaTime);
+	void UpdateLocalWheelPitch(FRotator& LocalRotation, const float PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
+	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
+	void UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 
-	void ResetDrag();
-	void ResetPlayerInputData();
+	void LogData(const float DeltaTime);
+	void UpdateTickCount(const float DeltaTime);
 
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
+
+	void ResetDrag();
+	void ResetPlayerInputData();
 
 private:
 	FTransform PhysicsBodyWorldTransform{};
@@ -247,8 +259,13 @@ private:
 
 	FRayCastGroup WheelRayCasts{ FrWheelRayCast, FlWheelRayCast, BrWheelRayCast, BlWheelRayCast };
 
-	float TickCount{};
+	FRotator LocalFrontWheelAcceleration{};
+	FRotator LocalRearWheelAcceleration{};
+	FRotator LocalFrontWheelSteering{};
+
+	float WheelSteeringRatio{};
 
 	bool bTickReset{};
 
+	float TickCount{};
 };
