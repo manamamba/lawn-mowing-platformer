@@ -180,6 +180,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
+	// DrawDrift();
 
 	ResetDrag();
 	ResetPlayerInputData();
@@ -307,7 +308,7 @@ void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
 	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
-	if (!Drifting|| !bAccelerating || Braking ) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+	if (!Drifting || Braking ) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
 
 	const bool CanDrift{ Drifting && WheelsGrounded && !Braking && bSteering};
 
@@ -573,7 +574,17 @@ void AMowerRC::DrawAcceleration() const
 	DrawDebugSphere(GetWorld(), AccelerationSurfaceImpact, 1.0f, 6, FColor::Orange);
 	DrawDebugLine(GetWorld(), AccelerationSurfaceImpact, CurrentAcceleration, FColor::Yellow);
 	DrawDebugSphere(GetWorld(), CurrentAcceleration, 1.0f, 6, FColor::Yellow);
-
-	DrawDebugSphere(GetWorld(), DriftingForcePosition, 1.0f, 6, FColor::Magenta);
 }
 
+
+void AMowerRC::DrawDrift() const
+{
+	FVector CurrentDrift{ DriftingForcePosition };
+	
+	if (DriftingRatio > 0.0f) CurrentDrift += (PhysicsBodyRightVector * abs(DriftingRatio) * RayCastLength);
+	if (DriftingRatio < 0.0f) CurrentDrift += (- PhysicsBodyRightVector * abs(DriftingRatio) * RayCastLength);
+
+	DrawDebugSphere(GetWorld(), DriftingForcePosition, 1.0f, 6, FColor::Purple);
+	DrawDebugLine(GetWorld(), DriftingForcePosition, CurrentDrift, FColor::Magenta);
+	DrawDebugSphere(GetWorld(), CurrentDrift, 1.0f, 6, FColor::Magenta);
+}

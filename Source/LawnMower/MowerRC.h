@@ -201,6 +201,7 @@ private:
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
+	void DrawDrift() const;
 
 	void ResetDrag();
 	void ResetPlayerInputData();
