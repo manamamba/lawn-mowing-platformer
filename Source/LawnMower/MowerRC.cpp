@@ -172,8 +172,8 @@ void AMowerRC::Tick(float DeltaTime)
 	ApplyDrag();
 
 	SendWheelSuspensionRayCasts(WheelRayCasts, WheelRayCastOrigins);
-
 	UpdateWheelRotations(DeltaTime);
+	UpdateMowerVibration(DeltaTime);
 
 	// LogData(DeltaTime);
 
@@ -458,7 +458,6 @@ void AMowerRC::UpdateWheelRotations(const float DeltaTime)
 	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelSteering);
 }
 
-
 void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime)
 {
 	LocalRotation.Pitch += PitchRate * (Ratio / RatioMaximum) * DeltaTime;
@@ -484,6 +483,25 @@ void AMowerRC::UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTim
 void AMowerRC::UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const
 {
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
+}
+
+
+void AMowerRC::UpdateMowerVibration(const float DeltaTime)
+{
+	const float Vibration{ MowerVirationRate * DeltaTime };
+	
+	bMowerVibrationUp ? MowerVibrationRatio += Vibration : MowerVibrationRatio -= Vibration;
+
+	LimitRatio(MowerVibrationRatio, MowerVibrationRatioMaximum);
+
+	if (MowerVibrationRatio == MowerVibrationRatioMaximum) bMowerVibrationUp = false;
+	if (MowerVibrationRatio == -MowerVibrationRatioMaximum) bMowerVibrationUp = true;
+
+	LocalBodyVibration.Z += MowerVibrationRatio;
+	LocalHandleVibration.Z += MowerVibrationRatio;
+
+	Body->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalBodyVibration));
+	Handle->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalHandleVibration));
 }
 
 

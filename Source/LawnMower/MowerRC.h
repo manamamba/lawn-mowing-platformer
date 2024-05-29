@@ -85,6 +85,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
 
+	const float MowerVibrationRatioMaximum{ 0.1f };
+	const float MowerVirationRate{ 2.0 };
+
 	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
 	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
 	const FVector BrRayCastPosition{ -25.0, 15.0, -9.0 };
@@ -114,7 +117,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
-	const float BrakingLinearDragIncreaseRate{ 0.15f };
+	const float BrakingLinearDragIncreaseRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float AcceleratingAngularDragMultiplier{ 0.00002f };
 	const float AirTimeAngularDrag{ 5.0f };
@@ -193,6 +196,7 @@ private:
 	void UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
 	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
 	void UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
+	void UpdateMowerVibration(const float DeltaTime);
 
 	void LogData(const float DeltaTime);
 	void UpdateTickCount(const float DeltaTime);
@@ -263,7 +267,14 @@ private:
 
 	float WheelSteeringRatio{};
 
-	bool bTickReset{};
+	FVector LocalBodyVibration{ BodyPosition };
+	FVector LocalHandleVibration{ HandlePosition };
+
+	float MowerVibrationRatio{};
+
+	bool bMowerVibrationUp{ true };
 
 	float TickCount{};
+
+	bool bTickReset{};
 };
