@@ -77,13 +77,13 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const FLocalOrigins WheelRayCastOrigins{ FrWheelPosition, FlWheelPosition, BrWheelPosition, BlWheelPosition };
 
-	const double AcceleratingWheelPitchRate{ -1200.0 };
-	const double DriftingWheelPitchRate{ -300.0 };
+	const double WheelAcceleratingPitchRate{ -1200.0 };
+	const double WheelDriftingPitchRate{ -300.0 };
 
 	const float WheelSteeringMaximum{ 8.0f };
 	const float WheelSteeringRatioMaximum{ 3.0f };
 	const float WheelSteeringRate{ 8.0f };
-	const float WheelSteeringDecayRate{ 8.0f };
+	const float WheelSteeringDecayRate{ 12.0f };
 
 	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
 	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
@@ -132,9 +132,9 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
-	void AddInputMappingContextToLocalPlayerSubsystem() const;
 	void SetPhysicsBodyProperties();
 	void SetCameraArmWorldRotation();
+	void AddInputMappingContextToLocalPlayerSubsystem() const;
 
 protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -172,7 +172,7 @@ private:
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
 	void AddDragOnRayCastHit(float CompressionRatio);
 
-	void UpdateAcceleratingConditionals();
+	void UpdateInputConditionals();
 	void UpdateAccelerationRatio(const float DeltaTime);
 	void UpdateDriftingRatio(const float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
@@ -189,7 +189,6 @@ private:
 	
 	void SendWheelSuspensionRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
 	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
-
 	void UpdateWheelRotations(const float DeltaTime);
 	void UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
 	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
@@ -239,9 +238,6 @@ private:
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 	FVector DriftingForcePosition{};
-
-	double SteeringForce{};
-	double DriftingForce{};
 
 	bool bMoving{};
 	bool bAccelerating{};

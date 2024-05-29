@@ -158,7 +158,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 
-	UpdateAcceleratingConditionals();
+	UpdateInputConditionals();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
@@ -274,7 +274,7 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 }
 
 
-void AMowerRC::UpdateAcceleratingConditionals()
+void AMowerRC::UpdateInputConditionals()
 {
 	bMoving = AccelerationRatio != 0.0f;
 	bAccelerating = AcceleratingDirection != 0.0f;
@@ -355,7 +355,7 @@ void AMowerRC::ApplySteeringTorque()
 {
 	if (!bSteering || !bMoving || !WheelsGrounded) return;
 
-	SteeringForce = Steering * SteeringForceMaximum * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum;
+	const double SteeringForce{ Steering * SteeringForceMaximum * WheelsGrounded * AccelerationRatio * AccelerationForceMaximum };
 
 	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * SteeringForce));
 }
@@ -368,7 +368,7 @@ void AMowerRC::ApplyDriftingForce()
 	const double AccelerationForceAtRatioMaximum{ AccelerationForceMaximum * AccelerationRatioMaximum * WheelTotal };
 	const double AccelerationForceRatio{ AccelerationForce / AccelerationForceAtRatioMaximum };
 
-	DriftingForce = DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * WheelsGrounded;
+	double DriftingForce{ DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * WheelsGrounded };
 
 	if (AccelerationRatio < 0.0f) DriftingForce = -DriftingForce;
 
@@ -443,9 +443,9 @@ void AMowerRC::UpdateWheelRotations(const float DeltaTime)
 	
 	if (AccelerationRatio < 0.0f) DriftingRatioPitchDirection = -DriftingRatioPitchDirection;
 	
-	UpdateLocalWheelPitch(LocalFrontWheelAcceleration, AcceleratingWheelPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
-	UpdateLocalWheelPitch(LocalRearWheelAcceleration, AcceleratingWheelPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
-	UpdateLocalWheelPitch(LocalRearWheelAcceleration, DriftingWheelPitchRate, DriftingRatioPitchDirection, DriftingRatioMaximum, DeltaTime);
+	UpdateLocalWheelPitch(LocalFrontWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateLocalWheelPitch(LocalRearWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateLocalWheelPitch(LocalRearWheelAcceleration, WheelDriftingPitchRate, DriftingRatioPitchDirection, DriftingRatioMaximum, DeltaTime);
 
 	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelAcceleration);
 	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelAcceleration);
@@ -492,14 +492,9 @@ void AMowerRC::LogData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
 }
@@ -524,31 +519,6 @@ void AMowerRC::ResetDrag()
 	TotalAngularDrag = 0.0f;
 
 	WheelsGrounded = 0;
-}
-
-
-void AMowerRC::ResetPlayerInputData()
-{
-	RotatingCameraDirection = FVector2D::Zero();
-	bCameraReset = false;
-	AcceleratingDirection = 0.0f;
-	Braking = 0.0f;
-	Steering = 0.0f;
-	Drifting = 0.0f;
-
-	SteeringForce = 0.0;
-	bMoving = false;
-	bAccelerating = false;
-	bSteering = false;
-}
-
-
-void AMowerRC::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
-{
-	DrawRayCast(RayCasts.Fr);
-	DrawRayCast(RayCasts.Fl);
-	DrawRayCast(RayCasts.Br);
-	DrawRayCast(RayCasts.Bl);
 }
 
 
@@ -587,4 +557,28 @@ void AMowerRC::DrawDrift() const
 	DrawDebugSphere(GetWorld(), DriftingForcePosition, 1.0f, 6, FColor::Purple);
 	DrawDebugLine(GetWorld(), DriftingForcePosition, CurrentDrift, FColor::Magenta);
 	DrawDebugSphere(GetWorld(), CurrentDrift, 1.0f, 6, FColor::Magenta);
+}
+
+
+void AMowerRC::ResetPlayerInputData()
+{
+	RotatingCameraDirection = FVector2D::Zero();
+	bCameraReset = false;
+	AcceleratingDirection = 0.0f;
+	Braking = 0.0f;
+	Steering = 0.0f;
+	Drifting = 0.0f;
+
+	bMoving = false;
+	bAccelerating = false;
+	bSteering = false;
+}
+
+
+void AMowerRC::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
+{
+	DrawRayCast(RayCasts.Fr);
+	DrawRayCast(RayCasts.Fl);
+	DrawRayCast(RayCasts.Br);
+	DrawRayCast(RayCasts.Bl);
 }
