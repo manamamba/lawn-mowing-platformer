@@ -79,11 +79,13 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const double WheelAcceleratingPitchRate{ -1200.0 };
 	const double WheelDriftingPitchRate{ -300.0 };
+	const double WheelOnSlopePitchRate{ 2.0 };
 
 	const float WheelSteeringMaximum{ 8.0f };
 	const float WheelSteeringRatioMaximum{ 3.0f };
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
+	const float WheelDriftingPitchMinimum{ 0.01f };
 
 	const float MowerVibrationRatioMaximum{ 0.1f };
 	const float MowerVirationRate{ 2.0 };
@@ -107,13 +109,14 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AccelerationRatioBrakingMinimum{ 0.15f };
 
 	const double SteeringForceMaximum{ 300.0 };
+	const double SteeringForceOnSlopeRate{ 0.1 };
 	const double DriftingForcePositionOffset{ 25.0 };
 	const double DriftingForceMaximum{ 5000.0 };
 
 	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingForceIncreaseRate{ 2.0f };
 	const float DriftingForceDecayRate{ 1.5f };
-	
+
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
@@ -182,7 +185,9 @@ private:
 	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
 	void ApplyAccelerationForce();
+	// AirControl
 	void ApplySteeringTorque();
+	// AirControl
 	void ApplyDriftingForce();
 
 	void AddBrakingLinearDrag();
@@ -193,7 +198,7 @@ private:
 	void SendWheelSuspensionRayCasts(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
 	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 	void UpdateWheelRotations(const float DeltaTime);
-	void UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
+	void UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime) const;
 	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
 	void UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 	void UpdateMowerVibration(const float DeltaTime);
@@ -210,6 +215,10 @@ private:
 	void ResetPlayerInputData();
 
 private:
+	bool bTickReset{};
+
+	float TickCount{};
+
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};
 
@@ -222,6 +231,8 @@ private:
 	FVector LocationLastTick{};
 
 	double PhysicsBodySpeed{};
+
+	bool bMovingForward{};
 
 	FRotator LocalCameraArmRotation{ DefaultLocalCameraArmRotation };
 	FRotator WorldCameraArmRotation{};
@@ -266,15 +277,10 @@ private:
 	FRotator LocalFrontWheelSteering{};
 
 	float WheelSteeringRatio{};
+	float MowerVibrationRatio{};
 
 	FVector LocalBodyVibration{ BodyPosition };
 	FVector LocalHandleVibration{ HandlePosition };
 
-	float MowerVibrationRatio{};
-
 	bool bMowerVibrationUp{ true };
-
-	float TickCount{};
-
-	bool bTickReset{};
 };
