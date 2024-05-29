@@ -172,6 +172,7 @@ void AMowerRC::Tick(float DeltaTime)
 	ApplyDrag();
 
 	SendWheelSuspensionRayCasts(WheelRayCasts, WheelRayCastOrigins);
+
 	UpdateWheelRotations(DeltaTime);
 
 	// LogData(DeltaTime);
@@ -215,6 +216,8 @@ void AMowerRC::UpdateCameraRotation()
 {
 	if (bCameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
 	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
+
+	if (abs(LocalCameraArmRotation.Yaw) >= 360.0) LocalCameraArmRotation.Yaw = 0.0;
 
 	if (LocalCameraArmRotation.Pitch > MaxLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MaxLocalCameraArmPitch;
 	if (LocalCameraArmRotation.Pitch < MinLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MinLocalCameraArmPitch;
@@ -452,14 +455,14 @@ void AMowerRC::UpdateWheelRotations(const float DeltaTime)
 
 	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelSteering);
 	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelSteering);
-
-	UE_LOG(LogTemp, Warning, TEXT("LocalRearWheelAcceleration %f"), *LocalRearWheelAcceleration.ToString());
 }
 
 
-void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const float PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime)
+void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime)
 {
 	LocalRotation.Pitch += PitchRate * (Ratio / RatioMaximum) * DeltaTime;
+
+	if (abs(LocalRotation.Pitch) >= 360.0) LocalRotation.Pitch = 0.0;
 }
 
 
@@ -469,11 +472,11 @@ void AMowerRC::UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTim
 	
 	if (!bSteering) DecayRatio(WheelSteeringRatio, WheelSteeringDecayRate, DeltaTime);
 
-	if (bSteering) WheelSteeringRatio += Steering * SteeringWheelRate * DeltaTime;
+	if (bSteering) WheelSteeringRatio += Steering * WheelSteeringRate * DeltaTime;
 		
 	LimitRatio(WheelSteeringRatio, WheelSteeringRatioMaximum);
 
-	LocalFrontWheelSteering.Yaw = WheelSteeringRatio;
+	LocalFrontWheelSteering.Yaw = WheelSteeringRatio * WheelSteeringMaximum;
 }
 
 
@@ -490,13 +493,10 @@ void AMowerRC::LogData(const float DeltaTime)
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), PhysicsBodySpeed);
-
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("SteeringForce       %f"), SteeringForce);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingForce       %f"), DriftingForce);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("==================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);

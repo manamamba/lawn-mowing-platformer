@@ -80,9 +80,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double AcceleratingWheelPitchRate{ -1200.0 };
 	const double DriftingWheelPitchRate{ -300.0 };
 
-	const float WheelSteeringRatioMaximum{ 25.0 };
-	const float SteeringWheelRate{ 60.0 };
-	const float WheelSteeringDecayRate{ 90.0 };
+	const float WheelSteeringMaximum{ 8.0f };
+	const float WheelSteeringRatioMaximum{ 3.0f };
+	const float WheelSteeringRate{ 8.0f };
+	const float WheelSteeringDecayRate{ 8.0f };
 
 	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
 	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
@@ -190,7 +191,7 @@ private:
 	void SetWheelSuspension(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin);
 
 	void UpdateWheelRotations(const float DeltaTime);
-	void UpdateLocalWheelPitch(FRotator& LocalRotation, const float PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
+	void UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime);
 	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
 	void UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 
