@@ -66,6 +66,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
+	const double PitchRotationMaximum{ 360.0 };
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
@@ -88,7 +89,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float WheelDriftingPitchMinimum{ 0.01f };
 
 	const float MowerVibrationRatioMaximum{ 0.1f };
-	const float MowerVirationRate{ 2.0 };
+	const float MowerVirationRate{ 2.0f };
 
 	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
 	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
@@ -202,6 +203,7 @@ private:
 	void UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime);
 	void UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 	void UpdateMowerVibration(const float DeltaTime);
+	// UpdateBladeRotation()
 
 	void LogData(const float DeltaTime);
 	void UpdateTickCount(const float DeltaTime);
@@ -257,6 +259,7 @@ private:
 	bool bMoving{};
 	bool bAccelerating{};
 	bool bSteering{};
+	bool bLastAccelerationWasForward{};
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};
