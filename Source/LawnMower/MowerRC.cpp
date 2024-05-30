@@ -166,6 +166,10 @@ void AMowerRC::Tick(float DeltaTime)
 	ApplySteeringTorque();
 	ApplyDriftingForce();
 
+	UpdateAirTimeRatio(DeltaTime);
+	ApplyAirTimePitch();
+	ApplyAirTimeRoll();
+
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
 	AddAirTimeAngularDrag();
@@ -180,7 +184,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
-	DrawDrift();
+	// DrawDrift();
 
 	ResetDrag();
 	ResetPlayerInputData();
@@ -213,12 +217,13 @@ void AMowerRC::UpdateSpeed()
 
 	const FVector FrontLocationLastTick{ LocationLastTick + (PhysicsBodyForwardVector * DriftingForcePositionOffset) };
 	const FVector RearLocationLastTick{ LocationLastTick + (-PhysicsBodyForwardVector * DriftingForcePositionOffset) };
-	const double DistanceToFront{ FVector::Dist(LocationThisTick, FrontLocationLastTick) };
-	const double DistanceToRear{ FVector::Dist(LocationThisTick, RearLocationLastTick) };
 
-	DistanceToFront > DistanceToRear ? bMovingForward = true : bMovingForward = false;
+	const double DistanceFromFrontLocationLastTick{ FVector::Dist(LocationThisTick, FrontLocationLastTick) };
+	const double DistanceFromRearLocationLastTick{ FVector::Dist(LocationThisTick, RearLocationLastTick) };
 
-	if (!bMovingForward) PhysicsBodySpeed = -PhysicsBodySpeed;
+	const bool MovingForward{ DistanceFromFrontLocationLastTick < DistanceFromRearLocationLastTick };
+
+	if (!MovingForward) PhysicsBodySpeed = -PhysicsBodySpeed;
 }
 
 
@@ -285,22 +290,20 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 
 void AMowerRC::UpdateInputConditionals()
 {
-	bMoving = AccelerationRatio != 0.0f;
+	bMovingByAccelerationRatio = AccelerationRatio != 0.0f;
 	bAccelerating = AcceleratingDirection != 0.0f;
 	bSteering = Steering != 0.0f;
 
-	///
 	if (bAccelerating) AcceleratingDirection > 0.0f ? bLastAccelerationWasForward = true : bLastAccelerationWasForward = false;
 }
 
 
 void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
-	if (!bAccelerating) DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
-
 	if (!WheelsGrounded) return;
 
 	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
 
@@ -320,13 +323,11 @@ void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
 	if (Steering > 0.0f && DriftingRatio > 0.0f) DriftingRatio = -DriftingRatio;
 
+	if (!WheelsGrounded) return;
 
-	if (!Drifting || !bMoving || Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
-	//if (!Drifting || Braking ) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
+	if (!Drifting || !bMovingByAccelerationRatio || Braking) DecayRatio(DriftingRatio, DriftingForceDecayRate, DeltaTime);
 	
-	///const bool CanDrift{ Drifting && WheelsGrounded && !Braking && bSteering};
-	const bool CanDrift{ Drifting && WheelsGrounded && !Braking && bSteering && bMoving};
-
+	const bool CanDrift{ Drifting && bSteering && bMovingByAccelerationRatio && !Braking};
 
 	if (CanDrift) DriftingRatio += -Steering * DriftingForceIncreaseRate * DriftingForceIncreaseRate * DeltaTime;
 
@@ -362,11 +363,7 @@ void AMowerRC::ApplyAccelerationForce()
 {
 	AccelerationForce = 0.0f;
 	
-	if (!WheelsGrounded)
-	{
-		// Call PitchAirControl
-		return;
-	}
+	if (!WheelsGrounded) return;
 
 	AccelerationForce = AccelerationForceMaximum * WheelsGrounded * abs(AccelerationRatio);
 	
@@ -374,54 +371,71 @@ void AMowerRC::ApplyAccelerationForce()
 }
 
 
-// PitchAirControl
-
-
 void AMowerRC::ApplySteeringTorque()
 {
-	if (!WheelsGrounded)
-	{
-		// Call YawAirControl
-		return;
-	}
+	if (!WheelsGrounded) return;
 
 	double SteeringForce{ Steering * SteeringForceMaximum * AccelerationForceMaximum * WheelsGrounded };
 
-	if (bMoving) SteeringForce *= AccelerationRatio;
-	else SteeringForce *= SteeringForceOnSlopeRate * -PhysicsBodySpeed;
+	if (bMovingByAccelerationRatio) SteeringForce *= AccelerationRatio;
+	else SteeringForce *= SteeringForceOnSlopeRate * PhysicsBodySpeed;
 
 	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * SteeringForce));
 }
 
 
-// YawAirControl
-
-
 void AMowerRC::ApplyDriftingForce()
 {
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
+
+	if (!WheelsGrounded) return;
 	
 	const double AccelerationForceAtRatioMaximum{ AccelerationForceMaximum * AccelerationRatioMaximum * WheelTotal };
 	const double AccelerationForceRatio{ AccelerationForce / AccelerationForceAtRatioMaximum };
 	
 	double DriftingForce{ DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * WheelsGrounded };
 
+	if (DriftingForce == 0.0) return; 
+
 	if (AccelerationRatio < 0.0f) DriftingForce = -DriftingForce;
-
-
-	if (DriftingForce == 0.0) return;
-	
-	///if (DriftingForce == 0.0) DriftingRatio = 0.0f;
-
 
 	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 }
 
 
+void AMowerRC::UpdateAirTimeRatio(const float DeltaTime)
+{
+
+
+}
+
+
+void AMowerRC::ApplyAirTimePitch()
+{
+	if (WheelsGrounded) return;
+	
+	// if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * 1500.0), NAME_None, true);
+	// if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * 1500.0), NAME_None, true);
+	// may need to use front and back points for better control?
+	// PhysicsBody->AddForceAtLocation() could be used if multiplying with AccelerationRatio in mind (for zero g-movement later)
+	// if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * 1500.0));
+	// if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * 1500.0));
+}
+
+
+void AMowerRC::ApplyAirTimeRoll()
+{
+	if (WheelsGrounded) return;
+
+	// if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * 7200000.0));
+	// if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * 7200000.0));
+}
+
+
 void AMowerRC::AddBrakingLinearDrag()
 {
-	if (WheelsGrounded && Braking && !bMoving) LinearBrakingDrag += BrakingLinearDragIncreaseRate;
+	if (WheelsGrounded && Braking && !bMovingByAccelerationRatio) LinearBrakingDrag += BrakingLinearDragIncreaseRate;
 	else LinearBrakingDrag = 0.0f;
 
 	if (LinearBrakingDrag > BrakingLinearDragLimit) LinearBrakingDrag = BrakingLinearDragLimit;
@@ -481,33 +495,29 @@ void AMowerRC::UpdateWheelRotations(const float DeltaTime)
 {
 	float DriftingRatioPitchDirection{ abs(DriftingRatio) + WheelDriftingPitchMinimum };
 	
-
 	if (AccelerationRatio < 0.0f || !bLastAccelerationWasForward) DriftingRatioPitchDirection = -DriftingRatioPitchDirection;
 
-	///if (AccelerationRatio < 0.0f) DriftingRatioPitchDirection = -DriftingRatioPitchDirection;
+	UpdateWheelPitch(LocalFrontWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateWheelPitch(LocalRearWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
+	UpdateWheelPitch(LocalRearWheelAcceleration, WheelDriftingPitchRate, DriftingRatioPitchDirection, DriftingRatioMaximum, DeltaTime);
 
+	ApplyWheelRotation(FrWheel, LocalFrontWheelAcceleration);
+	ApplyWheelRotation(FlWheel, LocalFrontWheelAcceleration);
+	ApplyWheelRotation(BrWheel, LocalRearWheelAcceleration);
+	ApplyWheelRotation(BlWheel, LocalRearWheelAcceleration);
 
-	UpdateLocalWheelPitch(LocalFrontWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
-	UpdateLocalWheelPitch(LocalRearWheelAcceleration, WheelAcceleratingPitchRate, AccelerationRatio, AccelerationRatioMaximum, DeltaTime);
-	UpdateLocalWheelPitch(LocalRearWheelAcceleration, WheelDriftingPitchRate, DriftingRatioPitchDirection, DriftingRatioMaximum, DeltaTime);
+	UpdateWheelYaw(LocalFrontWheelAcceleration, DeltaTime);
 
-	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelAcceleration);
-	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelAcceleration);
-	UpdateWorldWheelRotation(BrWheel, LocalRearWheelAcceleration);
-	UpdateWorldWheelRotation(BlWheel, LocalRearWheelAcceleration);
-
-	UpdateLocalWheelYaw(LocalFrontWheelAcceleration, DeltaTime);
-
-	UpdateWorldWheelRotation(FrWheel, LocalFrontWheelSteering);
-	UpdateWorldWheelRotation(FlWheel, LocalFrontWheelSteering);
+	ApplyWheelRotation(FrWheel, LocalFrontWheelSteering);
+	ApplyWheelRotation(FlWheel, LocalFrontWheelSteering);
 }
 
 
-void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime) const
+void AMowerRC::UpdateWheelPitch(FRotator& LocalRotation, const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime) const
 {
 	double WheelPitch{PitchRate * (Ratio / RatioMaximum) * DeltaTime };
 	
-	if (WheelPitch == 0.0) WheelPitch = PhysicsBodySpeed * WheelOnSlopePitchRate;
+	if (WheelPitch == 0.0) WheelPitch = -PhysicsBodySpeed * WheelOnSlopePitchRate;
 
 	LocalRotation.Pitch += WheelPitch;
 
@@ -515,7 +525,7 @@ void AMowerRC::UpdateLocalWheelPitch(FRotator& LocalRotation, const double Pitch
 }
 
 
-void AMowerRC::UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTime)
+void AMowerRC::UpdateWheelYaw(const FRotator& LocalRotation, const float DeltaTime)
 {
 	LocalFrontWheelSteering = LocalRotation;
 	
@@ -529,10 +539,13 @@ void AMowerRC::UpdateLocalWheelYaw(FRotator& LocalRotation, const float DeltaTim
 }
 
 
-void AMowerRC::UpdateWorldWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const
+void AMowerRC::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const
 {
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
 }
+
+
+// UpdateBladeRotation()
 
 
 void AMowerRC::UpdateMowerVibration(const float DeltaTime)
@@ -554,9 +567,6 @@ void AMowerRC::UpdateMowerVibration(const float DeltaTime)
 	Handle->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalHandleVibration));
 	// Blade->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalBladeVibration));
 }
-
-
-// UpdateBladeRotation()
 
 
 void AMowerRC::LogData(const float DeltaTime)
@@ -651,7 +661,7 @@ void AMowerRC::ResetPlayerInputData()
 	Steering = 0.0f;
 	Drifting = 0.0f;
 
-	bMoving = false;
+	bMovingByAccelerationRatio = false;
 	bAccelerating = false;
 	bSteering = false;
 }
