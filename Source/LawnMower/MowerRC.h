@@ -66,7 +66,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const double MinLocalCameraArmPitch{ -89.9 };
 	const double MaxLocalCameraArmPitch{ 89.9 };
-	const double PitchRotationMaximum{ 360.0 };
+	const double RotationMaximum{ 360.0 };
 
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
@@ -100,6 +100,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	
 	const double RayCastLength{ 8.9 };
 
+	const float CompressionRatioMinimum{ 0.25f };
+	const float MaxWheelDrag{ 2.0f };
+	const float WheelTotal{ 4.0f };
+
 	const float AccelerationForceMaximum{ 20000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationDecayRate{ 0.5f };
@@ -109,16 +113,20 @@ class LAWNMOWER_API AMowerRC : public APawn
 
 	const double SteeringForceMaximum{ 300.0 };
 	const double SteeringForceOnSlopeRate{ 0.1 };
+
 	const double DriftingForceMaximum{ 5000.0 };
 	const double DriftingForcePositionOffset{ 25.0 };
 
 	const float DriftingRatioMaximum{ 3.0f };
-	const float DriftingForceIncreaseRate{ 2.0f };
-	const float DriftingForceDecayRate{ 1.5f };
+	const float DriftingForceIncreaseRate{ 6.0f };
+	const float DriftingForceDecayRate{ 1.65f };
 
-	const float CompressionRatioMinimum{ 0.25f };
-	const float MaxWheelDrag{ 2.0f };
-	const float WheelTotal{ 4.0f };
+	const float AirTimeRatioMaxium{ 3.0 };
+	const float AirTimeRatioIncreaseRate{ 1.5 };
+	const float AirTimePitchForceMaximum{ 24000000.0 };
+	const float AirTimeRollForceMaximum{ 750000.0 };
+	const float AirTimeAntiGravitationalForce{ PhysicsBodyMass * 245.0f };
+
 	const float BrakingLinearDragIncreaseRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float AcceleratingAngularDragMultiplier{ 0.00002f };
@@ -179,7 +187,7 @@ private:
 	void AddForcesOnRayCastHit(FHitResult& RayCast);
 	void AddDragOnRayCastHit(float CompressionRatio);
 
-	void UpdateInputConditionals();
+	void UpdateMotionConditionals();
 	void UpdateAccelerationRatio(const float DeltaTime);
 	void UpdateDriftingRatio(const float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
@@ -188,8 +196,8 @@ private:
 	void ApplyAccelerationForce();
 	void ApplySteeringTorque();
 	void ApplyDriftingForce();
-
 	void UpdateAirTimeRatio(const float DeltaTime);
+	void ApplyAirTimeForce();
 	void ApplyAirTimePitch();
 	void ApplyAirTimeRoll();
 
@@ -251,7 +259,9 @@ private:
 	float AccelerationForce{};
 	float AccelerationRatio{};
 	float DriftingRatio{};
-
+	float AirTimeRatio{};
+	
+	FVector AirTimeUpVector{};
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
 	FVector DriftingForcePosition{};
@@ -260,6 +270,7 @@ private:
 	bool bAccelerating{};
 	bool bSteering{};
 	bool bLastAccelerationWasForward{};
+	bool bGrounded{};
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};

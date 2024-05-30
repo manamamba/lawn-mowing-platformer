@@ -158,15 +158,15 @@ void AMowerRC::Tick(float DeltaTime)
 
 	SendForceRayCasts(ForceRayCasts, ForceRayCastOrigins);
 
-	UpdateInputConditionals();
+	UpdateMotionConditionals();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
 	ApplyAccelerationForce();
 	ApplySteeringTorque();
 	ApplyDriftingForce();
-
 	UpdateAirTimeRatio(DeltaTime);
+	ApplyAirTimeForce();
 	ApplyAirTimePitch();
 	ApplyAirTimeRoll();
 
@@ -232,7 +232,7 @@ void AMowerRC::UpdateCameraRotation()
 	if (bCameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
 	else LocalCameraArmRotation += FRotator{ RotatingCameraDirection.Y, RotatingCameraDirection.X, 0.0 };
 
-	if (abs(LocalCameraArmRotation.Yaw) >= PitchRotationMaximum) LocalCameraArmRotation.Yaw = 0.0;
+	if (abs(LocalCameraArmRotation.Yaw) >= RotationMaximum) LocalCameraArmRotation.Yaw = 0.0;
 
 	if (LocalCameraArmRotation.Pitch > MaxLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MaxLocalCameraArmPitch;
 	if (LocalCameraArmRotation.Pitch < MinLocalCameraArmPitch) LocalCameraArmRotation.Pitch = MinLocalCameraArmPitch;
@@ -288,18 +288,28 @@ void AMowerRC::AddDragOnRayCastHit(float CompressionRatio)
 }
 
 
-void AMowerRC::UpdateInputConditionals()
+void AMowerRC::UpdateMotionConditionals()
 {
 	bMovingByAccelerationRatio = AccelerationRatio != 0.0f;
 	bAccelerating = AcceleratingDirection != 0.0f;
 	bSteering = Steering != 0.0f;
 
 	if (bAccelerating) AcceleratingDirection > 0.0f ? bLastAccelerationWasForward = true : bLastAccelerationWasForward = false;
+
+	if (!WheelsGrounded && bGrounded)
+	{
+		bGrounded = false;
+		AirTimeUpVector = PhysicsBodyUpVector;
+	}
+
+	if (WheelsGrounded == 4 && !bGrounded) bGrounded = true;
 }
 
 
 void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
+	// if upside down hit, decay ratio
+	
 	if (!WheelsGrounded) return;
 
 	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
@@ -406,8 +416,23 @@ void AMowerRC::ApplyDriftingForce()
 
 void AMowerRC::UpdateAirTimeRatio(const float DeltaTime)
 {
+	if (WheelsGrounded)
+	{
+		AirTimeRatio = 0.0f;
+		return;
+	}
+
+	AirTimeRatio += AirTimeRatioIncreaseRate * DeltaTime;
+
+	LimitRatio(AirTimeRatio, AirTimeRatioMaxium);
+}
 
 
+void AMowerRC::ApplyAirTimeForce()
+{
+	// need a raycast to check if the ground is there to switch AirTimeUpVector to impact normal
+
+	if (!WheelsGrounded) PhysicsBody->AddForce(AirTimeUpVector * (AirTimeAntiGravitationalForce * AirTimeRatio));
 }
 
 
@@ -415,12 +440,10 @@ void AMowerRC::ApplyAirTimePitch()
 {
 	if (WheelsGrounded) return;
 	
-	// if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * 1500.0), NAME_None, true);
-	// if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * 1500.0), NAME_None, true);
-	// may need to use front and back points for better control?
-	// PhysicsBody->AddForceAtLocation() could be used if multiplying with AccelerationRatio in mind (for zero g-movement later)
-	// if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * 1500.0));
-	// if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * 1500.0));
+	const double AirTimePitchForce{ AirTimePitchForceMaximum * AirTimeRatio };
+
+	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce));
+	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce));
 }
 
 
@@ -428,8 +451,10 @@ void AMowerRC::ApplyAirTimeRoll()
 {
 	if (WheelsGrounded) return;
 
-	// if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * 7200000.0));
-	// if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * 7200000.0));
+	const double AirTimeRollForce{ AirTimePitchForceMaximum * AirTimeRatio };
+
+	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * AirTimeRollForce));
+	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollForce));
 }
 
 
@@ -521,7 +546,7 @@ void AMowerRC::UpdateWheelPitch(FRotator& LocalRotation, const double PitchRate,
 
 	LocalRotation.Pitch += WheelPitch;
 
-	if (abs(LocalRotation.Pitch) >= PitchRotationMaximum) LocalRotation.Pitch = 0.0;
+	if (abs(LocalRotation.Pitch) >= RotationMaximum) LocalRotation.Pitch = 0.0;
 }
 
 
@@ -574,10 +599,12 @@ void AMowerRC::LogData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("===================="));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AirTimeRatio    %f"), AirTimeRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
 }
