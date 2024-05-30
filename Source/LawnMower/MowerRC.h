@@ -227,6 +227,8 @@ private:
 	void ResetPlayerInputData();
 
 private:
+	double LongestTick{};
+
 	bool bTickReset{};
 
 	float TickCount{};

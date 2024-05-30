@@ -150,6 +150,8 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	double StartSeconds = FPlatformTime::Seconds();
+
 	// Float();
 
 	UpdateTransforms();
@@ -179,7 +181,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateWheelRotations(DeltaTime);
 	UpdateMowerVibration(DeltaTime);
 
-	LogData(DeltaTime);
+	// LogData(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -188,6 +190,14 @@ void AMowerRC::Tick(float DeltaTime)
 
 	ResetDrag();
 	ResetPlayerInputData();
+
+
+
+	double SecondsElapsed = FPlatformTime::Seconds() - StartSeconds;
+	if (SecondsElapsed > LongestTick) LongestTick = SecondsElapsed;
+	UE_LOG(LogTemp, Warning, TEXT(" "));
+	UE_LOG(LogTemp, Warning, TEXT("Current %f"), SecondsElapsed);
+	UE_LOG(LogTemp, Warning, TEXT("Longest %f"), LongestTick);
 }
 
 
