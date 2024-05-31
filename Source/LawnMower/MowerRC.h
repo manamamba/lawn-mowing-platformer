@@ -1,4 +1,4 @@
-// Lawn mower pawn class developed by Cody Wheeler
+// Lawn mower pawn class developed by Cody Wheeler.
 
 
 #pragma once
@@ -72,12 +72,12 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double MaxLocalCameraArmPitch{ 89.9 };
 	const double RotationMaximum{ 360.0 };
 
-	const FVector FrRayCastPosition{ 25.0, 15.0, -9.1 };
-	const FVector FlRayCastPosition{ 25.0, -15.0, -9.1 };
-	const FVector BrRayCastPosition{ -25.0, 15.0, -9.1 };
-	const FVector BlRayCastPosition{ -25.0, -15.0, -9.1 };
+	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
+	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
+	const FVector BrRayCastPosition{ -25.0, 15.0, -9.0 };
+	const FVector BlRayCastPosition{ -25.0, -15.0, -9.0 };
 	const FLocalOrigins ForceRayCastOrigins{ FrRayCastPosition, FlRayCastPosition, BrRayCastPosition, BlRayCastPosition };
-	const double RayCastLength{ 8.8 };
+	const double RayCastLength{ 8.9 };
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };

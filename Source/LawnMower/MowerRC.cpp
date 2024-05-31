@@ -1,4 +1,4 @@
-// Lawn mower pawn class developed by Cody Wheeler
+// Lawn mower pawn class developed by Cody Wheeler.
 
 
 #include "MowerRC.h"
@@ -167,7 +167,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
-	ApplyAccelerationForce();			
+	ApplyAccelerationForce();
 	ApplySteeringTorque();
 	ApplyDriftingForce();
 
@@ -184,7 +184,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
 
-	// DrawRayCastGroup(ForceRayCasts);
+	DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
 	// DrawDrift();
@@ -624,13 +624,13 @@ void AMowerRC::DrawRayCast(const FHitResult& RayCast) const
 {
 	if (!RayCast.bBlockingHit)
 	{
-		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceEnd, FColor::Red);
-		DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0f, 6, FColor::Red);
+		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceEnd, FColor::Red, false, 0.1f);
+		DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0f, 6, FColor::Red, false, 0.1f);
 	}
 	else
 	{
-		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
-		DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green);
+		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green, false, 0.1f);
+		DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green, false, 0.1f);
 	}
 }
 
