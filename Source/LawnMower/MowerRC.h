@@ -96,14 +96,15 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double DriftingForcePositionOffset{ 25.0 };
 	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingRate{ 3.0f };
-	const float DriftingDecayRate{ 1.5f };
+	const float DriftingDecayRate{ 3.0f };
 
 
+	const double AirTimeAntiGravitationalForce{ PhysicsBodyMass * 735.0 };
 	const float AirTimeRatioMaxium{ 3.0 };
 	const float AirTimeRatioIncreaseRate{ 1.5 };
-	const float AirTimePitchForceMaximum{ 24000000.0 };
-	const float AirTimeRollForceMaximum{ 750000.0 };
-	const float AirTimeAntiGravitationalForce{ PhysicsBodyMass * 245.0f };
+	const float AirTimePitchForceMaximum{ 200.0 };
+	const float AirTimeRollForceMaximum{ 15000000.0 };
+
 
 
 	const float BrakingLinearDragRate{ 0.25f };
@@ -170,7 +171,7 @@ private:
 	void UpdateSpeed();
 
 	void UpdateCameraRotation();
-	void ResetFullAxisRotations(FRotator& Rotation) const;
+	void ResetFullAxisRotations(FRotator& Rotator) const;
 
 	void UpdateHoveringForces(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins);
 	bool ForceRayCastHitGround(FHitResult& RayCast, const FVector& LocalOrigin);
@@ -191,7 +192,7 @@ private:
 
 	void UpdateAirTimeRatio(const float DeltaTime);
 
-	void ApplyAirTimeForce();
+	void ApplyAirTimeAntiGravitationalForce();
 	void ApplyAirTimePitch();
 	void ApplyAirTimeRoll();
 

@@ -99,6 +99,7 @@ void AMowerRC::SetPhysicsBodyProperties()
 	PhysicsBody->SetCenterOfMass(PhysicsBodyCenterOfMass);
 
 	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
+	LocationThisTick = PhysicsBodyWorldTransform.GetLocation();
 }
 
 
@@ -150,7 +151,7 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// TickTime = FPlatformTime::Seconds();
+	TickTime = FPlatformTime::Seconds();
 
 	// Float();
 
@@ -162,20 +163,21 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateHoveringForces(ForceRayCasts, ForceRayCastOrigins);
 
-	UpdateMotionConditionals();
+	UpdateMotionConditionals();			// Update Grounded Data
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
 
-	ApplyAccelerationForce();
+	ApplyAccelerationForce();			// Apply Grounded Forces
 	ApplySteeringTorque();
 	ApplyDriftingForce();
 
-	// UpdateAirTimeRatio(DeltaTime);
+	UpdateAirTimeRatio(DeltaTime);
+	ApplyAirTimeAntiGravitationalForce();
 
-	// ApplyAirTimeForce();
 	// ApplyAirTimePitch();
-	// ApplyAirTimeRoll();
+
+	ApplyAirTimeRoll();
 
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
@@ -184,19 +186,20 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
-	UpdateMowerOscillation(DeltaTime);
+	
+	// UpdateMowerOscillation(DeltaTime);
 
-	// DrawRayCastGroup(ForceRayCasts);
-	// DrawRayCastGroup(WheelRayCasts);
+	DrawRayCastGroup(ForceRayCasts);
+	DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
 	// DrawDrift();
 
-	// LogMotionData(DeltaTime);
+	LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
 
-	// LogTickTime();
+	LogTickTime();
 }
 
 
@@ -252,11 +255,11 @@ void AMowerRC::UpdateCameraRotation()
 }
 
 
-void AMowerRC::ResetFullAxisRotations(FRotator& Rotation) const
+void AMowerRC::ResetFullAxisRotations(FRotator& Rotator) const
 {
-	if (abs(Rotation.Pitch) >= RotationMaximum) Rotation.Pitch = 0.0;
-	if (abs(Rotation.Yaw) >= RotationMaximum) Rotation.Yaw = 0.0;
-	if (abs(Rotation.Roll) >= RotationMaximum) Rotation.Roll = 0.0;
+	if (abs(Rotator.Pitch) >= RotationMaximum) Rotator.Pitch = 0.0;
+	if (abs(Rotator.Yaw) >= RotationMaximum) Rotator.Yaw = 0.0;
+	if (abs(Rotator.Roll) >= RotationMaximum) Rotator.Roll = 0.0;
 }
 
 
@@ -445,36 +448,37 @@ void AMowerRC::UpdateAirTimeRatio(const float DeltaTime)
 }
 
 
-void AMowerRC::ApplyAirTimeForce()
+void AMowerRC::ApplyAirTimeAntiGravitationalForce()
 {
-	// need a raycast to check if the ground is there to switch AirTimeUpVector to impact normal
-	// for upside down ground loss might not be an issue if the airtimeupvector is calculated normal made from vehicle to planet core
+	if (WheelsGrounded || AirTimeRatio <= 0.75f) return;
+	
+	FVector TrajectoryNormal{ FVector{ LocationThisTick - LocationLastTick}.GetSafeNormal() };
 
-	if (!WheelsGrounded) PhysicsBody->AddForce(AirTimeUpVector * (AirTimeAntiGravitationalForce * AirTimeRatio));
+	DrawDebugLine(GetWorld(), PhysicsBodyLocation, LocationLastTick, FColor::Orange, true);
+
+	PhysicsBody->AddForce(-TrajectoryNormal * AirTimeAntiGravitationalForce);
 }
 
 
 void AMowerRC::ApplyAirTimePitch()
 {
 	if (WheelsGrounded) return;
-	
 
-	const double AirTimePitchForce{ AirTimePitchForceMaximum * AirTimeRatio };
+	const double PitchForce{ AirTimePitchForceMaximum * AirTimeRatioMaxium };
 
-	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce, NAME_None, true));
-	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce, NAME_None, true));
+	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * PitchForce));
+	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * PitchForce));
 }
 
 
 void AMowerRC::ApplyAirTimeRoll()
 {
-	if (WheelsGrounded) return;
+	if (WheelsGrounded || AirTimeRatio <= 0.25f) return;
 
+	const double RollForce{ AirTimeRollForceMaximum };
 
-	const double AirTimeRollForce{ AirTimePitchForceMaximum * AirTimeRatio };
-
-	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * AirTimeRollForce, NAME_None, true));
-	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollForce, NAME_None, true));
+	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * RollForce));
+	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * RollForce));
 }
 
 
@@ -618,6 +622,8 @@ void AMowerRC::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& L
 
 void AMowerRC::UpdateMowerOscillation(const float DeltaTime)
 {
+	// not using doubles issue?
+	
 	const float Vibration{ MowerVirationRate * DeltaTime };
 	
 	bMowerVibrationUp ? MowerVibrationRatio += Vibration : MowerVibrationRatio -= Vibration;
