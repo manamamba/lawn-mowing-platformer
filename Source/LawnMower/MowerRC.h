@@ -98,15 +98,13 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingRate{ 3.0f };
 	const float DriftingDecayRate{ 3.0f };
 
-
-	const double AirTimeAntiGravitationalForce{ PhysicsBodyMass * 735.0 };
+	const double AirTimeAntiGravitationalForce{ PhysicsBodyMass * 245.0 };
 	const float AirTimeRatioMaxium{ 3.0 };
-	const float AirTimeRatioIncreaseRate{ 1.5 };
-	const float AirTimePitchForceMaximum{ 200.0 };
-	const float AirTimeRollForceMaximum{ 15000000.0 };
-
-
-
+	const float AirTimeRatioIncreaseRate{ 2.0 };
+	const float AirTimeMinimum{ 0.25f };
+	const float AirTimePitchForce{ 30000000.0 };
+	const float AirTimeRollForce{ 15000000.0 };
+	
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float AcceleratingAngularDragRate{ 0.00002f };
@@ -189,13 +187,11 @@ private:
 	void ApplySteeringTorque();
 	void ApplyDriftingForce();
 
-
 	void UpdateAirTimeRatio(const float DeltaTime);
 
 	void ApplyAirTimeAntiGravitationalForce();
 	void ApplyAirTimePitch();
 	void ApplyAirTimeRoll();
-
 
 	void AddBrakingLinearDrag();
 	void AddAcceleratingAngularDrag();
@@ -257,11 +253,6 @@ private:
 	bool bAccelerating{};
 	bool bSteering{};
 	bool bLastAccelerationWasForward{};
-	bool bGrounded{};
-
-
-	FVector AirTimeUpVector{};
-
 
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
@@ -271,9 +262,8 @@ private:
 	float AccelerationRatio{};
 	float DriftingRatio{};
 
-
 	float AirTimeRatio{};
-
+	bool bAirTimeMinimumExceeded{};
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};

@@ -163,20 +163,17 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateHoveringForces(ForceRayCasts, ForceRayCastOrigins);
 
-	UpdateMotionConditionals();			// Update Grounded Data
+	UpdateMotionConditionals();			
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
-
-	ApplyAccelerationForce();			// Apply Grounded Forces
+	ApplyAccelerationForce();			
 	ApplySteeringTorque();
 	ApplyDriftingForce();
 
 	UpdateAirTimeRatio(DeltaTime);
 	ApplyAirTimeAntiGravitationalForce();
-
-	// ApplyAirTimePitch();
-
+	ApplyAirTimePitch();
 	ApplyAirTimeRoll();
 
 	AddBrakingLinearDrag();
@@ -189,8 +186,8 @@ void AMowerRC::Tick(float DeltaTime)
 	
 	// UpdateMowerOscillation(DeltaTime);
 
-	DrawRayCastGroup(ForceRayCasts);
-	DrawRayCastGroup(WheelRayCasts);
+	// DrawRayCastGroup(ForceRayCasts);
+	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
 	// DrawDrift();
 
@@ -315,21 +312,11 @@ void AMowerRC::UpdateMotionConditionals()
 	bSteering = Steering != 0.0f;
 
 	if (bAccelerating) AcceleratingDirection > 0.0f ? bLastAccelerationWasForward = true : bLastAccelerationWasForward = false;
-
-	if (!WheelsGrounded && bGrounded)
-	{
-		bGrounded = false;
-		AirTimeUpVector = PhysicsBodyUpVector;
-	}
-
-	if (WheelsGrounded == 4 && !bGrounded) bGrounded = true;
 }
 
 
 void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
-	// if upside down hit, decay ratio
-	
 	if (!WheelsGrounded) return;
 
 	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
@@ -445,40 +432,40 @@ void AMowerRC::UpdateAirTimeRatio(const float DeltaTime)
 	AirTimeRatio += AirTimeRatioIncreaseRate * DeltaTime;
 
 	LimitRatio(AirTimeRatio, AirTimeRatioMaxium);
+
+	bAirTimeMinimumExceeded = AirTimeRatio >= AirTimeMinimum;
 }
 
 
 void AMowerRC::ApplyAirTimeAntiGravitationalForce()
 {
-	if (WheelsGrounded || AirTimeRatio <= 0.75f) return;
+	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 	
 	FVector TrajectoryNormal{ FVector{ LocationThisTick - LocationLastTick}.GetSafeNormal() };
 
-	DrawDebugLine(GetWorld(), PhysicsBodyLocation, LocationLastTick, FColor::Orange, true);
+	double AntiGravitationalForce{ AirTimeAntiGravitationalForce * (AirTimeRatioMaxium - AirTimeRatio)};
 
-	PhysicsBody->AddForce(-TrajectoryNormal * AirTimeAntiGravitationalForce);
+	PhysicsBody->AddForce(-TrajectoryNormal * AntiGravitationalForce);
+
+	DrawDebugLine(GetWorld(), PhysicsBodyLocation, PhysicsBodyLocation + (TrajectoryNormal * 20.0), FColor::Green, false, 10.0f);
 }
 
 
 void AMowerRC::ApplyAirTimePitch()
 {
-	if (WheelsGrounded) return;
+	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 
-	const double PitchForce{ AirTimePitchForceMaximum * AirTimeRatioMaxium };
-
-	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * PitchForce));
-	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * PitchForce));
+	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce));
+	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce));
 }
 
 
 void AMowerRC::ApplyAirTimeRoll()
 {
-	if (WheelsGrounded || AirTimeRatio <= 0.25f) return;
+	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 
-	const double RollForce{ AirTimeRollForceMaximum };
-
-	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * RollForce));
-	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * RollForce));
+	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * AirTimeRollForce));
+	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollForce));
 }
 
 
