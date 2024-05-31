@@ -1,4 +1,4 @@
-// Player controlled lawn mower class by Cody Wheeler
+// Lawn mower pawn class developed by Cody Wheeler
 
 
 #pragma once
@@ -72,12 +72,12 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double MaxLocalCameraArmPitch{ 89.9 };
 	const double RotationMaximum{ 360.0 };
 
-	const FVector FrRayCastPosition{ 25.0, 15.0, -9.0 };
-	const FVector FlRayCastPosition{ 25.0, -15.0, -9.0 };
-	const FVector BrRayCastPosition{ -25.0, 15.0, -9.0 };
-	const FVector BlRayCastPosition{ -25.0, -15.0, -9.0 };
+	const FVector FrRayCastPosition{ 25.0, 15.0, -9.1 };
+	const FVector FlRayCastPosition{ 25.0, -15.0, -9.1 };
+	const FVector BrRayCastPosition{ -25.0, 15.0, -9.1 };
+	const FVector BlRayCastPosition{ -25.0, -15.0, -9.1 };
 	const FLocalOrigins ForceRayCastOrigins{ FrRayCastPosition, FlRayCastPosition, BrRayCastPosition, BlRayCastPosition };
-	const double RayCastLength{ 8.9 };
+	const double RayCastLength{ 8.8 };
 	const float CompressionRatioMinimum{ 0.25f };
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
@@ -119,9 +119,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
 
-	const float MowerVibrationRatioMaximum{ 0.1f };
-	const float MowerVirationRate{ 2.0f };
-
 public:
 	AMowerRC();
 
@@ -162,6 +159,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	void StartTickTimer();
+
 	void Float() const;
 
 	void UpdateTransforms();
@@ -176,19 +175,17 @@ private:
 	void ApplyHoveringForce(FHitResult& RayCast);
 	void AddHoveringForceDrag(const float CompressionRatio);
 
-	void UpdateMotionConditionals();
+	void UpdateGroundedMovementConditions();
 	void UpdateAccelerationRatio(const float DeltaTime);
 	void UpdateDriftingRatio(const float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
 	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
-
 	void ApplyAccelerationForce();
 	void ApplySteeringTorque();
 	void ApplyDriftingForce();
 
 	void UpdateAirTimeRatio(const float DeltaTime);
-
 	void ApplyAirTimeAntiGravitationalForce();
 	void ApplyAirTimePitch();
 	void ApplyAirTimeRoll();
@@ -209,8 +206,6 @@ private:
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 	
-	void UpdateMowerOscillation(const float DeltaTime);
-
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
@@ -222,7 +217,7 @@ private:
 	void ResetDrag();
 	void ResetPlayerInputData();
 
-	void LogTickTime();
+	void LogTickTimer();
 
 private:
 	double TickTime{};
@@ -279,11 +274,6 @@ private:
 	mutable FRotator LocalFrontWheelRotations{};
 	mutable FRotator LocalRearWheelRotations{};
 	float WheelSteeringRatio{};
-
-	FVector LocalBodyVibration{ BodyPosition };
-	FVector LocalHandleVibration{ HandlePosition };
-	float MowerVibrationRatio{};
-	bool bMowerVibrationUp{ true };
 
 	float TickCount{};
 	bool bTickReset{};

@@ -1,4 +1,4 @@
-// Player controlled lawn mower class by Cody Wheeler
+// Lawn mower pawn class developed by Cody Wheeler
 
 
 #include "MowerRC.h"
@@ -151,7 +151,7 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TickTime = FPlatformTime::Seconds();
+	StartTickTimer();
 
 	// Float();
 
@@ -163,7 +163,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateHoveringForces(ForceRayCasts, ForceRayCastOrigins);
 
-	UpdateMotionConditionals();			
+	UpdateGroundedMovementConditions();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
@@ -183,8 +183,6 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
-	
-	// UpdateMowerOscillation(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -196,13 +194,19 @@ void AMowerRC::Tick(float DeltaTime)
 	ResetDrag();
 	ResetPlayerInputData();
 
-	LogTickTime();
+	LogTickTimer();
+}
+
+
+void AMowerRC::StartTickTimer()
+{
+	TickTime = FPlatformTime::Seconds();
 }
 
 
 void AMowerRC::Float() const
-{
-	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce);
+{ 
+	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); 
 }
 
 
@@ -305,7 +309,7 @@ void AMowerRC::AddHoveringForceDrag(const float CompressionRatio)
 }
 
 
-void AMowerRC::UpdateMotionConditionals()
+void AMowerRC::UpdateGroundedMovementConditions()
 {
 	bMovingByAccumulatedAcceleration = AccelerationRatio != 0.0f;
 	bAccelerating = AcceleratingDirection != 0.0f;
@@ -319,7 +323,7 @@ void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
 	if (!WheelsGrounded) return;
 
-	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	if (bAccelerating && WheelsGrounded == 4) AccelerationRatio += AcceleratingDirection * DeltaTime;
 	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
@@ -447,7 +451,7 @@ void AMowerRC::ApplyAirTimeAntiGravitationalForce()
 
 	PhysicsBody->AddForce(-TrajectoryNormal * AntiGravitationalForce);
 
-	DrawDebugLine(GetWorld(), PhysicsBodyLocation, PhysicsBodyLocation + (TrajectoryNormal * 20.0), FColor::Green, false, 10.0f);
+	// DrawDebugLine(GetWorld(), PhysicsBodyLocation, PhysicsBodyLocation + (TrajectoryNormal * 20.0), FColor::Green, false, 5.0f);
 }
 
 
@@ -607,30 +611,6 @@ void AMowerRC::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& L
 }
 
 
-void AMowerRC::UpdateMowerOscillation(const float DeltaTime)
-{
-	// not using doubles issue?
-	
-	const float Vibration{ MowerVirationRate * DeltaTime };
-	
-	bMowerVibrationUp ? MowerVibrationRatio += Vibration : MowerVibrationRatio -= Vibration;
-
-	LimitRatio(MowerVibrationRatio, MowerVibrationRatioMaximum);
-
-	if (MowerVibrationRatio == MowerVibrationRatioMaximum) bMowerVibrationUp = false;
-	if (MowerVibrationRatio == -MowerVibrationRatioMaximum) bMowerVibrationUp = true;
-
-	LocalBodyVibration.Z += MowerVibrationRatio;
-	LocalHandleVibration.Z += MowerVibrationRatio;
-
-	Body->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalBodyVibration));
-	Handle->SetWorldLocation(UKismetMathLibrary::TransformLocation(PhysicsBodyWorldTransform, LocalHandleVibration));
-}
-
-
-// update blade rotation, body/handle/vent combined, blade vibration added
-
-
 void AMowerRC::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
 {
 	DrawRayCast(RayCasts.Fr);
@@ -732,7 +712,7 @@ void AMowerRC::ResetPlayerInputData()
 }
 
 
-void AMowerRC::LogTickTime()
+void AMowerRC::LogTickTimer()
 {
 	TickTime = FPlatformTime::Seconds() - TickTime;
 	if (TickTime > LongestTickTime) LongestTickTime = TickTime;
