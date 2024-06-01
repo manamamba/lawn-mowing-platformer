@@ -14,6 +14,7 @@ class LAWNMOWER_API AGrassSpawner : public AActor
 	GENERATED_BODY()
 	
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
+	UPROPERTY(EditDefaultsOnly) TSubclassOf<class AGrass> GrassClass{};
 
 public:	
 	AGrassSpawner();

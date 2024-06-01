@@ -2,6 +2,7 @@
 
 
 #include "GrassSpawner.h"
+#include "Grass.h"
 
 
 AGrassSpawner::AGrassSpawner()
@@ -31,15 +32,13 @@ void AGrassSpawner::Tick(float DeltaTime)
 
 	const FVector SpawnerLocation{ SpawnerWorldTransform.GetLocation() };
 	const FVector SpawnerDownVector{ -SpawnerWorldTransform.GetUnitAxis(EAxis::Type::Z) };
-	const double RayCastLength{ 100.0 };
+	const double RayCastLength{ 25.0 };
 	const FVector RayCastEnd{ SpawnerLocation + (SpawnerDownVector * RayCastLength) };
 
 	bool GroundHit{ GetWorld()->LineTraceSingleByChannel(LineHit, SpawnerLocation, RayCastEnd, ECC_GameTraceChannel1) };
 
 	if (GroundHit)
 	{	
-		DrawDebugSphere(GetWorld(), LineHit.ImpactPoint, 3.0f, 12, FColor::Orange);
-
 		FHitResult SweepHit{};
 		const FVector Start{ LineHit.ImpactPoint };
 		const FVector End{ LineHit.ImpactPoint };
@@ -48,6 +47,21 @@ void AGrassSpawner::Tick(float DeltaTime)
 		const bool GrassHit{ GetWorld()->SweepSingleByChannel(SweepHit, Start, End, FQuat::Identity, ECC_GameTraceChannel2, GrassSweeper) };
 
 		if (GrassHit) DrawDebugSphere(GetWorld(), LineHit.ImpactPoint, 3.0f, 12, FColor::Yellow);
+		else DrawDebugSphere(GetWorld(), LineHit.ImpactPoint, 3.0f, 12, FColor::Orange);
+
+		if (!GrassHit)
+		{
+			const double GroundDepthAdjustment{ 6.0 };
+			const FRotator SpawnerRotation{ Mesh->GetComponentRotation() };
+			const FVector SpawnLocation{ LineHit.ImpactPoint + (LineHit.ImpactNormal * GroundDepthAdjustment) };
+
+			AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnerRotation)};
+			if (SpawnedGrass)
+			{
+				SpawnedGrass->SetOwner(this);
+				SpawnedGrass->GetActorLocation();
+			}
+		}
 	}
 
 	if (GroundHit)
