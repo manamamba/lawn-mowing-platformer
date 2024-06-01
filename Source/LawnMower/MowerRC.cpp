@@ -1,4 +1,4 @@
-// Lawn mower pawn class developed by Cody Wheeler.
+// Mower pawn class developed by Cody Wheeler.
 
 
 #include "MowerRC.h"
@@ -151,7 +151,7 @@ void AMowerRC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	StartTickTimer();
+	// StartTickTimer();
 
 	// Float();
 
@@ -189,12 +189,12 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawAcceleration();
 	// DrawDrift();
 
-	LogMotionData(DeltaTime);
+	// LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
 
-	LogTickTimer();
+	// LogTickTimer();
 }
 
 

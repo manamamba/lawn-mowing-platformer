@@ -1,4 +1,4 @@
-// Lawn mower pawn class developed by Cody Wheeler.
+// Mower pawn class developed by Cody Wheeler.
 
 
 #pragma once

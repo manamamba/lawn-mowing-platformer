@@ -1,4 +1,4 @@
-// Grass spawner actor class developed by Cody Wheeler.
+// GrassSpawner actor class developed by Cody Wheeler.
 
 
 #pragma once
@@ -13,6 +13,8 @@ class LAWNMOWER_API AGrassSpawner : public AActor
 {
 	GENERATED_BODY()
 	
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
+
 public:	
 	AGrassSpawner();
 
