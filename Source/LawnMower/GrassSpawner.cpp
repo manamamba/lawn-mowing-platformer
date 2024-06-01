@@ -47,19 +47,18 @@ void AGrassSpawner::Tick(float DeltaTime)
 		const bool GrassHit{ GetWorld()->SweepSingleByChannel(SweepHit, Start, End, FQuat::Identity, ECC_GameTraceChannel2, GrassSweeper) };
 
 		if (GrassHit) DrawDebugSphere(GetWorld(), LineHit.ImpactPoint, 3.0f, 12, FColor::Yellow);
-		else DrawDebugSphere(GetWorld(), LineHit.ImpactPoint, 3.0f, 12, FColor::Orange);
 
 		if (!GrassHit)
 		{
-			const double GroundDepthAdjustment{ 6.0 };
 			const FRotator SpawnerRotation{ Mesh->GetComponentRotation() };
-			const FVector SpawnLocation{ LineHit.ImpactPoint + (LineHit.ImpactNormal * GroundDepthAdjustment) };
+			const FVector SpawnLocation{ LineHit.ImpactPoint };
 
 			AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnerRotation)};
+			
 			if (SpawnedGrass)
 			{
 				SpawnedGrass->SetOwner(this);
-				SpawnedGrass->GetActorLocation();
+				UE_LOG(LogTemp, Warning, TEXT("GrassSpawned %i"), ++GrassSpawned);
 			}
 		}
 	}

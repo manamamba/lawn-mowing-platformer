@@ -25,4 +25,7 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+public:
+	int32 GrassSpawned{};
+
 };
