@@ -132,6 +132,7 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::MoveCamera);
 		EnhancedInputComponent->BindAction(ResetCameraInputAction, ETriggerEvent::Triggered, this, &AMowerRC::ResetCamera);
 		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Accelerate);
+		EnhancedInputComponent->BindAction(PitchInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Pitch);
 		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
 		EnhancedInputComponent->BindAction(DriftInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Drift);
@@ -142,6 +143,7 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AMowerRC::MoveCamera(const FInputActionValue& Value) { RotatingCameraDirection = Value.Get<FVector2D>(); }
 void AMowerRC::ResetCamera(const FInputActionValue& Value) { bCameraReset = Value.Get<bool>(); }
 void AMowerRC::Accelerate(const FInputActionValue& Value) { AcceleratingDirection = Value.Get<float>(); }
+void AMowerRC::Pitch(const FInputActionValue& Value) { PitchingDirection = Value.Get<float>(); };
 void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>(); }
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 void AMowerRC::Drift(const FInputActionValue& Value) { Drifting = Value.Get<float>(); }
@@ -459,8 +461,8 @@ void AMowerRC::ApplyAirTimePitch()
 {
 	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 
-	if (AcceleratingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce));
-	if (AcceleratingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce));
+	if (PitchingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce));
+	if (PitchingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce));
 }
 
 
@@ -702,6 +704,7 @@ void AMowerRC::ResetPlayerInputData()
 	RotatingCameraDirection = FVector2D::Zero();
 	bCameraReset = false;
 	AcceleratingDirection = 0.0f;
+	PitchingDirection = 0.0f;
 	Braking = 0.0f;
 	Steering = 0.0f;
 	Drifting = 0.0f;

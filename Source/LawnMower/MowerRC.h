@@ -49,6 +49,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* ResetCameraInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* AccelerateInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* PitchInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
@@ -143,6 +144,7 @@ private:
 	void MoveCamera(const FInputActionValue& Value);
 	void ResetCamera(const FInputActionValue& Value);
 	void Accelerate(const FInputActionValue& Value);
+	void Pitch(const FInputActionValue& Value);
 	void Brake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
 	void Drift(const FInputActionValue& Value);
@@ -151,6 +153,7 @@ private:
 	FVector2D RotatingCameraDirection{};
 	bool bCameraReset{};
 	float AcceleratingDirection{};
+	float PitchingDirection{};
 	float Braking{};
 	float Steering{};
 	float Drifting{};
