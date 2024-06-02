@@ -10,7 +10,10 @@ AGrass::AGrass()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+
+	RootComponent = Root;
 
 	Mesh->SetupAttachment(RootComponent);
 	Mesh->SetCollisionProfileName(TEXT("Custom..."));
@@ -31,8 +34,6 @@ void AGrass::BeginPlay()
 	SetSpawningComponentPositions();
 
 	// LogComponentsAttachedAtRuntime();
-
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *Rotator->GetRelativeLocation().ToString());
 }
 
 
@@ -44,6 +45,8 @@ void AGrass::RandomizeRotationAndScale()
 
 	const double SpawnScaleXY{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.2f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 4.0f) };
+
+	if (!Mesh) return;
 
 	Mesh->SetWorldRotation(FRotator{ SpawnPitch, SpawnYaw, SpawnRoll });
 	Mesh->SetWorldScale3D(FVector{ SpawnScaleXY, SpawnScaleXY, SpawnScaleZ });
@@ -57,8 +60,8 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 	if (!Rotator || !Spawner) return;
 
-	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetIncludingScale);
-	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetIncludingScale);
+	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
+	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::KeepRelativeTransform);
 
 	AddInstanceComponent(Rotator);
 	AddInstanceComponent(Spawner);
@@ -90,21 +93,13 @@ void AGrass::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// const double SpawnerDistance{ UKismetMathLibrary::RandomFloatInRange(6.0f, 7.0f) }; do this in tick
-	// get the full rotation and reset yaw and go again on repeat first: selfspawning grass stage one
-	// need to set the pointers to nullptr? 6 passes? 0 > 60 > 120 > 180 > 240 > 300
-	// rotate and swing using local space values and transforms to world
-	// const double RotatorYawRate{ 60.0 }; // move to spawning functions
-	// const double RotatorPitchRate{ -15.0 }; // move to spawning functions
-	// bool bRotatorYawRotationCompleted{};
-	// bool bRotatorPitchRotationCompleted{};
-	// full rotation of checks takes 30 frames
+	// put functions into a tick limiting function to slow down process + use a smaller test ground
 
 	TryToSpawnGrass();
 	UpdateRotatorRotation();
 	DestroySpawningComponents();
 
-	// DrawSpawning();
+	DrawSpawning();
 }
 
 
@@ -141,16 +136,9 @@ void AGrass::TryToSpawnGrass()
 {
 	if (SpawningComplete) return;
 
-	FHitResult GroundHit{};
+	FHitResult Hit{};
 	
-	if (GroundHitBySpawnerRayCast(GroundHit))
-	{
-		if (!GrassHitBySpawnerSweep(GroundHit))
-		{
-			// SpawnGrass(GroundHit);
-		}
-	}
-	
+	if (GroundHitBySpawnerRayCast(Hit)) if (!GrassHitBySpawnerSweep(Hit)) SpawnGrass(Hit);
 }
 
 bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
@@ -168,7 +156,7 @@ bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
 {
 	FHitResult SweepHit{};
 	const FVector Impact{ Hit.ImpactPoint };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) }; // works at 1 but not 2 or 3?
 
 	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
@@ -186,7 +174,6 @@ void AGrass::SpawnGrass(FHitResult& Hit)
 void AGrass::DestroySpawningComponents()
 {
 	if (!SpawningComplete || SpawningComponentsDestroyed) return;
-
 
 
 

@@ -15,6 +15,7 @@ class LAWNMOWER_API AGrass : public AActor
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
 	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrass> GrassClass{};
 
@@ -41,7 +42,6 @@ private:
 	void SpawnGrass(FHitResult& Hit);
 	void DestroySpawningComponents();
 	void DrawSpawning();
-
 
 private:
 	USceneComponent* Rotator{};
