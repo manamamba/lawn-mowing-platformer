@@ -15,26 +15,41 @@ class LAWNMOWER_API AGrass : public AActor
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh{};
-	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Rotator {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Spawner {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<class AGrass> GrassClass{};
-	
-	const double RotatorYawRate{ 60.0 };
-	const double RotatorPitchRate{ -15.0 };
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrass> GrassClass{};
 
-public:	
+public:
 	AGrass();
 
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+private:
+	void RandomizeRotationAndScale();
+	void CreateAndAttachSpawningComponents();
+	void LogComponentsAttachedAtRuntime();
+	void SetSpawningComponentPositions();
+
+public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	bool bRotatorYawRotationCompleted{};
-	bool bRotatorPitchRotationCompleted{};
+	void UpdateRotatorRotation();
+	void TryToSpawnGrass();
+	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
+	bool GrassHitBySpawnerSweep(FHitResult& Hit);
+	void SpawnGrass(FHitResult& Hit);
+	void DestroySpawningComponents();
+	void DrawSpawning();
+
+
+private:
+	USceneComponent* Rotator{};
+	USceneComponent* Spawner{};
+
+	FRotator RotatorRotation{};
+
+	bool SpawningComplete{};
+	bool SpawningComponentsDestroyed{};
 
 };
