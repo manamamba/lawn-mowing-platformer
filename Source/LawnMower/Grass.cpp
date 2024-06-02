@@ -28,7 +28,9 @@ void AGrass::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// RandomizeRotationAndScale();
+	RootTransform = Root->GetComponentTransform();
+
+	RandomizeRotationAndScale();
 	CreateAndAttachSpawningComponents();
 	SetSpawningComponentPositions();
 }
@@ -45,8 +47,13 @@ void AGrass::RandomizeRotationAndScale()
 
 	if (!Mesh) return;
 
+
+
+
+
+
 	Mesh->SetWorldRotation(FRotator{ SpawnPitch, SpawnYaw, SpawnRoll });
-	// Mesh->SetWorldScale3D(FVector{ SpawnScaleXy, SpawnScaleXy, SpawnScaleZ });
+	Mesh->SetWorldScale3D(FVector{ SpawnScaleXy, SpawnScaleXy, SpawnScaleZ });
 }
 
 
@@ -67,8 +74,6 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 void AGrass::SetSpawningComponentPositions()
 {
-	RootTransform = Root->GetComponentTransform();
-
 	RotatorRotation = FRotator{ 67.5, 0.0, 0.0 };
 
 	Rotator->SetRelativeRotation(RotatorRotation);	
@@ -138,8 +143,10 @@ bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
 	const FVector Impact{ Hit.ImpactPoint };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(2.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) }; // put back to 3 from 2 to avoid inside spawning
 
+	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 3.0f, 6, FColor::Yellow, false, 1.0f);
+	
 	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
 
@@ -150,6 +157,10 @@ void AGrass::SpawnGrass(FHitResult& Hit)
 	const FVector SpawnLocation{ Hit.ImpactPoint };
 
 	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
+
+	// end hammer at current yaw early
+	RotatorRotation.Yaw += 60.0;
+	RotatorRotation.Pitch = 67.5;
 }
 
 
