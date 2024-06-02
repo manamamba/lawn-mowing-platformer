@@ -21,6 +21,8 @@ AGrass::AGrass()
 	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+	Mesh->SetRelativeLocation(FVector{ 0.0, 0.0, 6.0 });
+	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, 2.5 });
 }
 
 
@@ -32,28 +34,22 @@ void AGrass::BeginPlay()
 
 	RandomizeRotationAndScale();
 	CreateAndAttachSpawningComponents();
-	SetSpawningComponentPositions();
+	SetSpawningComponentsRotationAndLocation();
+
+	UE_LOG(LogTemp, Warning, TEXT("Grass Created!"));
 }
 
 
 void AGrass::RandomizeRotationAndScale()
 {
-	const double SpawnPitch{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
+	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
-	const double SpawnRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
-
-	const double SpawnScaleXy{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.2f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 3.5f) };
 
 	if (!Mesh) return;
 
-
-
-
-
-
-	Mesh->SetWorldRotation(FRotator{ SpawnPitch, SpawnYaw, SpawnRoll });
-	Mesh->SetWorldScale3D(FVector{ SpawnScaleXy, SpawnScaleXy, SpawnScaleZ });
+	Mesh->SetRelativeRotation(FRotator{ SpawnPitchRoll, SpawnYaw, SpawnPitchRoll });
+	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, SpawnScaleZ });
 }
 
 
@@ -72,7 +68,7 @@ void AGrass::CreateAndAttachSpawningComponents()
 }
 
 
-void AGrass::SetSpawningComponentPositions()
+void AGrass::SetSpawningComponentsRotationAndLocation()
 {
 	RotatorRotation = FRotator{ 67.5, 0.0, 0.0 };
 
@@ -97,12 +93,12 @@ void AGrass::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TickSlower();
+	// TickSlower();
 
-	// TryToSpawnGrass();
-	// UpdateRotatorRotation();
+	TryToSpawnGrass();
+	UpdateRotatorRotation();
 
-	DrawSpawningComponents();
+	// DrawSpawningComponents();
 }
 
 
@@ -110,7 +106,7 @@ void AGrass::TickSlower()
 {
 	++TickCount;
 
-	if (TickCount >= 30.0f)
+	if (TickCount >= 15.0f)
 	{
 		TryToSpawnGrass();
 		UpdateRotatorRotation();
@@ -136,29 +132,24 @@ bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 	const FVector RayCastEnd{ RayCastStart + (-Spawner->GetUpVector() * RayCastLength) };
 
 	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
+
+	// look for both ground and grass, end hammer early if grass detected? GetWorld()->LineTraceMultiByChannel() say calcs with this doing
 }
 
 
 bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
-	const FVector Impact{ Hit.ImpactPoint };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) }; // put back to 3 from 2 to avoid inside spawning
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
 
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 3.0f, 6, FColor::Yellow, false, 1.0f);
-	
-	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
+	return GetWorld()->SweepSingleByChannel(SweepHit, Hit.ImpactPoint, Hit.ImpactPoint, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
 
 
 void AGrass::SpawnGrass(FHitResult& Hit)
 {
-	const FRotator SpawnRotation{ Rotator->GetComponentRotation() };
-	const FVector SpawnLocation{ Hit.ImpactPoint };
+	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
 
-	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
-
-	// end hammer at current yaw early
 	RotatorRotation.Yaw += 60.0;
 	RotatorRotation.Pitch = 67.5;
 }
@@ -166,20 +157,14 @@ void AGrass::SpawnGrass(FHitResult& Hit)
 
 void AGrass::UpdateRotatorRotation()
 {
-	const double RotatorPitchRate{ -22.5 };
-	const double RotatorYawRate{ 60.0 };
-
-	const double RotatorPitchRange{ 67.5 };
-	const double RotatorYawEnd{ 360.0 - RotatorYawRate };
-
-	if (RotatorRotation.Pitch != -RotatorPitchRange)
+	if (RotatorRotation.Pitch >= -67.5)
 	{
-		RotatorRotation.Pitch += RotatorPitchRate;
+		RotatorRotation.Pitch += -22.5;
 	}
-	else if (RotatorRotation.Yaw != RotatorYawEnd)
+	else if (RotatorRotation.Yaw <= 300.0)
 	{
-		RotatorRotation.Yaw += RotatorYawRate;
-		RotatorRotation.Pitch = RotatorPitchRange;
+		RotatorRotation.Yaw += 60.0;
+		RotatorRotation.Pitch = 67.5;
 	}
 	else
 	{

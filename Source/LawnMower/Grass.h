@@ -26,7 +26,7 @@ protected:
 private:
 	void RandomizeRotationAndScale();
 	void CreateAndAttachSpawningComponents();
-	void SetSpawningComponentPositions();
+	void SetSpawningComponentsRotationAndLocation();
 
 	void LogComponentsAttachedAtRuntime();
 
