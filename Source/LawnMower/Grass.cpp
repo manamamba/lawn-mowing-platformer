@@ -2,7 +2,6 @@
 
 
 #include "Grass.h"
-#include "Components/BoxComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
@@ -32,8 +31,6 @@ void AGrass::BeginPlay()
 	RandomizeRotationAndScale();
 	CreateAndAttachSpawningComponents();
 	SetSpawningComponentPositions();
-
-	// LogComponentsAttachedAtRuntime();
 }
 
 
@@ -44,7 +41,7 @@ void AGrass::RandomizeRotationAndScale()
 	const double SpawnRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 10.0f) };
 
 	const double SpawnScaleXY{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.2f) };
-	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 4.0f) };
+	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 3.5f) };
 
 	if (!Mesh) return;
 
@@ -60,8 +57,8 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 	if (!Rotator || !Spawner) return;
 
-	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
-	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::KeepRelativeTransform);
+	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	AddInstanceComponent(Rotator);
 	AddInstanceComponent(Spawner);
@@ -73,7 +70,7 @@ void AGrass::SetSpawningComponentPositions()
 	RotatorRotation = FRotator{ 45.0, 0.0, 0.0 };
 
 	Rotator->SetRelativeRotation(RotatorRotation);
-	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 0.0 });
+	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
 	Spawner->SetRelativeLocation(FVector{ 7.0f, 0.0, 0.0 });
 }
 
@@ -93,20 +90,69 @@ void AGrass::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// put functions into a tick limiting function to slow down process + use a smaller test ground
+	// TickSlower();
 
 	TryToSpawnGrass();
 	UpdateRotatorRotation();
-	DestroySpawningComponents();
 
-	DrawSpawning();
+	// DrawSpawningComponents();
+}
+
+
+void AGrass::TickSlower()
+{
+	++TickCount;
+
+	if (TickCount >= 30.0f)
+	{
+		TryToSpawnGrass();
+		UpdateRotatorRotation();
+
+		TickCount = 0.0f;
+	}
+}
+
+
+void AGrass::TryToSpawnGrass()
+{
+	FHitResult Hit{};
+	
+	if (GroundHitBySpawnerRayCast(Hit)) if (!GrassHitBySpawnerSweep(Hit)) SpawnGrass(Hit);
+}
+
+
+bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
+{
+	const double RayCastLength{ 3.0 };
+
+	const FVector RayCastStart{ Spawner->GetComponentLocation() };
+	const FVector RayCastEnd{ RayCastStart + (-Spawner->GetUpVector() * RayCastLength) };
+
+	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
+}
+
+
+bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
+{
+	FHitResult SweepHit{};
+	const FVector Impact{ Hit.ImpactPoint };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+
+	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
+}
+
+
+void AGrass::SpawnGrass(FHitResult& Hit)
+{
+	const FRotator SpawnRotation{ UKismetMathLibrary::TransformRotation(RootComponent->GetComponentTransform(), RotatorRotation) };
+	const FVector SpawnLocation{ Hit.ImpactPoint };
+
+	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
 }
 
 
 void AGrass::UpdateRotatorRotation()
 {
-	if (SpawningComplete) return;
-
 	const double RotatorPitchStart{ 45.0 };
 	const double RotatorPitchEnd{ -45.0 };
 	const double RotatorPitchRate{ -22.5 };
@@ -124,7 +170,7 @@ void AGrass::UpdateRotatorRotation()
 	}
 	else
 	{
-		SpawningComplete = true;
+		DestroySpawningComponentsAndDisableTick();
 		return;
 	}
 
@@ -132,57 +178,16 @@ void AGrass::UpdateRotatorRotation()
 }
 
 
-void AGrass::TryToSpawnGrass()
+void AGrass::DestroySpawningComponentsAndDisableTick()
 {
-	if (SpawningComplete) return;
+	Spawner->DestroyComponent();
+	Rotator->DestroyComponent();
 
-	FHitResult Hit{};
-	
-	if (GroundHitBySpawnerRayCast(Hit)) if (!GrassHitBySpawnerSweep(Hit)) SpawnGrass(Hit);
-}
-
-bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
-{
-	const double RayCastLength{ 3.2 };
-
-	const FVector RayCastStart{ Spawner->GetComponentLocation() };
-	const FVector RayCastEnd{ RayCastStart + (-Spawner->GetUpVector() * RayCastLength) };
-
-	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
+	SetActorTickEnabled(false);
 }
 
 
-bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
-{
-	FHitResult SweepHit{};
-	const FVector Impact{ Hit.ImpactPoint };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) }; // works at 1 but not 2 or 3?
-
-	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
-}
-
-
-void AGrass::SpawnGrass(FHitResult& Hit)
-{
-	const FRotator SpawnRotation{ UKismetMathLibrary::TransformRotation(RootComponent->GetComponentTransform(), RotatorRotation) };
-	const FVector SpawnLocation{ Hit.ImpactPoint };
-
-	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
-}
-
-
-void AGrass::DestroySpawningComponents()
-{
-	if (!SpawningComplete || SpawningComponentsDestroyed) return;
-
-
-
-
-	SpawningComponentsDestroyed = true;
-}
-
-
-void AGrass::DrawSpawning()
+void AGrass::DrawSpawningComponents()
 {
 	const FVector SpawnerRayCastStart{ Spawner->GetComponentLocation() };
 	const FVector SpawnerRayCastEnd{ Spawner->GetComponentLocation() + (-Spawner->GetUpVector() * 3.0) };

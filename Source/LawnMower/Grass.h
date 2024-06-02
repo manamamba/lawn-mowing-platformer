@@ -7,8 +7,6 @@
 #include "GameFramework/Actor.h"
 #include "Grass.generated.h"
 
-class UBoxComponent;
-
 
 UCLASS()
 class LAWNMOWER_API AGrass : public AActor
@@ -28,20 +26,25 @@ protected:
 private:
 	void RandomizeRotationAndScale();
 	void CreateAndAttachSpawningComponents();
-	void LogComponentsAttachedAtRuntime();
 	void SetSpawningComponentPositions();
+
+	void LogComponentsAttachedAtRuntime();
 
 public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void UpdateRotatorRotation();
+	void TickSlower();
+
 	void TryToSpawnGrass();
 	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
 	bool GrassHitBySpawnerSweep(FHitResult& Hit);
 	void SpawnGrass(FHitResult& Hit);
-	void DestroySpawningComponents();
-	void DrawSpawning();
+
+	void UpdateRotatorRotation();
+	void DestroySpawningComponentsAndDisableTick();
+
+	void DrawSpawningComponents();
 
 private:
 	USceneComponent* Rotator{};
@@ -49,7 +52,5 @@ private:
 
 	FRotator RotatorRotation{};
 
-	bool SpawningComplete{};
-	bool SpawningComponentsDestroyed{};
-
+	float TickCount{};
 };
