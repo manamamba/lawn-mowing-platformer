@@ -34,7 +34,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void TickSlower();
+	void TickSlowerWithDrawing();
 
 	void TryToSpawnGrass();
 	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
@@ -42,6 +42,7 @@ private:
 	void SpawnGrass(FHitResult& Hit);
 
 	void UpdateRotatorRotation();
+	void ResetSpawningHammer();
 	void DestroySpawningComponentsAndDisableTick();
 
 	void DrawSpawningComponents();
@@ -54,4 +55,5 @@ private:
 	FTransform RootTransform{};
 
 	float TickCount{};
+	int32 SpawningCompleteTicks{ 1 };
 };
