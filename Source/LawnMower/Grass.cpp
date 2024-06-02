@@ -102,8 +102,9 @@ void AGrass::Tick(float DeltaTime)
 
 	TryToSpawnGrass();
 	UpdateRotatorRotation();
-	// DestroySpawningComponents();
-	DrawSpawning();
+	DestroySpawningComponents();
+
+	// DrawSpawning();
 }
 
 
@@ -128,10 +129,8 @@ void AGrass::UpdateRotatorRotation()
 	}
 	else
 	{
-		// SpawningComplete = true;
-		// return;
-		RotatorRotation.Yaw = 0.0;
-		RotatorRotation.Pitch = RotatorPitchStart;
+		SpawningComplete = true;
+		return;
 	}
 
 	Rotator->SetRelativeRotation(RotatorRotation);
@@ -148,7 +147,7 @@ void AGrass::TryToSpawnGrass()
 	{
 		if (!GrassHitBySpawnerSweep(GroundHit))
 		{
-			SpawnGrass(GroundHit);
+			// SpawnGrass(GroundHit);
 		}
 	}
 	
@@ -167,20 +166,27 @@ bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 
 bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
 {
-	return false;
+	FHitResult SweepHit{};
+	const FVector Impact{ Hit.ImpactPoint };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+
+	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
 
 
 void AGrass::SpawnGrass(FHitResult& Hit)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Spawning Grass!"));
-	DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 3.0f, 6, FColor::Yellow);
+	const FRotator SpawnRotation{ UKismetMathLibrary::TransformRotation(RootComponent->GetComponentTransform(), RotatorRotation) };
+	const FVector SpawnLocation{ Hit.ImpactPoint };
+
+	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
 }
 
 
 void AGrass::DestroySpawningComponents()
 {
 	if (!SpawningComplete || SpawningComponentsDestroyed) return;
+
 
 
 
