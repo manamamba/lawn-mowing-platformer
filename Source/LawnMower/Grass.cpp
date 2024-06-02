@@ -28,7 +28,7 @@ void AGrass::BeginPlay()
 {
 	Super::BeginPlay();
 
-	RandomizeRotationAndScale();
+	// RandomizeRotationAndScale();
 	CreateAndAttachSpawningComponents();
 	SetSpawningComponentPositions();
 }
@@ -36,17 +36,17 @@ void AGrass::BeginPlay()
 
 void AGrass::RandomizeRotationAndScale()
 {
-	const double SpawnPitch{ UKismetMathLibrary::RandomFloatInRange(0.0f, 10.0f) };
+	const double SpawnPitch{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
-	const double SpawnRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 10.0f) };
+	const double SpawnRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 
-	const double SpawnScaleXY{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.2f) };
+	const double SpawnScaleXy{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.2f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 3.5f) };
 
 	if (!Mesh) return;
 
 	Mesh->SetWorldRotation(FRotator{ SpawnPitch, SpawnYaw, SpawnRoll });
-	Mesh->SetWorldScale3D(FVector{ SpawnScaleXY, SpawnScaleXY, SpawnScaleZ });
+	// Mesh->SetWorldScale3D(FVector{ SpawnScaleXy, SpawnScaleXy, SpawnScaleZ });
 }
 
 
@@ -67,9 +67,11 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 void AGrass::SetSpawningComponentPositions()
 {
-	RotatorRotation = FRotator{ 45.0, 0.0, 0.0 };
+	RootTransform = Root->GetComponentTransform();
 
-	Rotator->SetRelativeRotation(RotatorRotation);
+	RotatorRotation = FRotator{ 67.5, 0.0, 0.0 };
+
+	Rotator->SetRelativeRotation(RotatorRotation);	
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
 	Spawner->SetRelativeLocation(FVector{ 7.0f, 0.0, 0.0 });
 }
@@ -90,12 +92,12 @@ void AGrass::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// TickSlower();
+	TickSlower();
 
-	TryToSpawnGrass();
-	UpdateRotatorRotation();
+	// TryToSpawnGrass();
+	// UpdateRotatorRotation();
 
-	// DrawSpawningComponents();
+	DrawSpawningComponents();
 }
 
 
@@ -123,7 +125,7 @@ void AGrass::TryToSpawnGrass()
 
 bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 {
-	const double RayCastLength{ 3.0 };
+	const double RayCastLength{ 3.1 };
 
 	const FVector RayCastStart{ Spawner->GetComponentLocation() };
 	const FVector RayCastEnd{ RayCastStart + (-Spawner->GetUpVector() * RayCastLength) };
@@ -132,11 +134,11 @@ bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 }
 
 
-bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
+bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
 	const FVector Impact{ Hit.ImpactPoint };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(2.0) };
 
 	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
@@ -144,7 +146,7 @@ bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit)
 
 void AGrass::SpawnGrass(FHitResult& Hit)
 {
-	const FRotator SpawnRotation{ UKismetMathLibrary::TransformRotation(RootComponent->GetComponentTransform(), RotatorRotation) };
+	const FRotator SpawnRotation{ Rotator->GetComponentRotation() };
 	const FVector SpawnLocation{ Hit.ImpactPoint };
 
 	AGrass* SpawnedGrass{ GetWorld()->SpawnActor<AGrass>(GrassClass, SpawnLocation, SpawnRotation) };
@@ -153,20 +155,20 @@ void AGrass::SpawnGrass(FHitResult& Hit)
 
 void AGrass::UpdateRotatorRotation()
 {
-	const double RotatorPitchStart{ 45.0 };
-	const double RotatorPitchEnd{ -45.0 };
 	const double RotatorPitchRate{ -22.5 };
-	const double RotatorYawEnd{ 300.0 };
-	const double RotatorYawRate{ 60 };
+	const double RotatorYawRate{ 60.0 };
 
-	if (RotatorRotation.Pitch != RotatorPitchEnd)
+	const double RotatorPitchRange{ 67.5 };
+	const double RotatorYawEnd{ 360.0 - RotatorYawRate };
+
+	if (RotatorRotation.Pitch != -RotatorPitchRange)
 	{
 		RotatorRotation.Pitch += RotatorPitchRate;
 	}
 	else if (RotatorRotation.Yaw != RotatorYawEnd)
 	{
 		RotatorRotation.Yaw += RotatorYawRate;
-		RotatorRotation.Pitch = RotatorPitchStart;
+		RotatorRotation.Pitch = RotatorPitchRange;
 	}
 	else
 	{
@@ -174,7 +176,7 @@ void AGrass::UpdateRotatorRotation()
 		return;
 	}
 
-	Rotator->SetRelativeRotation(RotatorRotation);
+	Rotator->SetWorldRotation(UKismetMathLibrary::TransformRotation(RootTransform, RotatorRotation));
 }
 
 

@@ -38,7 +38,7 @@ private:
 
 	void TryToSpawnGrass();
 	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
-	bool GrassHitBySpawnerSweep(FHitResult& Hit);
+	bool GrassHitBySpawnerSweep(FHitResult& Hit) const;
 	void SpawnGrass(FHitResult& Hit);
 
 	void UpdateRotatorRotation();
@@ -51,6 +51,7 @@ private:
 	USceneComponent* Spawner{};
 
 	FRotator RotatorRotation{};
+	FTransform RootTransform{};
 
 	float TickCount{};
 };
