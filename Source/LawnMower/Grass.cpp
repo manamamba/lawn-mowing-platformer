@@ -34,17 +34,17 @@ void AGrass::BeginPlay()
 
 	RandomizeRotationAndScale();
 	CreateAndAttachSpawningComponents();
-	SetSpawningComponentsRotationAndLocation();
+	// SetSpawningComponentsRotationAndLocation();
 }
 
 
 void AGrass::RandomizeRotationAndScale()
 {
+	if (!Mesh) return;
+	
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(2.5f, 3.5f) };
-
-	if (!Mesh) return;
 
 	Mesh->SetRelativeRotation(FRotator{ SpawnPitchRoll, SpawnYaw, SpawnPitchRoll });
 	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, SpawnScaleZ });
@@ -61,6 +61,11 @@ void AGrass::CreateAndAttachSpawningComponents()
 	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
+	SetSpawningComponentsRotationAndLocation();
+
+	Rotator->SetMobility(EComponentMobility::Type::Movable);
+	Spawner->SetMobility(EComponentMobility::Type::Movable);
+
 	AddInstanceComponent(Rotator);
 	AddInstanceComponent(Spawner);
 }
@@ -72,7 +77,7 @@ void AGrass::SetSpawningComponentsRotationAndLocation()
 
 	Rotator->SetRelativeRotation(RotatorRotation);	
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
-	Spawner->SetRelativeLocation(FVector{ 7.0f, 0.0, 0.0 });
+	Spawner->SetRelativeLocation(FVector{ 9.0f, 0.0, 0.0 }); // grass cannot be touching raised from 7
 }
 
 
@@ -153,7 +158,7 @@ bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(4.0) }; // increased so grass wont touch
 
 	return GetWorld()->SweepSingleByChannel(SweepHit, Hit.ImpactPoint, Hit.ImpactPoint, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
@@ -211,5 +216,3 @@ void AGrass::DestroySpawningComponentsAndDisableTick()
 
 	// UE_LOG(LogTemp, Warning, TEXT("Spawning Complete In %i Ticks!"), SpawningCompleteTicks);
 }
-
-
