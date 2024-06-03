@@ -77,7 +77,7 @@ void AGrass::SetSpawningComponentsRotationAndLocation()
 
 	Rotator->SetRelativeRotation(RotatorRotation);	
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
-	Spawner->SetRelativeLocation(FVector{ 9.0f, 0.0, 0.0 }); // grass cannot be touching raised from 7
+	Spawner->SetRelativeLocation(FVector{ 9.0f, 0.0, 0.0 });
 }
 
 
@@ -107,13 +107,13 @@ void AGrass::TickSlowerWithDrawing()
 {
 	++TickCount;
 
-	if (TickCount >= 30.0f)
+	if (TickCount >= 1.0f)
 	{
 		TryToSpawnGrass();
-		DrawSpawningComponents();
+		// DrawSpawningComponents();
 		UpdateRotatorRotation();
 
-		// ++SpawningCompleteTicks;
+		++SpawningCompleteTicks;
 
 		TickCount = 0.0f;
 	}
@@ -158,7 +158,7 @@ bool AGrass::GroundHitBySpawnerRayCast(FHitResult& Hit)
 bool AGrass::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(4.0) }; // increased so grass wont touch
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(4.0) };
 
 	return GetWorld()->SweepSingleByChannel(SweepHit, Hit.ImpactPoint, Hit.ImpactPoint, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
@@ -177,7 +177,7 @@ void AGrass::DrawSpawningComponents()
 	const FVector SpawnerRayCastStart{ Spawner->GetComponentLocation() };
 	const FVector SpawnerRayCastEnd{ Spawner->GetComponentLocation() + (-Spawner->GetUpVector() * 3.1) };
 
-	// DrawDebugSphere(GetWorld(), Rotator->GetComponentLocation(), 4.0f, 6, FColor::Orange);
+	DrawDebugSphere(GetWorld(), Rotator->GetComponentLocation(), 4.0f, 6, FColor::Orange);
 	DrawDebugSphere(GetWorld(), Spawner->GetComponentLocation(), 1.0f, 6, FColor::Blue);
 	DrawDebugLine(GetWorld(), SpawnerRayCastStart, SpawnerRayCastEnd, FColor::White);
 	DrawDebugSphere(GetWorld(), SpawnerRayCastEnd, 1.0f, 6, FColor::White);

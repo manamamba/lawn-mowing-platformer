@@ -26,7 +26,7 @@ protected:
 
 private:
 	void CreateAndAttachRuntimeComponents();
-	void SetInstancedComponentTransforms();
+	void SetRuntimeComponentProperties();
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -36,12 +36,12 @@ private:
 
 	void TryToSpawnGrass();
 	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
-	bool GrassHitBySpawnerSweep(FHitResult& Hit) const;
+	bool GrassHitBySpawnerSweep(FHitResult& Hit);
 	void SpawnGrass(FHitResult& Hit);
 
 	void UpdateRotatorRotation();
 	void ResetSpawningHammer();
-	void DestroySpawningComponentsAndDisableTick();
+	bool DestroyRuntimeComponentsAndDisableTick();
 
 	void DrawSpawningComponents();
 
