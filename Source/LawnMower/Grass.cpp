@@ -58,7 +58,7 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 	if (!Rotator || !Spawner) return;
 
-	Rotator->AttachToComponent(GetRootComponent(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	Rotator->AttachToComponent(Root, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
 	SetSpawningComponentsRotationAndLocation();
