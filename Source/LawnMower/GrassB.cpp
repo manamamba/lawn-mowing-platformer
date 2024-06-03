@@ -53,8 +53,6 @@ void AGrassB::CreateAndAttachRuntimeComponents()
 	Rotator->AttachToComponent(Root, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-	if (StaticMesh) Mesh->SetStaticMesh(StaticMesh);
-
 	SetRuntimeComponentProperties();
 
 	AddInstanceComponent(Mesh);
@@ -65,6 +63,8 @@ void AGrassB::CreateAndAttachRuntimeComponents()
 
 void AGrassB::SetRuntimeComponentProperties()
 {
+	if (StaticMesh) Mesh->SetStaticMesh(StaticMesh);
+	
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.5f) };
@@ -86,7 +86,7 @@ void AGrassB::SetRuntimeComponentProperties()
 	Rotator->SetRelativeRotation(RotatorRotation);
 
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
-	Spawner->SetRelativeLocation(FVector{ 9.0f, 0.0, 0.0 });
+	Spawner->SetRelativeLocation(FVector{ 10.0f, 0.0, 0.0 });
 }
 
 
@@ -94,15 +94,27 @@ void AGrassB::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TryToSpawnGrass();
+	// DestroyRuntimeComponentsAndDisableTickIfSpawningIsComplete();
+	// TryToSpawnGrass();
 
-	// TickSlowerWithDrawing();
+
+
+
+	TickSlowerWithDrawing();
 }
 
 
 void AGrassB::TryToSpawnGrass()
 {
 	FHitResult Hit{};
+
+	// const FVector Start{ Spawner->GetComponentLocation() };
+	// const FVector Direction{ -Spawner->GetUpVector() };
+
+	// if (RotatorRotation.Pitch == 45.0) if (!FarGroundHitBySpawnerRayCast(Hit, Start, Direction)) return;  -- UpdateRotatorYawAndPitch() inside function
+	// if (GrassHitBySpawnerSweep(Hit)) return; -- UpdateRotatorYawAndPitch() inside function
+	// if (!GroundHitBySpawnerRayCast(Hit, Start, Direction)) return; -- UpdateRotatorPitch() inside function
+	// SpawnGrass(Hit); -- UpdateRotatorYawAndPitch() inside function
 
 	if (GroundHitBySpawnerRayCast(Hit)) if (!GrassHitBySpawnerSweep(Hit)) SpawnGrass(Hit);
 }
@@ -115,16 +127,14 @@ bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit)
 
 	bool bEdgeNotHit{ true };
 
-	double RayCastLength{ 50.0 };
+	double RayCastLength{ 40.0 };
 
 	FVector RayCastEnd{ RayCastStart + (RayCastDirection * RayCastLength) };
+
 
 	if (RotatorRotation.Pitch == 45.0)
 	{
 		bEdgeNotHit = GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
-
-		// DrawDebugLine(GetWorld(), RayCastStart, RayCastEnd, FColor::Red, false, 5.0f);
-		// DrawDebugSphere(GetWorld(), RayCastEnd, 1.0f, 6, FColor::Red, false, 5.0f);
 	}
 
 	if (!bEdgeNotHit)
@@ -137,12 +147,7 @@ bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit)
 
 	RayCastEnd = RayCastStart + (RayCastDirection * (RayCastLength = 5.0));
 
-	const bool GrassHit{ GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel2) };
-
-	// DrawDebugLine(GetWorld(), RayCastStart, RayCastEnd, FColor::Green, false, 5.0f);
-	// DrawDebugSphere(GetWorld(), RayCastEnd, 1.0f, 6, FColor::Green, false, 5.0f);
-
-	if (GrassHit)
+	if (GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, RayCastEnd, ECC_GameTraceChannel2))
 	{
 		ResetSpawningHammer();
 		return false;
@@ -163,7 +168,7 @@ bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit)
 bool AGrassB::GrassHitBySpawnerSweep(FHitResult& Hit)
 {
 	FHitResult SweepHit{};
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(4.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
 
 	const bool GrassHit{ GetWorld()->SweepSingleByChannel(SweepHit, Hit.ImpactPoint, Hit.ImpactPoint, FQuat::Identity, ECC_GameTraceChannel2, Sweeper) };
 
@@ -237,11 +242,13 @@ void AGrassB::TickSlowerWithDrawing()
 
 void AGrassB::DrawSpawningComponents()
 {
-	const FVector SpawnerRayCastStart{ Spawner->GetComponentLocation() };
-	const FVector SpawnerRayCastEnd{ Spawner->GetComponentLocation() + (-Spawner->GetUpVector() * 3.1) };
+	const FVector RayCastStart{ Spawner->GetComponentLocation() };
+	const FVector RayCastDirection{ -Spawner->GetUpVector() };
+	const FVector GroundRayCastEnd{ RayCastStart + (RayCastDirection * 3.1) };
+	const FVector GrassRayCastEnd{ RayCastStart + (RayCastDirection * 3.1) };
 
-	DrawDebugSphere(GetWorld(), Rotator->GetComponentLocation(), 4.0f, 6, FColor::Orange);
+	DrawDebugSphere(GetWorld(), Rotator->GetComponentLocation(), 4.0f, 6, FColor::Orange, false, 3.0f);
 	DrawDebugSphere(GetWorld(), Spawner->GetComponentLocation(), 1.0f, 6, FColor::Blue, false, 3.0f);
-	DrawDebugLine(GetWorld(), SpawnerRayCastStart, SpawnerRayCastEnd, FColor::White, false, 3.0f);
-	DrawDebugSphere(GetWorld(), SpawnerRayCastEnd, 1.0f, 6, FColor::White, false, 3.0f);
+	DrawDebugSphere(GetWorld(), GroundRayCastEnd, 1.0f, 6, FColor::White, false, 3.0f);
+	DrawDebugSphere(GetWorld(), GrassRayCastEnd, 1.0f, 6, FColor::White, false, 3.0f);
 }
