@@ -4,6 +4,7 @@
 #include "GrassB.h"
 #include "Kismet/KismetMathLibrary.h"
 
+
 AGrassB::AGrassB()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -38,6 +39,8 @@ void AGrassB::BeginPlay()
 	RootTransform = Root->GetComponentTransform();
 
 	CreateAndAttachRuntimeComponents();
+	SetRuntimeMeshComponentProperties();
+	SetRuntimeSpawningComponentProperties();
 }
 
 
@@ -53,17 +56,15 @@ void AGrassB::CreateAndAttachRuntimeComponents()
 	Rotator->AttachToComponent(Root, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 	Spawner->AttachToComponent(Rotator, FAttachmentTransformRules::SnapToTargetNotIncludingScale);
 
-	SetRuntimeComponentProperties();
-
 	AddInstanceComponent(Mesh);
 	AddInstanceComponent(Rotator);
 	AddInstanceComponent(Spawner);
 }
 
 
-void AGrassB::SetRuntimeComponentProperties()
+void AGrassB::SetRuntimeMeshComponentProperties()
 {
-	if (StaticMesh) Mesh->SetStaticMesh(StaticMesh);
+	Mesh->SetStaticMesh(StaticMesh);
 	
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
@@ -80,7 +81,11 @@ void AGrassB::SetRuntimeComponentProperties()
 	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
-	
+}
+
+
+void AGrassB::SetRuntimeSpawningComponentProperties()
+{
 	RotatorRotation = FRotator{ 45.0, 0.0, 0.0 };
 
 	Rotator->SetRelativeRotation(RotatorRotation);
@@ -212,6 +217,7 @@ void AGrassB::TickSlowerWithDrawing()
 	if (TickCount >= 60.0f)
 	{
 		TryToSpawnGrass();
+
 		DrawSpawningComponents();
 
 		if (RotatorRotation.Yaw == 360.0 && RotatorRotation.Pitch == -45.0) DestroyRuntimeSpawningComponentsAndDisableTick();
