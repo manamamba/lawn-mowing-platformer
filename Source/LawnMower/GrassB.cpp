@@ -91,7 +91,7 @@ void AGrassB::SetRuntimeSpawningComponentProperties()
 	Rotator->SetRelativeRotation(RotatorRotation);
 
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
-	Spawner->SetRelativeLocation(FVector{ 12.0f, 0.0, 0.0 });
+	Spawner->SetRelativeLocation(FVector{ 15.0, 0.0, 0.0 });
 }
 
 
@@ -99,101 +99,111 @@ void AGrassB::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TryToSpawnGrass();
-
-	if (RotatorRotation.Yaw == 360.0 && RotatorRotation.Pitch == -45.0) DestroyRuntimeSpawningComponentsAndDisableTick();
+	UpdateSpawnHammer();
 
 	// TickSlowerWithDrawing();
 }
 
 
-void AGrassB::TryToSpawnGrass()
+void AGrassB::UpdateSpawnHammer()
+{
+	const double PitchMax{ 45.0 };
+
+	TryToSpawnGrass(PitchMax);
+
+	if (RotatorRotation.Yaw == 360.0 && RotatorRotation.Pitch == -PitchMax) DestroyRuntimeSpawningComponentsAndDisableTick();
+}
+
+
+void AGrassB::TryToSpawnGrass(const double& PitchMax)
 {
 	FHitResult Hit{};
 
 	const FVector Start{ Spawner->GetComponentLocation() };
 	const FVector Direction{ -Spawner->GetUpVector() };
 
-	if (RotatorRotation.Pitch == 45.0) if (!FarGroundHitBySpawnerRayCast(Hit, Start, Direction)) return;
+	const double RayCastLength{ 5.0 };
 
-	if (GrassHitBySpawnerSweep(Start, Direction)) return;
+	if (RotatorRotation.Pitch == PitchMax) if (!FarGroundHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
 
-	if (!GroundHitBySpawnerRayCast(Hit, Start, Direction)) return;
+	if (GrassHitBySpawnerSweep(Start, Direction, RayCastLength, PitchMax)) return;
 
-	SpawnGrass(Hit);
+	if (!GroundHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
+
+	SpawnGrass(Hit, PitchMax);
 }
 
 
-bool AGrassB::FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction)
+bool AGrassB::FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax)
 {
-	const FVector End{ Start + (Direction * 35.0) };
+	const FVector End{ Start + (Direction * PitchMax) };
 
 	const bool FarGroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	// DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.0f);
 
-	if (!FarGroundHit) UpdateRotatorYawAndPitch();
+	if (!FarGroundHit) UpdateRotatorYawAndPitch(PitchMax);
 
 	return FarGroundHit;
 }
 
 
-bool AGrassB::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction)
+bool AGrassB::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
 {
 	FHitResult SweepHit{};
 
 	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
 	
-	const FVector End{ Start + (Direction * 5.0) };
+	const FVector End{ Start + (Direction * RayCastLength) };
 
 	const bool GrassHit{ GetWorld()->SweepSingleByChannel(SweepHit, End, End, FQuat::Identity, ECC_GameTraceChannel2, Sweeper) };
 
-	if (GrassHit) UpdateRotatorYawAndPitch();
+	if (GrassHit) UpdateRotatorYawAndPitch(PitchMax);
 
 	return GrassHit;
 }
 
 
-bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction)
+bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
 {
 	Hit.Reset();
 
-	const FVector End{ Start + (Direction * 5.0) };
+	const FVector End{ Start + (Direction * RayCastLength) };
 
 	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	if (!GroundHit)
 	{
-		if (RotatorRotation.Pitch > -45.0) UpdateRotatorPitch();
-		else UpdateRotatorYawAndPitch();
+		if (RotatorRotation.Pitch > -PitchMax) UpdateRotatorPitch(PitchMax);
+		else UpdateRotatorYawAndPitch(PitchMax);
 	}
 
 	return GroundHit;
 }
 
 
-void AGrassB::SpawnGrass(FHitResult& Hit)
+void AGrassB::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 {
 	AGrassB* SpawnedGrass{ GetWorld()->SpawnActor<AGrassB>(GrassBClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
 
-	UpdateRotatorYawAndPitch();
+	UpdateRotatorYawAndPitch(PitchMax);
 }
 
 
-void AGrassB::UpdateRotatorYawAndPitch()
+void AGrassB::UpdateRotatorYawAndPitch(const double& PitchMax)
 {
 	RotatorRotation.Yaw += 60.0;
 
-	if (RotatorRotation.Yaw >= 360.0) RotatorRotation.Pitch = -45.0;
-	else RotatorRotation.Pitch = 45.0;
+	if (RotatorRotation.Yaw >= 360.0) RotatorRotation.Pitch = -PitchMax;
+	else RotatorRotation.Pitch = PitchMax;
 	
 	Rotator->SetWorldRotation(UKismetMathLibrary::TransformRotation(RootTransform, RotatorRotation));
 }
 
 
-void AGrassB::UpdateRotatorPitch()
+void AGrassB::UpdateRotatorPitch(const double& PitchMax)
 {
-	if (RotatorRotation.Pitch > -45.0) RotatorRotation.Pitch += -22.5;
+	if (RotatorRotation.Pitch > -PitchMax) RotatorRotation.Pitch += -22.5;
 
 	Rotator->SetWorldRotation(UKismetMathLibrary::TransformRotation(RootTransform, RotatorRotation));
 }
@@ -214,13 +224,11 @@ void AGrassB::TickSlowerWithDrawing()
 {
 	++TickCount;
 
-	if (TickCount >= 60.0f)
+	if (TickCount >= 15.0f)
 	{
-		TryToSpawnGrass();
+		UpdateSpawnHammer();
 
 		DrawSpawningComponents();
-
-		if (RotatorRotation.Yaw == 360.0 && RotatorRotation.Pitch == -45.0) DestroyRuntimeSpawningComponentsAndDisableTick();
 
 		++SpawningCompleteTicks;
 
@@ -233,7 +241,6 @@ void AGrassB::DrawSpawningComponents()
 {
 	const FVector Start{ Spawner->GetComponentLocation() };
 	const FVector Direction{ -Spawner->GetUpVector() };
-	const FVector FarGroundEnd{ Start + (Direction * 35.0) };
 	const FVector GroundEnd{ Start + (Direction * 5.0) };
 
 	DrawDebugSphere(GetWorld(), Start, 1.0f, 6, FColor::Blue, false, 5.0f);

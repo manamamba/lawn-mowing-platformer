@@ -35,14 +35,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void TryToSpawnGrass();
-	bool FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction);
-	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction);
-	bool GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction);
-	void SpawnGrass(FHitResult& Hit);
+	void UpdateSpawnHammer();
 
-	void UpdateRotatorYawAndPitch();
-	void UpdateRotatorPitch();
+	void TryToSpawnGrass(const double& PitchMax);
+	bool FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
+	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
+	bool GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
+	void SpawnGrass(FHitResult& Hit, const double& PitchMax);
+
+	void UpdateRotatorYawAndPitch(const double& PitchMax);
+	void UpdateRotatorPitch(const double& PitchMax);
 
 	void DestroyRuntimeSpawningComponentsAndDisableTick();
 
@@ -60,6 +62,5 @@ private:
 
 	float TickCount{};
 	int32 SpawningCompleteTicks{ 1 };
-
 
 };
