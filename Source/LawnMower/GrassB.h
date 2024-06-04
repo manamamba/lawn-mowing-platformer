@@ -60,6 +60,8 @@ private:
 	FRotator RotatorRotation{};
 	FTransform RootTransform{};
 
+	double StartingRotatorYaw{};
+
 	float TickCount{};
 	int32 SpawningCompleteTicks{ 1 };
 

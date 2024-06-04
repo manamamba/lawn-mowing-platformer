@@ -86,8 +86,8 @@ void AGrassB::SetRuntimeMeshComponentProperties()
 
 void AGrassB::SetRuntimeSpawningComponentProperties()
 {
-	RotatorRotation = FRotator{ 45.0, 0.0, 0.0 };
-
+	StartingRotatorYaw = FMath::RandRange(0, 359);
+	RotatorRotation = FRotator{ 45.0, StartingRotatorYaw, 0.0 };
 	Rotator->SetRelativeRotation(RotatorRotation);
 
 	Rotator->SetRelativeLocation(FVector{ 0.0, 0.0, 3.0 });
@@ -111,7 +111,7 @@ void AGrassB::UpdateSpawnHammer()
 
 	TryToSpawnGrass(PitchMax);
 
-	if (RotatorRotation.Yaw == 360.0 && RotatorRotation.Pitch == -PitchMax) DestroyRuntimeSpawningComponentsAndDisableTick();
+	if (RotatorRotation.Yaw == StartingRotatorYaw + 360.0 && RotatorRotation.Pitch == -PitchMax) DestroyRuntimeSpawningComponentsAndDisableTick();
 }
 
 
@@ -152,7 +152,7 @@ bool AGrassB::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direct
 {
 	FHitResult SweepHit{};
 
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(7.0) };
 	
 	const FVector End{ Start + (Direction * RayCastLength) };
 
@@ -194,7 +194,7 @@ void AGrassB::UpdateRotatorYawAndPitch(const double& PitchMax)
 {
 	RotatorRotation.Yaw += 60.0;
 
-	if (RotatorRotation.Yaw >= 360.0) RotatorRotation.Pitch = -PitchMax;
+	if (RotatorRotation.Yaw >= StartingRotatorYaw + 360.0) RotatorRotation.Pitch = -PitchMax;
 	else RotatorRotation.Pitch = PitchMax;
 	
 	Rotator->SetWorldRotation(UKismetMathLibrary::TransformRotation(RootTransform, RotatorRotation));
