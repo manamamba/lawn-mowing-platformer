@@ -32,17 +32,18 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void TickSlowerWithDrawing();
-
 	void TryToSpawnGrass();
-	bool GroundHitBySpawnerRayCast(FHitResult& Hit);
-	bool GrassHitBySpawnerSweep(FHitResult& Hit);
+	bool FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction);
+	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction);
+	bool GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction);
 	void SpawnGrass(FHitResult& Hit);
 
-	void UpdateRotatorRotation();
-	void ResetSpawningHammer();
-	bool DestroyRuntimeComponentsAndDisableTick();
+	void UpdateRotatorYawAndPitch();
+	void UpdateRotatorPitch();
 
+	void DestroyRuntimeSpawningComponentsAndDisableTick();
+
+	void TickSlowerWithDrawing();
 	void DrawSpawningComponents();
 
 private:

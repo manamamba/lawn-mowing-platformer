@@ -196,11 +196,11 @@ void AMowerRC::Tick(float DeltaTime)
 	ResetDrag();
 	ResetPlayerInputData();
 
-	// LogTickTimer();
+	// LogTickTime();
 }
 
 
-void AMowerRC::StartTickTimer()
+void AMowerRC::GetTickTime()
 {
 	TickTime = FPlatformTime::Seconds();
 }
@@ -721,7 +721,7 @@ void AMowerRC::ResetPlayerInputData()
 }
 
 
-void AMowerRC::LogTickTimer()
+void AMowerRC::LogTickTime()
 {
 	TickTime = FPlatformTime::Seconds() - TickTime;
 	if (TickTime > LongestTickTime) LongestTickTime = TickTime;

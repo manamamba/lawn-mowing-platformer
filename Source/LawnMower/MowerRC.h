@@ -162,7 +162,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void StartTickTimer();
+	void GetTickTime();
 
 	void Float() const;
 
@@ -220,7 +220,7 @@ private:
 	void ResetDrag();
 	void ResetPlayerInputData();
 
-	void LogTickTimer();
+	void LogTickTime();
 
 private:
 	double TickTime{};
