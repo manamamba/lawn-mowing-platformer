@@ -1,24 +1,24 @@
-# Drift Mower
-#### Video Demo:  <URL HERE>
-#### Description: A driving game with custom vehicle physics and grass mowing. Made using Unreal Engine and C++!
+# Lawn Mowing Platformer
+#### Video Demo: 
+#### Description: Mowing platformer with custom vehicle physics ( coded in C++ )
 
 <p>One of the reasons I wanted to take this amazing course was to try my hand at game development, 
 so for my final project, nothing else interested me more than trying to make a game! I decided I wanted to make a 3D game in Unreal using C++. 
 Having no experience with either, I used the following resources before getting started:</p>
 
-[`Learn C++ Tutorial Series`](https://www.learncpp.com/){:target="_blank"}
-[`Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games Course`](https://www.udemy.com/course/unrealcourse/){:target="_blank"}
-[`Blender Guru’s Blender 4.0 Donut Tutorial`](https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z){:target="_blank"}
+<a href="https://www.learncpp.com/" target="_blank">Learn C++ Tutorial Series</a>
+<a href="https://www.udemy.com/course/unrealcourse/" target="_blank">Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games Course</a>
+<a href="https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z" target="_blank">Blender Guru’s Blender 4.0 Donut Tutorial</a>
 
 <p>Nearly 3 months later, I felt that I was ready to make my lawn mowing game!</p>
 
-#### The Lawn Mower
+### <span style="color:green">The Lawn Mower</span>.
 
 <p>The first thing I focused on was making my player character, the lawn mower. 
 I wanted my lawn mower to have exaggerated vehicle physics akin to games like Rocket League. 
 My first attempt at a physics enabled vehicle was inspired by the following tutorial:</p>
 
-[`UE4 Car Vehicle Wheel with Suspension using Physics: 00:00 - 11:58`](https://www.youtube.com/watch?v=PWTCM6sZ6OE){:target="_blank"}
+<a href="https://www.youtube.com/watch?v=PWTCM6sZ6OE" target="_blank">UE4 Car Vehicle Wheel with Suspension using Physics: 00:00 - 11:58</a>
 
 <p>I created a similar vehicle class as seen in the video ( Mower.cpp and Mower.h ) and gave it the ability to accelerate, 
 reverse, brake, steer and even jump, but it had a glaring issue that I could not ignore. The way that the wheels were constrained 
@@ -30,7 +30,7 @@ that allowed me to animate the wheels and still use physics.</p>
 on the corners of a physics rigid body to look for ground and apply force upward onto the vehicle to keep it hovering in the air, 
 then use other forces and torque to move it and animate the meshes separately:</p>
 
-[`Space Dust Racing UE4 Arcade Vehicle Physics Tour`](https://www.youtube.com/watch?v=LG1CtlFRmpU){:target="_blank"}
+<a href="https://www.youtube.com/watch?v=LG1CtlFRmpU" target="_blank">Space Dust Racing UE4 Arcade Vehicle Physics Tour</a>
 
 <p>Before making my mower hover off the ground, I needed to know how much force to apply upward to oppose gravity, 
 which for Unreal turned out to be the mass of the rigid body multiplied by 980 for gravitational acceleration. 
@@ -64,9 +64,9 @@ This made it easier for me to follow and recall what each function was doing wit
 in cpp function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
 to jump around my code while tuning a new feature.</p> 
 
-#### Spawning Grass
+### <span style="color:green">Spawning Grass</span>.
 
 <p>The second biggest challenge I had before me was that I wanted a way to generate the grass at runtime using a blue noise pattern. 
 I learned about this concept of grass generation from the following video:</p>
 
-[`Simple Code, High Performance 40:38 - 46:13`](https://www.youtube.com/watch?v=Ge3aKEmZcqY&t=2438s){:target="_blank"}
+<a href="https://www.youtube.com/watch?v=Ge3aKEmZcqY&t=2438s" target="_blank">Simple Code, High Performance 40:38 - 46:13</a>
