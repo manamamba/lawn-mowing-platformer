@@ -335,7 +335,7 @@ void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
 	if (!WheelsGrounded) return;
 
-	if (bAccelerating && WheelsGrounded == 4) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	if (bAccelerating && WheelsGrounded) AccelerationRatio += AcceleratingDirection * DeltaTime;
 	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);

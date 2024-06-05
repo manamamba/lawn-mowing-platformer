@@ -61,7 +61,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
-	const FVector ColliderDimensions{ 30.5, 26.0, 4.0 };
+	const FVector ColliderDimensions{ 36.0, 30.0, 4.0 };
 
 	const FVector ColliderPosition{ 0.0, 0.0, -13.0 };
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
@@ -283,4 +283,5 @@ private:
 
 	float TickCount{};
 	bool bTickReset{};
+
 };
