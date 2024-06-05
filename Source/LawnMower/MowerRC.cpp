@@ -31,6 +31,7 @@ void AMowerRC::CreateAndAssignComponentSubObjects()
 	BlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 }
 
 
@@ -45,6 +46,7 @@ void AMowerRC::SetupComponentAttachments()
 	BlWheel->SetupAttachment(RootComponent);
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
+	Collider->SetupAttachment(RootComponent);
 }
 
 
@@ -63,6 +65,14 @@ void AMowerRC::SetComponentProperties()
 	CameraArm->bInheritPitch = false;
 	CameraArm->bInheritYaw = false;
 	CameraArm->bInheritRoll = false;
+
+	Collider->SetBoxExtent(ColliderDimensions);
+	Collider->SetRelativeLocation(ColliderPosition);
+	Collider->SetCollisionProfileName(TEXT("Custom..."));
+	Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+	Collider->SetCollisionObjectType(ECC_GameTraceChannel3);
+	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
 	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
@@ -186,7 +196,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
 
-	DrawRayCastGroup(ForceRayCasts);
+	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
 	// DrawAcceleration();
 	// DrawDrift();

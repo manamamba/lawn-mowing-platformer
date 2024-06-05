@@ -44,6 +44,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -60,7 +61,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
+	const FVector ColliderDimensions{ 30.5, 20.0, 4.0 };
 
+	const FVector ColliderPosition{ 0.0, 0.0, -13.0 };
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
 	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
 	const FVector FrWheelPosition{ 26.0, 24.0, -9.0 };

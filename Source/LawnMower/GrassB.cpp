@@ -41,6 +41,8 @@ void AGrassB::BeginPlay()
 	CreateAndAttachRuntimeComponents();
 	SetRuntimeMeshComponentProperties();
 	SetRuntimeSpawningComponentProperties();
+
+	if(Mesh) Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassB::Cut);
 }
 
 
@@ -217,6 +219,20 @@ void AGrassB::DestroyRuntimeSpawningComponentsAndDisableTick()
 	SetActorTickEnabled(false);
 
 	// UE_LOG(LogTemp, Warning, TEXT("Spawning complete in %i ticks!"), SpawningCompleteTicks);
+}
+
+
+UFUNCTION() void AGrassB::Cut(
+	UPrimitiveComponent* OverlapComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	// UE_LOG(LogTemp, Warning, TEXT("%s Cut!"), *GetName());
+
+	Destroy();
 }
 
 

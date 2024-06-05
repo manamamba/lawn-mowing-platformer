@@ -16,6 +16,14 @@ class LAWNMOWER_API AGrassB : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
 	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassB> GrassBClass{};
 
+	UFUNCTION() void Cut(
+		UPrimitiveComponent* OverlapComp, 
+		AActor* OtherActor, 
+		UPrimitiveComponent* OtherComp, 
+		int32 OtherBodyIndex, 
+		bool bFromSweep, 
+		const FHitResult& SweepResult);
+
 public:	
 	AGrassB();
 
