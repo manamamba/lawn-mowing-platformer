@@ -1,6 +1,6 @@
 # Lawn Mowing Platformer
 #### Video Demo: 
-#### Description: Mowing platformer with custom vehicle physics ( coded in C++ )
+#### Description: Mowing platformer with custom vehicle physics (coded in C++)
 
 <p>One of the reasons I wanted to take this amazing course was to try my hand at game development, 
 so for my final project, nothing else interested me more than trying to make a game! I decided I wanted to make a 3D game in Unreal using C++. 
@@ -20,7 +20,7 @@ My first attempt at a physics enabled vehicle was inspired by the following tuto
 
 <a href="https://www.youtube.com/watch?v=PWTCM6sZ6OE" target="_blank">UE4 Car Vehicle Wheel with Suspension using Physics: 00:00 - 11:58</a>
 
-<p>I created a similar vehicle class as seen in the video ( Mower.cpp and Mower.h ) and gave it the ability to accelerate, 
+<p>I created a similar vehicle class as seen in the video (Mower.cpp / Mower.h) and gave it the ability to accelerate, 
 reverse, brake, steer and even jump, but it had a glaring issue that I could not ignore. The way that the wheels were constrained 
 to the lawn mower body meant that there was no way to steer the wheels in the yaw direction and also rotate them in the pitch direction, 
 it was one or the other. So I went back to the drawing board to see if there was another way I could construct my vehicle from scratch 
@@ -39,10 +39,10 @@ That’s when I discovered the second key to hovering, Linear and Angular damping.
 which is a parent class of the rigid body component (UBoxComponent) on my mower. Increasing these variables’ values 
 caused the floating mower to slow down after being moved or rotated by applying a sort of friction.</p>
 
-<p>For the starting point of my traces, I initialized const FVector ( x, y, z ) member variables storing positions 
-relative to the local space of my new mower class ( MowerRC.cpp and MowerRC.h ). Then I defined two structs, FRayCastGroup and FLocalOrigins, 
-to more easily pass the FHitResult member variables ( used to store information about what the trace hits) and the trace starting point FVectors 
-into the functions where I call the line trace for each corner of the mower. Using Transform calls, the FVectors passed in could be 
+<p>For the starting point of my traces, I initialized const FVector (x, y, z) member variables storing positions 
+relative to the local space of my new mower class (MowerRC.cpp / MowerRC.h). Then I defined two structs, FRayCastGroup and FLocalOrigins, 
+to more easily pass the FHitResult member variables (used to store information about what the trace hits) and the trace starting point FVectors 
+into the functions where I call a line trace for each corner of the mower. Using Transform calls, the FVectors passed in could be 
 used to initialize new FVectors that relate to those starting points on the mower, but in world space. Just as in the video, 
 since there are four points at which force is applied, the amount of force required to oppose gravity divided by four would mean 
 that the compression of the raycasts should be around 0.25 of 1.0.</p>
@@ -54,19 +54,41 @@ and one for angular damping, so I could add up those floats later using a for ea
 After some tinkering I found values that worked well and now I had a hovering mower! But that was only the beginning of the mower development journey, 
 and I went on to add a bunch of functionality for movement, and eventually my wheel animations!</p>
 
-<p>I found that using member variables to represent local space FVectors and FRotators ( pitch, yaw, roll ), learning how to use transforms, 
-inverse transforms ( in the case of my custom camera movement ), traces, and control non-const member variable values each Tick 
-( the function called each frame ) were important to my implementation success.</p> 
+<p>I found that using member variables to represent local space FVectors and FRotators (pitch, yaw, roll), learning how to take advantage of transforms 
+and inverse transforms (in the case of my custom camera movement), traces, and Tick order were important to my development success.</p>
 
 <p>Throughout the development of my mower class, which went through many refactors, I tried to give my functions and variables more descriptive names 
 for readability and organize my code files, so that the functions and variables were listed in the order they were called each frame. 
 This made it easier for me to follow and recall what each function was doing without needing a ton of comments. Also, replacing const variables 
-in cpp function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
-to jump around my code while tuning a new feature.</p> 
+in function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
+to jump around my code while tuning a new feature.</p>
 
 <strong><span style="color:green">Spawning Grass</span></strong>
 
-<p>The second biggest challenge I had before me was that I wanted a way to generate the grass at runtime using a blue noise pattern. 
+<p>The second biggest challenge I had before me was that I wanted a way to generate the grass at runtime as an expanding blue-noise wave pattern. 
 I learned about this concept of grass generation from the following video:</p>
 
 <a href="https://www.youtube.com/watch?v=Ge3aKEmZcqY&t=2438s" target="_blank">Simple Code, High Performance 40:38 - 46:13</a>
+
+<p>One of the most important things to consider for my idea was spawning grass on angles correctly, which ideally I wanted to do using something 
+like a curved trace, where I could use the impact normal (a vector in the opposite direction of the trace hit) to inform the rotation of new grass. 
+But unfortunately, I could not find any such member function in the UWorld class.</p>
+
+<p>So I came up with the idea of using the same trace I used for the mower hovering (and later the wheel suspension animations) at various angles 
+to look for ground, do a sweep (a trace using an object like a sphere) for other grass, then spawn new grass if hitting ground but not grass. 
+I imagined it like a hammer swinging down, and when it struck the ground, it would spawn new grass if there wasn’t any already at that location.</p> 
+
+<p>First I made a grass spawner to test that I could spawn grass blades when hitting ground but not grass (GrassSpawner.cpp / GrassSpawner.h). 
+This ended up operating like a pen that I could use to draw grass onto the ground. Now that I had the spawning realized, it was time to make 
+my grass spawning class (Grass.cpp / Grass.h)</p>
+
+<p>For the hammer swing, I needed to use something to represent the rotation of the hammer and the direction of the hammer’s head, so I used two 
+USceneComponent class objects, constructed at runtime (so that I could destroy them after the spawning process to free their allocated memory).</p>
+
+<p>One of these USceneComponents, I named the Spawner, the hammer’s head, which I would use to get the downward trace direction, by using a flipped 
+up vector that was transformed from the local space of the USceneComponent to world space. The other, I named the Rotator, which would change 
+pitch by -22.5 degrees each frame, and change yaw by +60 degrees each time the hammer completed a swing. The range of a swing’s pitch was from 
+67.5 degrees to -67.5 degrees, so the hammer had 7 pitch positions and 6 yaw positions. The entire process of hammer swings for one blade of grass, 
+that could not find ground or ground where grass did not exist, had an upper-bound of 42 frames! This had two problems, one it was pretty slow 
+and two the overlapping calculations of too many of these hammers swinging at once impacted the performance greatly!</p>
+
