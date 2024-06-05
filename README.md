@@ -6,13 +6,13 @@
 so for my final project, nothing else interested me more than trying to make a game! I decided I wanted to make a 3D game in Unreal using C++. 
 Having no experience with either, I used the following resources before getting started:</p>
 
-<a href="https://www.learncpp.com/" target="_blank">Learn C++ Tutorial Series</a>
-<a href="https://www.udemy.com/course/unrealcourse/" target="_blank">Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games Course</a>
+<a href="https://www.learncpp.com/" target="_blank">Learn C++ Tutorial Series</a><br>
+<a href="https://www.udemy.com/course/unrealcourse/" target="_blank">Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games Course</a><br>
 <a href="https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z" target="_blank">Blender Guru’s Blender 4.0 Donut Tutorial</a>
 
 <p>Nearly 3 months later, I felt that I was ready to make my lawn mowing game!</p>
 
-### <span style="color:green">The Lawn Mower</span>.
+<strong><span style="color:green">The Lawn Mower</span></strong>
 
 <p>The first thing I focused on was making my player character, the lawn mower. 
 I wanted my lawn mower to have exaggerated vehicle physics akin to games like Rocket League. 
@@ -64,7 +64,7 @@ This made it easier for me to follow and recall what each function was doing wit
 in cpp function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
 to jump around my code while tuning a new feature.</p> 
 
-### <span style="color:green">Spawning Grass</span>.
+<strong><span style="color:green">Spawning Grass</span></strong>
 
 <p>The second biggest challenge I had before me was that I wanted a way to generate the grass at runtime using a blue noise pattern. 
 I learned about this concept of grass generation from the following video:</p>
