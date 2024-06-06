@@ -63,9 +63,6 @@ void AGrass::CreateAndAttachSpawningComponents()
 
 	SetSpawningComponentsRotationAndLocation();
 
-	Rotator->SetMobility(EComponentMobility::Type::Movable);
-	Spawner->SetMobility(EComponentMobility::Type::Movable);
-
 	AddInstanceComponent(Rotator);
 	AddInstanceComponent(Spawner);
 }

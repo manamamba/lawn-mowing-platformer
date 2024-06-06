@@ -47,11 +47,11 @@ used to initialize new FVectors that relate to those starting points on the mowe
 since there are four points at which force is applied, the amount of force required to oppose gravity divided by four would mean 
 that the compression of the raycasts should be around 0.25 of 1.0.</p>
 
-<p>So now the mower can float, but it was not stable until I applied linear and angular damping based on the compression of the traces 
-and how many traces were hitting the ground. I did this by storing the float values of successful traces in dynamic arrays, 
-(a TArray specifically, the Unreal equivalent of the standard library dynamic array class std::vector) one for linear damping 
+<p>So now the mower could float, but it was not stable until I applied linear and angular damping based on the compression of the traces 
+and how many were hitting the ground. I did this by storing the float values of successful traces in dynamic arrays, 
+(TArrays specifically, the Unreal equivalent of the standard library dynamic array class std::vector) one for linear damping 
 and one for angular damping, so I could add up those floats later using a for each loop and apply the correct amount of damping each frame. 
-After some tinkering I found values that worked well and now I had a hovering mower! But that was only the beginning of the mower development journey, 
+After some tinkering, I found values that worked well and now I had a hovering mower! But that was only the beginning of the mower development journey, 
 and I went on to add a bunch of functionality for movement by applying force to the rigid body, and eventually my wheel animations!</p>
 
 <p>I found that learning how to take advantage of FVector and FRotator (pitch, yaw, roll) member variables to represent local space values, transforms 
@@ -59,7 +59,7 @@ and inverse transforms (in the case of my custom camera movement), traces, and T
 were important to my development success.</p>
 
 <p>Throughout the development of my mower class, which went through many refactors, I tried to give my functions and variables more descriptive names 
-for readability and organize my code files, so that the functions and variables were listed in the order they were called each frame. 
+for readability and organize my code files, so that the functions and variables were listed in the order they were called or referenced each frame. 
 This made it easier for me to follow and recall what each function was doing without needing a ton of comments. Also, replacing const variables 
 in function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
 to jump around my code while tuning a new feature.</p>
@@ -72,14 +72,14 @@ I learned about this concept of grass generation from the following video:</p>
 <a href="https://www.youtube.com/watch?v=Ge3aKEmZcqY&t=2438s" target="_blank">Simple Code, High Performance 40:38 - 46:13</a>
 
 <p>One of the most important things to consider for my idea was spawning grass on angles correctly, which ideally I wanted to do using something 
-like a curved trace, where I could use the impact normal (a vector in the opposite direction of the trace hit) to inform the rotation of new grass. 
+like a curved trace, where I could use the impact normal (a vector in the opposite direction of a trace hit) to inform the rotation of new grass. 
 But unfortunately, I could not find any such member function in the UWorld class.</p>
 
 <p>So I came up with the idea of using the same trace I used for the mower hovering (and later the wheel suspension animations) at various angles 
 to look for ground, do a sweep (a trace using an object like a sphere) for other grass, then spawn new grass if hitting ground but not grass. 
 I imagined it like a hammer swinging down, and when it struck the ground, it would spawn new grass if there wasn’t any already at that location.</p> 
 
-<p>First I made a grass spawner to test that I could spawn grass blades when hitting ground but not grass (GrassSpawner.cpp / GrassSpawner.h). 
+<p>First, I made a grass spawner to test that I could spawn grass blades when hitting ground but not grass (GrassSpawner.cpp / GrassSpawner.h). 
 This ended up operating like a pen that I could use to draw grass onto the ground. Now that I had the spawning realized, it was time to make 
 my grass spawning class (Grass.cpp / Grass.h)</p>
 
@@ -89,25 +89,26 @@ USceneComponent class objects, constructed at runtime (so that I could destroy t
 <p>One of these USceneComponents I named the Spawner, the hammer’s head, which I would use to get the downward trace direction, by using a flipped 
 up vector that was transformed from the local space of the USceneComponent to world space. The other, I named the Rotator, which would change 
 pitch by -22.5 degrees each frame, and change yaw by +60 degrees each time the hammer completed a swing. The range of a swing’s pitch was from 
-67.5 degrees to -67.5 degrees, so the hammer had 7 pitch positions and 6 yaw positions. The entire process of hammer swings for one blade of grass, 
-that could not find ground or ground where grass did not exist, had an upper-bound of 42 frames! This had two problems, one it was pretty slow 
+67.5 degrees to -67.5 degrees, so the hammer had 7 pitch positions and 6 yaw positions. And since I attached the Spawner to the Rotator, when the
+rotation of Rotator was changed, the Spawner would follow it. The entire process of hammer swings for one blade of grass, 
+that could not find ground or ground where grass did not exist, had an upper-bound of 42 frames. This had two problems, one it was pretty slow 
 and two the overlapping calculations of too many of these hammers swinging at once impacted the performance greatly!</p>
 
 <p>I updated the code to do a trace for grass before the trace for ground at each pitch angle and cancel a swing early if grass was hit, rather than 
 waiting for a ground hit to check for grass. This helped some with the processing of the calculations, but I also noticed that grass would 
-spawn over hard edges, because of the range of the swing and the length of the trace. I needed a way to detect if a hammer swing was near an edge.</p>
+spawn over hard edges, because of the range of the swing. So I needed a way to detect if a hammer swing was near a steep edge, if I wanted it
+to still spawn on angles correctly.</p>
 
 <p>Besides performance issues with tracing and spawning, another problem was the impact on the renderer to draw thousands of blades on screen at one time. 
-Through research and testing, I found the biggest improvement to rendering performance by enabling nanite on my grass blade mesh, and disabling 
-Unreal’s lumen system for lighting. Then I found that I might get even better rendering performance if my grass meshes were static instead of movable. 
-However, since the meshes were attached before instantiation, and not afterwards during runtime, this meant that I could not randomize the mesh’s rotation 
-and scale for a natural look and also have it be static.</p>
+Through research and testing, I found the biggest improvement to rendering performance by enabling Nanite on my grass blade mesh, and disabling 
+Unreal’s lighting feature Lumen for my project. Then I found that I might get even better rendering performance if my grass meshes were static 
+instead of movable.</p>
 
 <p>So with all of the issues, I developed a newer version of my Grass spawning class (GrassB.cpp / GrassB.h) with a shorter pitch range, an edge detection 
 trace on the first pitch position of each swing to cancel early if ground was not hit at a long distance, a mesh component that is created, attached, 
-had its transform randomized, and set to static after instantiation, randomized yaw position of the Rotator component for more natural looking spawn placement. 
-Now the upper-bound is 30 frames, or 6 frames if the object is surrounded by grass or cannot find ground! Even with this better version though, 
-I still experience poor performance ( low framerates ) when so many are hammering away. So in the future I want to build an even better version, 
-as I have an idea for a spawning process with a lower and upper-bound of 1 frame!</p>
+has its transform randomized, and set to be static after instantiation, and a randomized yaw position for the Rotator so spawn placement looks more natural. 
+Now the upper-bound is 30 frames, or 6 frames if the object is surrounded by grass or cannot find ground! Even with this better version however, 
+I still experience poor performance when so many are hammering away. So in the future, I have a plan to build an even better version with a lower 
+and upper-bound of 1 frame!</p>
 
 <strong><span style="color:green">Gameplay</span></strong>
