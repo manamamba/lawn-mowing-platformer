@@ -378,9 +378,7 @@ void AMowerRC::UpdateJumpingRatio(const float DeltaTime)
 {
 	if (!Jumping) bStoppedJumping = false;
 
-	if (!WheelsGrounded && !bStartedJumping) return;
-
-	if (bStoppedJumping) return;
+	if (!WheelsGrounded && !bStartedJumping || bStoppedJumping) return;
 
 	if (WheelsGrounded > 2 && Jumping && !bStartedJumping)
 	{
