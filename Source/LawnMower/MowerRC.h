@@ -114,7 +114,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AirTimeRatioIncreaseRate{ 2.0f };
 	const float AirTimeMinimum{ 0.25f };
 
-	const double StalledRollTorqueMultiplier{ 2.0 };
+	const double StalledRollTorqueMultiplier{ 2.5 };
 	
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
