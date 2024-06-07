@@ -146,9 +146,9 @@ void AMowerRC::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Brake);
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Steer);
 		EnhancedInputComponent->BindAction(DriftInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Drift);
+		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMowerRC::Jump);
 	}
 }
-
 
 void AMowerRC::MoveCamera(const FInputActionValue& Value) { RotatingCameraDirection = Value.Get<FVector2D>(); }
 void AMowerRC::ResetCamera(const FInputActionValue& Value) { bCameraReset = Value.Get<bool>(); }
@@ -157,6 +157,7 @@ void AMowerRC::Pitch(const FInputActionValue& Value) { PitchingDirection = Value
 void AMowerRC::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>(); }
 void AMowerRC::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 void AMowerRC::Drift(const FInputActionValue& Value) { Drifting = Value.Get<float>(); }
+void AMowerRC::Jump(const FInputActionValue& Value) { Jumping = Value.Get<float>(); }
 
 
 void AMowerRC::Tick(float DeltaTime)
@@ -178,13 +179,18 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateGroundedMovementConditions();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
+	UpdateJumpingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
+
 	ApplyAccelerationForce();
 	ApplySteeringTorque();
 	ApplyDriftingForce();
+	ApplyJumpingForce();
 
 	UpdateAirTimeRatio(DeltaTime);
-	ApplyAirTimeAntiGravitationalForce();
+
+	// ApplyAirTimeAntiGravitationalForce();
+
 	ApplyAirTimePitch();
 	ApplyAirTimeRoll();
 
@@ -201,7 +207,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawAcceleration();
 	// DrawDrift();
 
-	// LogMotionData(DeltaTime);
+	LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
@@ -333,9 +339,10 @@ void AMowerRC::UpdateGroundedMovementConditions()
 
 void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
-	if (!WheelsGrounded) return;
-
+	// if (!WheelsGrounded) return;
+	
 	if (bAccelerating && WheelsGrounded) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	else if (bAccelerating && !WheelsGrounded) return;
 	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
@@ -365,6 +372,33 @@ void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 	if (CanDrift) DriftingRatio += -Steering * DriftingRate * DeltaTime;
 
 	LimitRatio(DriftingRatio, DriftingRatioMaximum);
+}
+
+
+void AMowerRC::UpdateJumpingRatio(const float DeltaTime)
+{
+	if (!Jumping) bStoppedJumping = false;
+
+	if (!WheelsGrounded && !bStartedJumping) return;
+
+	if (bStoppedJumping) return;
+
+	if (WheelsGrounded > 2 && Jumping && !bStartedJumping)
+	{
+		JumpingForceDirection = PhysicsBodyUpVector;
+		bStartedJumping = true;
+	}
+	
+	if (Jumping && bStartedJumping) JumpingRatio += JumpingRate * DeltaTime;
+
+	LimitRatio(JumpingRatio, JumpingRatioMaximum);
+
+	if ((!Jumping && !WheelsGrounded) || JumpingRatio == JumpingRatioMaximum)
+	{
+		JumpingRatio = 0.0f;
+		bStartedJumping = false;
+		bStoppedJumping = true;
+	}
 }
 
 
@@ -434,6 +468,16 @@ void AMowerRC::ApplyDriftingForce()
 
 	if (DriftingRatio > 0.0f) PhysicsBody->AddForceAtLocation(PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
+}
+
+
+void AMowerRC::ApplyJumpingForce()
+{
+	if (!bStartedJumping) return;
+
+	const double JumpingForce{ JumpingForceMaximum * (JumpingRatioMaximum - JumpingRatio) };
+
+	PhysicsBody->AddForce(JumpingForceDirection * JumpingForce);
 }
 
 
@@ -681,6 +725,10 @@ void AMowerRC::LogMotionData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("bStartedJumping     %u"), bStartedJumping);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("bStoppedJumping     %u"), bStoppedJumping);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("JumpingRatio        %f"), JumpingRatio);
+
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
@@ -724,6 +772,7 @@ void AMowerRC::ResetPlayerInputData()
 	Braking = 0.0f;
 	Steering = 0.0f;
 	Drifting = 0.0f;
+	Jumping = 0.0f;
 
 	bMovingByAccumulatedAcceleration = false;
 	bAccelerating = false;

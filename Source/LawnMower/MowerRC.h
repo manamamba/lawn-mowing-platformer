@@ -54,6 +54,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* BrakeInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction {};
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
@@ -101,6 +102,10 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingRate{ 3.0f };
 	const float DriftingDecayRate{ 3.0f };
+
+	const double JumpingForceMaximum{ 125000.0 };
+	const float JumpingRatioMaximum{ 1.0f };
+	const float JumpingRate{ 3.0f };
 
 	const double AirTimeAntiGravitationalForce{ PhysicsBodyMass * 245.0 };
 	const float AirTimeRatioMaxium{ 3.0 };
@@ -151,6 +156,7 @@ private:
 	void Brake(const FInputActionValue& Value);
 	void Steer(const FInputActionValue& Value);
 	void Drift(const FInputActionValue& Value);
+	void Jump(const FInputActionValue& Value);
 
 private:
 	FVector2D RotatingCameraDirection{};
@@ -160,6 +166,7 @@ private:
 	float Braking{};
 	float Steering{};
 	float Drifting{};
+	float Jumping{};
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -184,12 +191,15 @@ private:
 	void UpdateGroundedMovementConditions();
 	void UpdateAccelerationRatio(const float DeltaTime);
 	void UpdateDriftingRatio(const float DeltaTime);
+	void UpdateJumpingRatio(const float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
 	void LimitRatio(float& Ratio, const float RatioMaximum);
 	void UpdateAcceleratingDirection();
+
 	void ApplyAccelerationForce();
 	void ApplySteeringTorque();
 	void ApplyDriftingForce();
+	void ApplyJumpingForce();
 
 	void UpdateAirTimeRatio(const float DeltaTime);
 	void ApplyAirTimeAntiGravitationalForce();
@@ -262,6 +272,11 @@ private:
 	float AccelerationForce{};
 	float AccelerationRatio{};
 	float DriftingRatio{};
+
+	FVector JumpingForceDirection{};
+	float JumpingRatio{};
+	bool bStartedJumping{};
+	bool bStoppedJumping{};
 
 	float AirTimeRatio{};
 	bool bAirTimeMinimumExceeded{};
