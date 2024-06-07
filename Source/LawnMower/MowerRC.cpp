@@ -181,6 +181,7 @@ void AMowerRC::Tick(float DeltaTime)
 	UpdateGroundedMovementConditions();
 	UpdateAccelerationRatio(DeltaTime);
 	UpdateDriftingRatio(DeltaTime);
+	UpdateJumpReadyRatio(DeltaTime);
 	UpdateJumpingRatio(DeltaTime);
 	UpdateAcceleratingDirection();
 
@@ -374,13 +375,22 @@ void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 }
 
 
+void AMowerRC::UpdateJumpReadyRatio(const float DeltaTime)
+{
+	if (WheelsGrounded == 4) JumpReadyRatio += JumpReadyRate * DeltaTime;
+	else JumpReadyRatio = 0.0f;
+
+	LimitRatio(JumpReadyRatio, JumpReadyRatioMaximum);
+	
+	if (JumpReadyRatio == JumpReadyRatioMaximum) bJumpReady = true;
+}
+
+
 void AMowerRC::UpdateJumpingRatio(const float DeltaTime)
 {
-	if (!Jumping) bStoppedJumping = false;
+	if (!WheelsGrounded && !bStartedJumping) return;
 
-	if (!WheelsGrounded && !bStartedJumping || bStoppedJumping) return;
-
-	if (WheelsGrounded > 2 && Jumping && !bStartedJumping)
+	if (WheelsGrounded && Jumping && !bStartedJumping && bJumpReady)
 	{
 		JumpingForceDirection = PhysicsBodyUpVector;
 		bStartedJumping = true;
@@ -393,8 +403,8 @@ void AMowerRC::UpdateJumpingRatio(const float DeltaTime)
 	if ((!Jumping && !WheelsGrounded) || JumpingRatio == JumpingRatioMaximum)
 	{
 		JumpingRatio = 0.0f;
+		bJumpReady = false;
 		bStartedJumping = false;
-		bStoppedJumping = true;
 	}
 }
 
@@ -724,8 +734,12 @@ void AMowerRC::DrawDrift() const
 void AMowerRC::LogMotionData(const float DeltaTime)
 {
 	UpdateTickCount(DeltaTime);
-
+	
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("WheelsGrounded      %i"), WheelsGrounded);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("JumpReadyRatio      %f"), JumpReadyRatio);
+
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);

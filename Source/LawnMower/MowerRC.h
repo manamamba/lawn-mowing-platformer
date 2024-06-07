@@ -103,6 +103,9 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingRate{ 3.0f };
 	const float DriftingDecayRate{ 3.0f };
 
+	const float JumpReadyRatioMaximum{ 1.0f };
+	const float JumpReadyRate{ 2.5f };
+
 	const double JumpingForceMaximum{ 200000.0 };
 	const float JumpingRatioMaximum{ 1.0f };
 	const float JumpingRate{ 5.0f };
@@ -193,6 +196,7 @@ private:
 	void UpdateGroundedMovementConditions();
 	void UpdateAccelerationRatio(const float DeltaTime);
 	void UpdateDriftingRatio(const float DeltaTime);
+	void UpdateJumpReadyRatio(const float DeltaTime);
 	void UpdateJumpingRatio(const float DeltaTime);
 	void DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime);
 	void LimitRatio(float& Ratio, const float RatioMaximum);
@@ -276,10 +280,12 @@ private:
 	float AccelerationRatio{};
 	float DriftingRatio{};
 
+	float JumpReadyRatio{};
+	bool bJumpReady{};
+
 	FVector JumpingForceDirection{};
 	float JumpingRatio{};
 	bool bStartedJumping{};
-	bool bStoppedJumping{};
 
 	float AirTimeRatio{};
 	bool bAirTimeMinimumExceeded{};
