@@ -618,7 +618,7 @@ double AMowerRC::GetWheelPitch(const double PitchRate, const float Ratio, const 
 {
 	double WheelPitch{ PitchRate * (Ratio / RatioMaximum) * DeltaTime };
 
-	if (WheelPitch == 0.0) WheelPitch = -PhysicsBodySpeed * WheelOnSlopePitchRate;
+	if (WheelPitch == 0.0 && WheelsGrounded) WheelPitch = -PhysicsBodySpeed * WheelOnSlopePitchRate;
 
 	return WheelPitch;
 }
