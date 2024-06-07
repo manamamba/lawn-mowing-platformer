@@ -210,7 +210,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawAcceleration();
 	// DrawDrift();
 
-	LogMotionData(DeltaTime);
+	// LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
@@ -736,10 +736,6 @@ void AMowerRC::LogMotionData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 	
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("WheelsGrounded      %i"), WheelsGrounded);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("JumpReadyRatio      %f"), JumpReadyRatio);
-
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
