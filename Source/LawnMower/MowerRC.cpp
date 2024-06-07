@@ -23,6 +23,7 @@ AMowerRC::AMowerRC()
 void AMowerRC::CreateAndAssignComponentSubObjects()
 {
 	PhysicsBody = CreateDefaultSubobject<UBoxComponent>(TEXT("PhysicsBody"));
+	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
 	FrWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
@@ -31,13 +32,14 @@ void AMowerRC::CreateAndAssignComponentSubObjects()
 	BlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
+
 }
 
 
 void AMowerRC::SetupComponentAttachments()
 {
 	RootComponent = PhysicsBody;
+	Collider->SetupAttachment(RootComponent);
 	Body->SetupAttachment(RootComponent);
 	Handle->SetupAttachment(RootComponent);
 	FrWheel->SetupAttachment(RootComponent);
@@ -46,7 +48,7 @@ void AMowerRC::SetupComponentAttachments()
 	BlWheel->SetupAttachment(RootComponent);
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
-	Collider->SetupAttachment(RootComponent);
+
 }
 
 
@@ -58,14 +60,6 @@ void AMowerRC::SetComponentProperties()
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
-	CameraArm->SetRelativeRotation(DefaultLocalCameraArmRotation);
-	CameraArm->SetUsingAbsoluteRotation(true);
-	CameraArm->TargetArmLength = 250.0f;
-	CameraArm->ProbeSize = 8.0f;
-	CameraArm->bInheritPitch = false;
-	CameraArm->bInheritYaw = false;
-	CameraArm->bInheritRoll = false;
-
 	Collider->SetBoxExtent(ColliderDimensions);
 	Collider->SetRelativeLocation(ColliderPosition);
 	Collider->SetCollisionProfileName(TEXT("Custom..."));
@@ -73,6 +67,14 @@ void AMowerRC::SetComponentProperties()
 	Collider->SetCollisionObjectType(ECC_GameTraceChannel3);
 	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+
+	CameraArm->SetRelativeRotation(DefaultLocalCameraArmRotation);
+	CameraArm->SetUsingAbsoluteRotation(true);
+	CameraArm->TargetArmLength = 250.0f;
+	CameraArm->ProbeSize = 8.0f;
+	CameraArm->bInheritPitch = false;
+	CameraArm->bInheritYaw = false;
+	CameraArm->bInheritRoll = false;
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
 	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
@@ -191,8 +193,8 @@ void AMowerRC::Tick(float DeltaTime)
 
 	// ApplyAirTimeAntiGravitationalForce();
 
-	ApplyAirTimePitch();
-	ApplyAirTimeRoll();
+	ApplyAirTimePitchTorque();
+	ApplyAirTimeRollTorque();
 
 	AddBrakingLinearDrag();
 	AddAcceleratingAngularDrag();
@@ -339,8 +341,6 @@ void AMowerRC::UpdateGroundedMovementConditions()
 
 void AMowerRC::UpdateAccelerationRatio(const float DeltaTime)
 {
-	// if (!WheelsGrounded) return;
-	
 	if (bAccelerating && WheelsGrounded) AccelerationRatio += AcceleratingDirection * DeltaTime;
 	else if (bAccelerating && !WheelsGrounded) return;
 	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
@@ -511,21 +511,25 @@ void AMowerRC::ApplyAirTimeAntiGravitationalForce()
 }
 
 
-void AMowerRC::ApplyAirTimePitch()
+void AMowerRC::ApplyAirTimePitchTorque()
 {
 	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 
-	if (PitchingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchForce));
-	if (PitchingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchForce));
+	if (PitchingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchTorque));
+	if (PitchingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchTorque));
 }
 
 
-void AMowerRC::ApplyAirTimeRoll()
+void AMowerRC::ApplyAirTimeRollTorque()
 {
 	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
 
-	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * AirTimeRollForce));
-	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollForce));
+	double AirTimeRollTorqueTotal{ AirTimeRollTorque };
+
+	if (abs(PhysicsBodySpeed) < 0.5) AirTimeRollTorqueTotal *= StalledRollTorqueMultiplier;
+
+	if (Steering > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyForwardVector * AirTimeRollTorqueTotal));
+	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollTorqueTotal));
 }
 
 
@@ -725,17 +729,12 @@ void AMowerRC::LogMotionData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("bStartedJumping     %u"), bStartedJumping);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("bStoppedJumping     %u"), bStoppedJumping);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("JumpingRatio        %f"), JumpingRatio);
-
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AirTimeRatio        %f"), AirTimeRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LinearDrag          %f"), TotalLinearDrag);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
-	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
 }
 
 

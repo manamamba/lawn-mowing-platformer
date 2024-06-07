@@ -36,6 +36,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FrWheel {};
@@ -44,7 +45,6 @@ class LAWNMOWER_API AMowerRC : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -103,16 +103,18 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingRate{ 3.0f };
 	const float DriftingDecayRate{ 3.0f };
 
-	const double JumpingForceMaximum{ 125000.0 };
+	const double JumpingForceMaximum{ 200000.0 };
 	const float JumpingRatioMaximum{ 1.0f };
-	const float JumpingRate{ 3.0f };
+	const float JumpingRate{ 5.0f };
 
 	const double AirTimeAntiGravitationalForce{ PhysicsBodyMass * 245.0 };
-	const float AirTimeRatioMaxium{ 3.0 };
-	const float AirTimeRatioIncreaseRate{ 2.0 };
+	const double AirTimePitchTorque{ 30000000.0 };
+	const double AirTimeRollTorque{ 15000000.0 };
+	const float AirTimeRatioMaxium{ 3.0f };
+	const float AirTimeRatioIncreaseRate{ 2.0f };
 	const float AirTimeMinimum{ 0.25f };
-	const float AirTimePitchForce{ 30000000.0 };
-	const float AirTimeRollForce{ 15000000.0 };
+
+	const double StalledRollTorqueMultiplier{ 2.0 };
 	
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
@@ -202,9 +204,10 @@ private:
 	void ApplyJumpingForce();
 
 	void UpdateAirTimeRatio(const float DeltaTime);
+
 	void ApplyAirTimeAntiGravitationalForce();
-	void ApplyAirTimePitch();
-	void ApplyAirTimeRoll();
+	void ApplyAirTimePitchTorque();
+	void ApplyAirTimeRollTorque();
 
 	void AddBrakingLinearDrag();
 	void AddAcceleratingAngularDrag();
