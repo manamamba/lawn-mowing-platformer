@@ -4,7 +4,7 @@
 #include "GrassC.h"
 #include "GrassSpawnerC.h"
 #include "Kismet/KismetMathLibrary.h"
-#include "LawnMowerGameMode.h"
+
 
 AGrassC::AGrassC()
 {
@@ -95,10 +95,8 @@ void AGrassC::SetRuntimeMeshComponentProperties()
 UStaticMesh* AGrassC::GetMeshType()
 {
 	EGrassType GrassType{ Standard };
-	
-	AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) };
 
-	if (OwningSpawner) 
+	if (AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) }) 
 	{
 		GrassType = static_cast<EGrassType>(OwningSpawner->GetGrassType());
 	}
@@ -217,17 +215,11 @@ void AGrassC::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 	const FVector SpawnLocation{ Hit.ImpactPoint };
 	const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
 
-	AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, GrassSpawnParameters) };
-
-	if (SpawnedGrass)
+	if (AGrassC * Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, GrassSpawnParameters) })
 	{
-		AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GrassSpawnParameters.Owner) };
-
-		if (OwningSpawner)
+		if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GrassSpawnParameters.Owner) })
 		{
 			OwningSpawner->UpdateGrassSpawnedCount();
-
-			UE_LOG(LogTemp, Warning, TEXT("Grass Spawned: %d"), OwningSpawner->GetGrassSpawned());
 		}
 	}
 
@@ -273,18 +265,9 @@ UFUNCTION() void AGrassC::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
-	{
-		GameMode->UpdateGrassCut();
-
-		// UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
-	}
-
 	if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) })
 	{
 		OwningSpawner->UpdateGrassCutCount();
-
-		UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), OwningSpawner->GetGrassCut());
 	}
 
 	Destroy();

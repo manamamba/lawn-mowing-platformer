@@ -20,33 +20,23 @@ class LAWNMOWER_API AGrassSpawnerC : public AActor
 	UPROPERTY(EditAnywhere) UBoxComponent* Collider {};
 	UPROPERTY(EditAnywhere) TSubclassOf<AGrassC> GrassClassC{};
 
-	UFUNCTION() void ActivateSpawner(
-		UPrimitiveComponent* OverlapComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult);
-
 public:
 	AGrassSpawnerC();
 
 private:
-	void SetRootProperties();
-	void SetColliderProperties();
+	void SetComponentProperties();
 
 protected:
 	virtual void BeginPlay() override;
-
-private:
-	void SetupOverlapDelegate();
 
 public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void Spawn();
-	bool SpawnedGrassCleared();
+	void TryToSpawnGrass();
+	bool SpawnerHitGround(FHitResult& Hit) const;
+	void SpawnGrass(const FHitResult& Hit);
+	bool SpawnedGrassCleared() const;
 	void DisableSpawnerTick();
 
 public:
@@ -56,6 +46,15 @@ public:
 
 	void UpdateGrassSpawnedCount();
 	void UpdateGrassCutCount();
+
+private:
+	UFUNCTION() void ActivateSpawner(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
 
 private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) int32 GrassType {};

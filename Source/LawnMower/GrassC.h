@@ -16,14 +16,6 @@ class LAWNMOWER_API AGrassC : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
 	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassClassC{};
 
-	UFUNCTION() void Cut(
-		UPrimitiveComponent* OverlapComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		int32 OtherBodyIndex,
-		bool bFromSweep,
-		const FHitResult& SweepResult);
-
 public:
 	enum EGrassType : int32 {
 		Standard,
@@ -32,6 +24,7 @@ public:
 		Max_Grass_Types,
 	};
 
+public:
 	AGrassC();
 
 private:
@@ -66,6 +59,15 @@ private:
 
 	void TickSlowerWithDrawing();
 	void DrawSpawningComponents();
+
+private:
+	UFUNCTION() void Cut(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
 
 private:
 	UStaticMesh* StaticMeshStandard{};

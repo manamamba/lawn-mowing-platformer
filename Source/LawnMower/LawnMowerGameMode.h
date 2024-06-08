@@ -14,7 +14,7 @@ class LAWNMOWER_API ALawnMowerGameMode : public AGameModeBase
 	GENERATED_BODY()
 	
 public: 
-	void UpdateGrassCut();
+	void UpdateGrassCut(int32 Grass);
 	int32 GetGrassCut() const;
 
 private:

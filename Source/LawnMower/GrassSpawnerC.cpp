@@ -11,22 +11,16 @@ AGrassSpawnerC::AGrassSpawnerC()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	SetRootProperties();
-	SetColliderProperties();
+	SetComponentProperties();
 }
 
 
-void AGrassSpawnerC::SetRootProperties()
+void AGrassSpawnerC::SetComponentProperties()
 {
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 
 	RootComponent = Root;
-}
-
-
-void AGrassSpawnerC::SetColliderProperties()
-{
-	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 
 	Collider->SetupAttachment(RootComponent);
 
@@ -35,20 +29,14 @@ void AGrassSpawnerC::SetColliderProperties()
 	Collider->SetCollisionObjectType(ECC_GameTraceChannel3);
 	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+
+	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerC::ActivateSpawner);
 }
 
 
 void AGrassSpawnerC::BeginPlay()
 {
 	Super::BeginPlay();
-
-	SetupOverlapDelegate();
-}
-
-
-void AGrassSpawnerC::SetupOverlapDelegate() //try in constructor
-{
-	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerC::ActivateSpawner);
 }
 
 
@@ -56,50 +44,68 @@ void AGrassSpawnerC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	Spawn();
+	TryToSpawnGrass();
 
-	if (SpawnedGrassCleared()) DisableSpawnerTick();
+	if (SpawnedGrassCleared())
+	{
+		if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
+		{
+			GameMode->UpdateGrassCut(GrassCutCount);
+
+			UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
+		}
+
+		DisableSpawnerTick();
+	}
 }
 
 
-void AGrassSpawnerC::Spawn()
+void AGrassSpawnerC::TryToSpawnGrass()
 {
 	if (bSpawnSuccessful || !bSpawnerActivated) return;
 	
 	FHitResult Hit{};
 
+	if (SpawnerHitGround(Hit)) SpawnGrass(Hit);
+}
+
+
+bool AGrassSpawnerC::SpawnerHitGround(FHitResult& Hit) const
+{
+	const double TraceLength{ 25.0 };
+
 	const FTransform ActorWorldTransform{ GetActorTransform() };
+
 	const FVector Start{ ActorWorldTransform.GetLocation() };
-	const FVector End{ Start + (-ActorWorldTransform.GetUnitAxis(EAxis::Type::Z) * 25.0) };
+	const FVector End{ Start + (-ActorWorldTransform.GetUnitAxis(EAxis::Type::Z) * TraceLength) };
 
-	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1)};
+	return GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1);
+}
 
-	if (GroundHit)
+
+void AGrassSpawnerC::SpawnGrass(const FHitResult& Hit)
+{
+	const FVector SpawnLocation{ Hit.ImpactPoint };
+	const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
+
+	FActorSpawnParameters SpawnOwner{};
+	SpawnOwner.Owner = this;
+
+	if (AGrassC* Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, SpawnOwner) })
 	{
-		FActorSpawnParameters SpawnParameters{};
-		SpawnParameters.Owner = this;
+		UpdateGrassSpawnedCount();
 
-		const FVector SpawnLocation{ Hit.ImpactPoint };
-		const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
-
-		AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, SpawnParameters)};
-
-		if (SpawnedGrass)
-		{
-			UpdateGrassSpawnedCount();
-
-			bSpawnSuccessful = true;
-			bSpawnerActivated = false;
-		}
+		bSpawnSuccessful = true;
+		bSpawnerActivated = false;
 	}
 }
 
 
-bool AGrassSpawnerC::SpawnedGrassCleared()
+bool AGrassSpawnerC::SpawnedGrassCleared() const
 {
 	if (!bSpawnSuccessful || bSpawnerActivated) return false;
 
-	return 	GrassSpawnedCount == GrassCutCount;
+	return GrassSpawnedCount == GrassCutCount;
 }
 
 

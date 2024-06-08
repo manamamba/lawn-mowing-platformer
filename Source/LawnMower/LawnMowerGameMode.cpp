@@ -4,6 +4,6 @@
 #include "LawnMowerGameMode.h"
 
 
-void ALawnMowerGameMode::UpdateGrassCut() { ++GrassCut; }
+void ALawnMowerGameMode::UpdateGrassCut(int32 Grass) { GrassCut += Grass; }
 
 int32 ALawnMowerGameMode::GetGrassCut() const { return GrassCut; };
