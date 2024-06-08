@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "GrassSpawnerC.generated.h"
 
+class UBoxComponent;
 class AGrassC;
 
 
@@ -15,7 +16,17 @@ class LAWNMOWER_API AGrassSpawnerC : public AActor
 {
 	GENERATED_BODY()
 
+	UPROPERTY(EditAnywhere) USceneComponent* Root {};
+	UPROPERTY(EditAnywhere) UBoxComponent* Collider {};
 	UPROPERTY(EditAnywhere) TSubclassOf<AGrassC> GrassClassC{};
+
+	UFUNCTION() void ActivateSpawner(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
 
 public:
 	AGrassSpawnerC();
@@ -39,6 +50,7 @@ private:
 
 	int32 GrassSpawnedCount{};
 
+	bool bSpawnerActivated{};
 	bool bSpawnSuccessful{};
 
 };

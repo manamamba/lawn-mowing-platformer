@@ -27,11 +27,11 @@ void AGrassC::CreateAndAssignRootComponent()
 
 void AGrassC::AssignStaticMesh()
 {
-	FString GrassTypeStandard{ "/Game/Assets/Meshes/mowergrassv2.mowergrassv2" };
-	FString GrassTypeOptional{ "/Game/Assets/Meshes/mowergrassv2b.mowergrassv2b" };
+	FName GrassTypeStandard{ "/Game/Assets/Meshes/mowergrassv2.mowergrassv2" };
+	FName GrassTypeOptional{ "/Game/Assets/Meshes/mowergrassv2b.mowergrassv2b" };
 
-	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshStandardAsset(*GrassTypeStandard);
-	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOptionalAsset(*GrassTypeOptional);
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshStandardAsset(*GrassTypeStandard.ToString());
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOptionalAsset(*GrassTypeOptional.ToString());
 
 	if (StaticMeshStandardAsset.Succeeded()) StaticMeshStandard = StaticMeshStandardAsset.Object;
 	if (StaticMeshStandardAsset.Succeeded()) StaticMeshOptional = StaticMeshOptionalAsset.Object;
