@@ -1,31 +1,39 @@
-// GrassB actor class developed by Cody Wheeler.
+// GrassC actor class developed by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GrassB.generated.h"
+#include "GrassC.generated.h"
 
 
 UCLASS()
-class LAWNMOWER_API AGrassB : public AActor
+class LAWNMOWER_API AGrassC : public AActor
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassB> GrassBClass{};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassCClass{};
 
 	UFUNCTION() void Cut(
-		UPrimitiveComponent* OverlapComp, 
-		AActor* OtherActor, 
-		UPrimitiveComponent* OtherComp, 
-		int32 OtherBodyIndex, 
-		bool bFromSweep, 
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
 		const FHitResult& SweepResult);
 
 public:
-	AGrassB();
+	/*
+	enum EGrassType {
+		Standard,
+		Optional,
+
+		Max_Grass_Types,
+	};*/
+
+	AGrassC();
 
 private:
 	void CreateAndAssignRootComponent();

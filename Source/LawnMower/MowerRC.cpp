@@ -1,4 +1,4 @@
-// Mower pawn class developed by Cody Wheeler.
+// MowerRC pawn class developed by Cody Wheeler.
 
 
 #include "MowerRC.h"
@@ -377,8 +377,12 @@ void AMowerRC::UpdateDriftingRatio(const float DeltaTime)
 
 void AMowerRC::UpdateJumpReadyRatio(const float DeltaTime)
 {
-	if (WheelsGrounded == 4) JumpReadyRatio += JumpReadyRate * DeltaTime;
-	else JumpReadyRatio = 0.0f;
+	if (WheelsGrounded) JumpReadyRatio += JumpReadyRate * DeltaTime;
+	else
+	{
+		JumpReadyRatio = 0.0f;
+		bJumpReady = false;
+	}
 
 	LimitRatio(JumpReadyRatio, JumpReadyRatioMaximum);
 	

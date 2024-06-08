@@ -1,4 +1,4 @@
-// Mower pawn class developed by Cody Wheeler.
+// MowerRC pawn class developed by Cody Wheeler.
 
 
 #pragma once
@@ -15,25 +15,24 @@ class UInputAction;
 struct FInputActionValue;
 
 
-struct FRayCastGroup {
-	FHitResult Fr{};
-	FHitResult Fl{};
-	FHitResult Br{};
-	FHitResult Bl{};
-};
-
-struct FLocalOrigins {
-	FVector Fr{};
-	FVector Fl{};
-	FVector Br{};
-	FVector Bl{};
-};
-
-
 UCLASS()
 class LAWNMOWER_API AMowerRC : public APawn
 {
 	GENERATED_BODY()
+
+	struct FRayCastGroup {
+		FHitResult Fr{};
+		FHitResult Fl{};
+		FHitResult Br{};
+		FHitResult Bl{};
+	};
+
+	struct FLocalOrigins {
+		FVector Fr{};
+		FVector Fl{};
+		FVector Br{};
+		FVector Bl{};
+	};
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
@@ -104,7 +103,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingDecayRate{ 3.0f };
 
 	const float JumpReadyRatioMaximum{ 1.0f };
-	const float JumpReadyRate{ 2.5f };
+	const float JumpReadyRate{ 3.0f };
 
 	const double JumpingForceMaximum{ 200000.0 };
 	const float JumpingRatioMaximum{ 1.0f };
