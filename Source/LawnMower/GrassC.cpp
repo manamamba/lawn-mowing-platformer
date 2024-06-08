@@ -214,15 +214,21 @@ void AGrassC::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 	FActorSpawnParameters GrassSpawnParameters{};
 	GrassSpawnParameters.Owner = GetOwner();
 
-	AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, Hit.ImpactPoint, Rotator->GetComponentRotation(), GrassSpawnParameters) };
+	const FVector SpawnLocation{ Hit.ImpactPoint };
+	const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
+
+	AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, GrassSpawnParameters) };
 
 	if (SpawnedGrass)
 	{
-		AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) };
+		AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GrassSpawnParameters.Owner) };
 
-		OwningSpawner->UpdateGrassSpawnedCount();
+		if (OwningSpawner)
+		{
+			OwningSpawner->UpdateGrassSpawnedCount();
 
-		// SpawnedGrass->SetOwner(OwningSpawner);
+			UE_LOG(LogTemp, Warning, TEXT("Grass Spawned: %d"), OwningSpawner->GetGrassSpawned());
+		}
 	}
 
 	UpdateRotatorYawAndPitch(PitchMax);
@@ -267,15 +273,18 @@ UFUNCTION() void AGrassC::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	// UE_LOG(LogTemp, Warning, TEXT("%s Cut!"), *GetName());
-
-	ALawnMowerGameMode* GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) };
-
-	if (GameMode)
+	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
 	{
 		GameMode->UpdateGrassCut();
 
-		UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
+		// UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
+	}
+
+	if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) })
+	{
+		OwningSpawner->UpdateGrassCutCount();
+
+		UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), OwningSpawner->GetGrassCut());
 	}
 
 	Destroy();

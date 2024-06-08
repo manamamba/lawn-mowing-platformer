@@ -31,24 +31,37 @@ class LAWNMOWER_API AGrassSpawnerC : public AActor
 public:
 	AGrassSpawnerC();
 
+private:
+	void SetRootProperties();
+	void SetColliderProperties();
+
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	void SetupOverlapDelegate();
 
 public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void TryToSpawn();
+	void Spawn();
+	bool SpawnedGrassCleared();
 	void DisableSpawnerTick();
 
 public:
 	int32 GetGrassType() const;
+	int32 GetGrassSpawned() const;
+	int32 GetGrassCut() const;
+
 	void UpdateGrassSpawnedCount();
+	void UpdateGrassCutCount();
 
 private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) int32 GrassType {};
 
 	int32 GrassSpawnedCount{};
+	int32 GrassCutCount{};
 
 	bool bSpawnerActivated{};
 	bool bSpawnSuccessful{};

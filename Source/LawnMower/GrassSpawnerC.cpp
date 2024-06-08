@@ -4,16 +4,28 @@
 #include "GrassSpawnerC.h"
 #include "Components/BoxComponent.h"
 #include "GrassC.h"
+#include "LawnMowerGameMode.h"
 
 
 AGrassSpawnerC::AGrassSpawnerC()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	SetRootProperties();
+	SetColliderProperties();
+}
+
+
+void AGrassSpawnerC::SetRootProperties()
+{
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
 	RootComponent = Root;
+}
 
+
+void AGrassSpawnerC::SetColliderProperties()
+{
 	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 
 	Collider->SetupAttachment(RootComponent);
@@ -30,7 +42,13 @@ void AGrassSpawnerC::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Collider) Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerC::ActivateSpawner);
+	SetupOverlapDelegate();
+}
+
+
+void AGrassSpawnerC::SetupOverlapDelegate() //try in constructor
+{
+	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerC::ActivateSpawner);
 }
 
 
@@ -38,11 +56,13 @@ void AGrassSpawnerC::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	TryToSpawn();
+	Spawn();
+
+	if (SpawnedGrassCleared()) DisableSpawnerTick();
 }
 
 
-void AGrassSpawnerC::TryToSpawn()
+void AGrassSpawnerC::Spawn()
 {
 	if (bSpawnSuccessful || !bSpawnerActivated) return;
 	
@@ -66,25 +86,20 @@ void AGrassSpawnerC::TryToSpawn()
 
 		if (SpawnedGrass)
 		{
-			// SpawnedGrass->SetOwner(this);
-
-			// DisableSpawnerTick();
+			UpdateGrassSpawnedCount();
 
 			bSpawnSuccessful = true;
 			bSpawnerActivated = false;
 		}
 	}
+}
 
-	if (GroundHit)
-	{
-		DrawDebugLine(GetWorld(), Start, Hit.ImpactPoint, FColor::Green);
-		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 1.0f, 6, FColor::Green);
-	}
-	else
-	{
-		DrawDebugLine(GetWorld(), Start, End, FColor::Red);
-		DrawDebugSphere(GetWorld(), End, 1.0f, 6, FColor::Red);
-	}
+
+bool AGrassSpawnerC::SpawnedGrassCleared()
+{
+	if (!bSpawnSuccessful || bSpawnerActivated) return false;
+
+	return 	GrassSpawnedCount == GrassCutCount;
 }
 
 
@@ -92,9 +107,12 @@ void AGrassSpawnerC::DisableSpawnerTick() { SetActorTickEnabled(false); }
 
 
 int32 AGrassSpawnerC::GetGrassType() const { return GrassType; }
+int32 AGrassSpawnerC::GetGrassSpawned() const { return GrassSpawnedCount; };
+int32 AGrassSpawnerC::GetGrassCut() const { return GrassCutCount; };
 
 
 void AGrassSpawnerC::UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
+void AGrassSpawnerC::UpdateGrassCutCount() { ++GrassCutCount; };
 
 
 UFUNCTION() void AGrassSpawnerC::ActivateSpawner(
@@ -108,6 +126,4 @@ UFUNCTION() void AGrassSpawnerC::ActivateSpawner(
 	bSpawnerActivated = true;
 
 	Collider->DestroyComponent();
-
-	UE_LOG(LogTemp, Warning, TEXT("Overlapped!"));
 }
