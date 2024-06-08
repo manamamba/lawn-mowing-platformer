@@ -5,7 +5,8 @@
 #include "Components/BoxComponent.h"
 #include "GrassC.h"
 #include "LawnMowerGameMode.h"
-
+#include "Kismet/GameplayStatics.h"
+#include "Engine/StaticMeshActor.h"
 
 AGrassSpawnerC::AGrassSpawnerC()
 {
@@ -48,13 +49,8 @@ void AGrassSpawnerC::Tick(float DeltaTime)
 
 	if (SpawnedGrassCleared())
 	{
-		if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
-		{
-			GameMode->UpdateGrassCut(GrassCutCount);
-
-			UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
-		}
-
+		UpdateGameModeGrassCut();
+		ActivateActorByTag();
 		DisableSpawnerTick();
 	}
 }
@@ -106,6 +102,26 @@ bool AGrassSpawnerC::SpawnedGrassCleared() const
 	if (!bSpawnSuccessful || bSpawnerActivated) return false;
 
 	return GrassSpawnedCount == GrassCutCount;
+}
+
+
+void AGrassSpawnerC::UpdateGameModeGrassCut() const
+{
+	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
+	{
+		GameMode->UpdateGrassCut(GrassCutCount);
+	}
+}
+
+
+void AGrassSpawnerC::ActivateActorByTag()
+{
+	// TArray<AActor*> OutActors{};
+	
+	// UGameplayStatics::GetAllActorsOfClassWithTag(this, AStaticMeshActor::StaticClass(), ActorTag, OutActors);
+
+	// for (AActor* Actor : OutActors) ...
+
 }
 
 

@@ -36,7 +36,10 @@ private:
 	void TryToSpawnGrass();
 	bool SpawnerHitGround(FHitResult& Hit) const;
 	void SpawnGrass(const FHitResult& Hit);
+
 	bool SpawnedGrassCleared() const;
+	void UpdateGameModeGrassCut() const;
+	void ActivateActorByTag();
 	void DisableSpawnerTick();
 
 public:
@@ -58,6 +61,9 @@ private:
 
 private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) int32 GrassType {};
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) FName ActorTag{};
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bTriggerActorByTag{};
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bSetNewSpawner{};
 
 	int32 GrassSpawnedCount{};
 	int32 GrassCutCount{};
