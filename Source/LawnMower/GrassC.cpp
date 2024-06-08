@@ -4,7 +4,7 @@
 #include "GrassC.h"
 #include "GrassSpawnerC.h"
 #include "Kismet/KismetMathLibrary.h"
-
+#include "LawnMowerGameMode.h"
 
 AGrassC::AGrassC()
 {
@@ -102,8 +102,6 @@ UStaticMesh* AGrassC::GetMeshType()
 	{
 		GrassType = static_cast<EGrassType>(OwningSpawner->GetGrassType());
 	}
-
-	UE_LOG(LogTemp, Warning, TEXT("GrassType %d"), GrassType);
 
 	switch (GrassType)
 	{
@@ -270,6 +268,15 @@ UFUNCTION() void AGrassC::Cut(
 	const FHitResult& SweepResult)
 {
 	// UE_LOG(LogTemp, Warning, TEXT("%s Cut!"), *GetName());
+
+	ALawnMowerGameMode* GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) };
+
+	if (GameMode)
+	{
+		GameMode->UpdateGrassCut();
+
+		UE_LOG(LogTemp, Warning, TEXT("Grass Cut: %d"), GameMode->GetGrassCut());
+	}
 
 	Destroy();
 }
