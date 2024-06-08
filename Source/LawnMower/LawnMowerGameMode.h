@@ -13,6 +13,7 @@ class LAWNMOWER_API ALawnMowerGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 	
+private:
 
 
 

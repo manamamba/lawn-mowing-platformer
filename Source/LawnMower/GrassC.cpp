@@ -2,6 +2,7 @@
 
 
 #include "GrassC.h"
+#include "GrassSpawnerC.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
@@ -26,21 +27,14 @@ void AGrassC::CreateAndAssignRootComponent()
 
 void AGrassC::AssignStaticMesh()
 {
-	/*
-	FString SelectedGrassType{};
+	FString GrassTypeStandard{ "/Game/Assets/Meshes/mowergrassv2.mowergrassv2" };
+	FString GrassTypeOptional{ "/Game/Assets/Meshes/mowergrassv2b.mowergrassv2b" };
 
-	switch (GrassType)
-	{
-	case Optional: SelectedGrassType = "/Game/Assets/Meshes/mowergrassv2b.mowergrassv2b";	break;
-	default:	   SelectedGrassType = "/Game/Assets/Meshes/mowergrassv2.mowergrassv2";
-	}
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshStandardAsset(*GrassTypeStandard);
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOptionalAsset(*GrassTypeOptional);
 
-	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshAsset(*SelectedGrassType);
-	*/
-
-	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshAsset(TEXT("/Game/Assets/Meshes/mowergrassv2.mowergrassv2"));
-
-	if (StaticMeshAsset.Succeeded()) StaticMesh = StaticMeshAsset.Object;
+	if (StaticMeshStandardAsset.Succeeded()) StaticMeshStandard = StaticMeshStandardAsset.Object;
+	if (StaticMeshStandardAsset.Succeeded()) StaticMeshOptional = StaticMeshOptionalAsset.Object;
 }
 
 
@@ -78,7 +72,7 @@ void AGrassC::CreateAndAttachRuntimeComponents()
 
 void AGrassC::SetRuntimeMeshComponentProperties()
 {
-	Mesh->SetStaticMesh(StaticMesh);
+	Mesh->SetStaticMesh(GetMeshType());
 
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
@@ -95,6 +89,27 @@ void AGrassC::SetRuntimeMeshComponentProperties()
 	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Block);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+}
+
+
+UStaticMesh* AGrassC::GetMeshType()
+{
+	EGrassType GrassType{ Standard };
+	
+	AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) };
+
+	if (OwningSpawner) 
+	{
+		GrassType = static_cast<EGrassType>(OwningSpawner->GetGrassType());
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("GrassType %d"), GrassType);
+
+	switch (GrassType)
+	{
+	case Optional:	return StaticMeshOptional;
+	default:		return StaticMeshStandard;
+	}
 }
 
 
@@ -198,9 +213,19 @@ bool AGrassC::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, c
 
 void AGrassC::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 {
-	AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassCClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
+	FActorSpawnParameters GrassSpawnParameters{};
+	GrassSpawnParameters.Owner = GetOwner();
 
-	// if (SpawnedGrass) SpawnedGrass->SetOwner(this);
+	AGrassC* SpawnedGrass{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, Hit.ImpactPoint, Rotator->GetComponentRotation(), GrassSpawnParameters) };
+
+	if (SpawnedGrass)
+	{
+		AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) };
+
+		OwningSpawner->UpdateGrassSpawnedCount();
+
+		// SpawnedGrass->SetOwner(OwningSpawner);
+	}
 
 	UpdateRotatorYawAndPitch(PitchMax);
 }
@@ -232,7 +257,7 @@ void AGrassC::DestroyRuntimeSpawningComponentsAndDisableTick()
 
 	SetActorTickEnabled(false);
 
-	// UE_LOG(LogTemp, Warning, TEXT("Spawning complete in %i ticks!"), SpawningCompleteTicks);
+	// UE_LOG(LogTemp, Warning, TEXT("Spawning complete in %i ticks!"), SpawningTicks);
 }
 
 
@@ -260,7 +285,7 @@ void AGrassC::TickSlowerWithDrawing()
 
 		DrawSpawningComponents();
 
-		++SpawningCompleteTicks;
+		++SpawningTicks;
 
 		TickCount = 0.0f;
 	}

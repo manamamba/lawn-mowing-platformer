@@ -7,25 +7,38 @@
 #include "GameFramework/Actor.h"
 #include "GrassSpawnerC.generated.h"
 
+class AGrassC;
+
 
 UCLASS()
 class LAWNMOWER_API AGrassSpawnerC : public AActor
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
-	UPROPERTY(EditDefaultsOnly) TSubclassOf<class AGrass> GrassClass{};
 
-public:	
+	UPROPERTY(EditAnywhere) TSubclassOf<AGrassC> GrassClassC{};
+
+public:
 	AGrassSpawnerC();
 
 protected:
 	virtual void BeginPlay() override;
 
-public:	
+public:
 	virtual void Tick(float DeltaTime) override;
 
+private:
+	void TryToSpawn();
+	void DisableSpawnerTick();
+
 public:
-	int32 GrassSpawned{};
+	int32 GetGrassType() const;
+	void UpdateGrassSpawnedCount();
+
+private:
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) int32 GrassType {};
+
+	int32 GrassSpawnedCount{};
+
+	bool bSpawnSuccessful{};
 
 };

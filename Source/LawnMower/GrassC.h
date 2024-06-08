@@ -14,7 +14,7 @@ class LAWNMOWER_API AGrassC : public AActor
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassCClass{};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassClassC{};
 
 	UFUNCTION() void Cut(
 		UPrimitiveComponent* OverlapComp,
@@ -25,19 +25,19 @@ class LAWNMOWER_API AGrassC : public AActor
 		const FHitResult& SweepResult);
 
 public:
-	/*
-	enum EGrassType {
+	enum EGrassType : int32 {
 		Standard,
 		Optional,
 
 		Max_Grass_Types,
-	};*/
+	};
 
 	AGrassC();
 
 private:
 	void CreateAndAssignRootComponent();
 	void AssignStaticMesh();
+	UStaticMesh* GetMeshType();
 
 protected:
 	virtual void BeginPlay() override;
@@ -68,7 +68,8 @@ private:
 	void DrawSpawningComponents();
 
 private:
-	UStaticMesh* StaticMesh{};
+	UStaticMesh* StaticMeshStandard{};
+	UStaticMesh* StaticMeshOptional{};
 	UStaticMeshComponent* Mesh{};
 	USceneComponent* Rotator{};
 	USceneComponent* Spawner{};
@@ -79,6 +80,6 @@ private:
 	double StartingRotatorYaw{};
 
 	float TickCount{};
-	int32 SpawningCompleteTicks{ 1 };
+	int32 SpawningTicks{ 1 };
 
 };
