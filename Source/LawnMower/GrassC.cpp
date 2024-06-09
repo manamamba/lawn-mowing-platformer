@@ -163,7 +163,7 @@ bool AGrassC::FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, 
 {
 	const FVector End{ Start + (Direction * PitchMax) };
 
-	const bool FarGroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel4) };
+	const bool FarGroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	// DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.0f);
 
@@ -195,7 +195,7 @@ bool AGrassC::DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, con
 
 	const FVector End{ Start + (Direction * RayCastLength) };
 
-	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel4) };
+	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	if (!GroundHit)
 	{
