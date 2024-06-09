@@ -27,8 +27,8 @@ void AGrassC::CreateAndAssignRootComponent()
 
 void AGrassC::AssignStaticMesh()
 {
-	FName GrassTypeStandard{ "/Game/Assets/Meshes/mowergrassv2.mowergrassv2" };
-	FName GrassTypeOptional{ "/Game/Assets/Meshes/mowergrassv2b.mowergrassv2b" };
+	FName GrassTypeStandard{ "/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2" };
+	FName GrassTypeOptional{ "/Game/Assets/Meshes/Grass/mowergrassv2b.mowergrassv2b" };
 
 	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshStandardAsset(*GrassTypeStandard.ToString());
 	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOptionalAsset(*GrassTypeOptional.ToString());
@@ -149,21 +149,21 @@ void AGrassC::TryToSpawnGrass(const double& PitchMax)
 
 	const double RayCastLength{ 5.0 };
 
-	if (RotatorRotation.Pitch == PitchMax) if (!FarGroundHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
+	if (RotatorRotation.Pitch == PitchMax) if (!FarDirtHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
 
 	if (GrassHitBySpawnerSweep(Start, Direction, RayCastLength, PitchMax)) return;
 
-	if (!GroundHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
+	if (!DirtHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
 
 	SpawnGrass(Hit, PitchMax);
 }
 
 
-bool AGrassC::FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax)
+bool AGrassC::FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax)
 {
 	const FVector End{ Start + (Direction * PitchMax) };
 
-	const bool FarGroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
+	const bool FarGroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel4) };
 
 	// DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.0f);
 
@@ -189,13 +189,13 @@ bool AGrassC::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direct
 }
 
 
-bool AGrassC::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
+bool AGrassC::DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
 {
 	Hit.Reset();
 
 	const FVector End{ Start + (Direction * RayCastLength) };
 
-	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
+	const bool GroundHit{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel4) };
 
 	if (!GroundHit)
 	{

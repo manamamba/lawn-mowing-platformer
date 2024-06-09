@@ -47,9 +47,9 @@ private:
 	void UpdateSpawnHammer();
 
 	void TryToSpawnGrass(const double& PitchMax);
-	bool FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
+	bool FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
 	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
-	bool GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
+	bool DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
 	void SpawnGrass(FHitResult& Hit, const double& PitchMax);
 
 	void UpdateRotatorYawAndPitch(const double& PitchMax);
