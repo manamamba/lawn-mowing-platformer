@@ -210,7 +210,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawAcceleration();
 	// DrawDrift();
 
-	// LogMotionData(DeltaTime);
+	LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
@@ -308,7 +308,10 @@ bool AMowerRC::ForceRayCastHitGround(FHitResult& RayCast, const FVector& LocalOr
 void AMowerRC::ApplyHoveringForce(FHitResult& RayCast)
 {
 	const float CompressionRatio{ 1.0f - RayCast.Time };
-	const double Force{ PhysicsBodyMass * GravitationalAcceleration * CompressionRatio };
+	
+	double Force{ PhysicsBodyMass * GravitationalAcceleration * CompressionRatio };
+
+	if (bJumpReady && abs(PhysicsBodySpeed) > 5.0) Force *= abs(PhysicsBodySpeed / 5.0);
 
 	PhysicsBody->AddForceAtLocation(RayCast.ImpactNormal * Force, RayCast.TraceStart);
 
