@@ -213,7 +213,7 @@ void AGrassC::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 	GrassSpawnParameters.Owner = GetOwner();
 
 	const FVector SpawnLocation{ Hit.ImpactPoint };
-	const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
+	const FRotator SpawnRotation{ Rotator->GetComponentRotation() };
 
 	if (AGrassC * Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, GrassSpawnParameters) })
 	{

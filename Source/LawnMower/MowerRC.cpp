@@ -398,6 +398,8 @@ void AMowerRC::UpdateJumpingRatio(const float DeltaTime)
 	{
 		JumpingForceDirection = PhysicsBodyUpVector;
 		bStartedJumping = true;
+
+		PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce);
 	}
 	
 	if (Jumping && bStartedJumping) JumpingRatio += JumpingRate * DeltaTime;

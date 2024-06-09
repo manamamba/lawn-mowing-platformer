@@ -102,10 +102,11 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float DriftingRate{ 3.0f };
 	const float DriftingDecayRate{ 3.0f };
 
+	const float JumpReadyForce{ 25000.0 };
 	const float JumpReadyRatioMaximum{ 1.0f };
 	const float JumpReadyRate{ 3.0f };
 
-	const double JumpingForceMaximum{ 200000.0 };
+	const double JumpingForceMaximum{ 250000.0 };
 	const float JumpingRatioMaximum{ 1.0f };
 	const float JumpingRate{ 5.0f };
 
