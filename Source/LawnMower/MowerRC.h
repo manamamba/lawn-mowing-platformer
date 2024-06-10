@@ -86,7 +86,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
 
-	const float AccelerationForceMaximum{ 15000.0f };
+	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationDecayRate{ 0.5f };
 	const float AccelerationRatioMinimumWhileBraking{ 0.15f };
