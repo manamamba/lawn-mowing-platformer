@@ -86,17 +86,18 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
 
-	const float AccelerationForceMaximum{ 20000.0f };
+	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationDecayRate{ 0.5f };
 	const float AccelerationRatioMinimumWhileBraking{ 0.15f };
 	const float AccelerationBrakingRate{ 1.75f };
 	const float AccelerationBrakingDecayRate{ 0.5f };
+	const float AccelerationMaxLinearDrag{ 8.01 };
 
-	const double SteeringForceMaximum{ 300.0 };
-	const double SteeringForceOnSlopeRate{ 0.1 };
+	const double SteeringForceMultiplier{ 200.0 };
+	const double SteeringForceOnSlopeRate{ 0.2 };
 
-	const double DriftingForceMaximum{ 5000.0 };
+	const double DriftingForceMaximum{ 2000.0 };
 	const double DriftingForcePositionOffset{ 25.0 };
 	const float DriftingRatioMaximum{ 3.0f };
 	const float DriftingRate{ 3.0f };
@@ -115,13 +116,13 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const double AirTimeRollTorque{ 15000000.0 };
 	const float AirTimeRatioMaxium{ 3.0f };
 	const float AirTimeRatioIncreaseRate{ 2.0f };
-	const float AirTimeMinimum{ 0.75f };				// was 0.25
+	const float AirTimeMinimum{ 0.6f };
 
 	const double StalledRollTorqueMultiplier{ 2.5 };
 	
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
-	const float AcceleratingAngularDragRate{ 0.00002f };
+	const float AcceleratingAngularDragRate{ 0.00004f };
 	const float AirTimeAngularDrag{ 5.0f };
 
 	const double WheelAcceleratingPitchRate{ -1200.0 };
@@ -183,7 +184,7 @@ private:
 
 	void UpdateTransforms();
 
-	void UpdateSpeed();
+	void UpdateSpeed(const float DeltaTime);
 
 	void UpdateCameraRotation();
 	void ResetFullAxisRotations(FRotator& Rotator) const;
@@ -266,6 +267,7 @@ private:
 	FHitResult BlForceRayCast{};
 	FRayCastGroup ForceRayCasts{ FrForceRayCast, FlForceRayCast, BrForceRayCast, BlForceRayCast };
 	int32 WheelsGrounded{};
+	double HoverSpeedMultiplier{};
 
 	bool bMovingByAccumulatedAcceleration{};
 	bool bAccelerating{};
@@ -274,7 +276,6 @@ private:
 
 	FVector AccelerationSurfaceImpact{};
 	FVector AccelerationSurfaceNormal{};
-
 	FVector DriftingForcePosition{};
 	float AccelerationForce{};
 	float AccelerationRatio{};
@@ -292,6 +293,7 @@ private:
 
 	TArray<float> LinearDragArray{};
 	TArray<float> AngularDragArray{};
+	float TotalLinearDragLastTick{};
 	float TotalLinearDrag{};
 	float TotalAngularDrag{};
 	float LinearBrakingDrag{};

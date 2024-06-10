@@ -172,7 +172,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateTransforms();
 
-	UpdateSpeed();
+	UpdateSpeed(DeltaTime);
 
 	UpdateCameraRotation();
 
@@ -243,7 +243,7 @@ void AMowerRC::UpdateTransforms()
 }
 
 
-void AMowerRC::UpdateSpeed()
+void AMowerRC::UpdateSpeed(const float DeltaTime)
 {
 	LocationLastTick = LocationThisTick;
 	LocationThisTick = PhysicsBodyLocation;
@@ -258,6 +258,9 @@ void AMowerRC::UpdateSpeed()
 	const bool MovingForward{ DistanceFromFrontLocationLastTick < DistanceFromRearLocationLastTick };
 
 	if (!MovingForward) PhysicsBodySpeed = -PhysicsBodySpeed;
+
+	// HoverSpeedMultiplier = FMath::Pow(abs(PhysicsBodySpeed), 2.0) * DeltaTime;
+	// if (HoverSpeedMultiplier < 1.0) HoverSpeedMultiplier = 1.0;
 }
 
 
@@ -311,7 +314,10 @@ void AMowerRC::ApplyHoveringForce(FHitResult& RayCast)
 	
 	double Force{ PhysicsBodyMass * GravitationalAcceleration * CompressionRatio };
 
-	if (bJumpReady && abs(PhysicsBodySpeed) > 5.0) Force *= abs(PhysicsBodySpeed / 5.0);
+	//if (bJumpReady && abs(PhysicsBodySpeed) > 5.0) Force *= abs(PhysicsBodySpeed / 5.0); worked well for 120fps, bad with 60fps jumping
+	//SpeedMultiplier = abs(PhysicsBodySpeed) * 0.1;
+	//if (SpeedMultiplier < 1.0) SpeedMultiplier = 1.0;
+	// Force *= HoverSpeedMultiplier;
 
 	PhysicsBody->AddForceAtLocation(RayCast.ImpactNormal * Force, RayCast.TraceStart);
 
@@ -448,7 +454,7 @@ void AMowerRC::ApplyAccelerationForce()
 	
 	if (!WheelsGrounded) return;
 
-	AccelerationForce = AccelerationForceMaximum * WheelsGrounded * abs(AccelerationRatio);
+	AccelerationForce = AccelerationForceMaximum * abs(AccelerationRatio) * TotalLinearDragLastTick;
 	
 	PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * AccelerationForce, AccelerationSurfaceImpact);
 }
@@ -458,7 +464,7 @@ void AMowerRC::ApplySteeringTorque()
 {
 	if (!WheelsGrounded) return;
 
-	double SteeringForce{ Steering * SteeringForceMaximum * AccelerationForceMaximum * WheelsGrounded };
+	double SteeringForce{ Steering * SteeringForceMultiplier * AccelerationForceMaximum * TotalLinearDragLastTick };
 
 	if (bMovingByAccumulatedAcceleration) SteeringForce *= AccelerationRatio;
 	else SteeringForce *= SteeringForceOnSlopeRate * PhysicsBodySpeed;
@@ -472,11 +478,11 @@ void AMowerRC::ApplyDriftingForce()
 	DriftingForcePosition =  AccelerationSurfaceImpact + (-PhysicsBodyForwardVector * DriftingForcePositionOffset);
 
 	if (!WheelsGrounded) return;
-	
-	const double AccelerationForceAtRatioMaximum{ AccelerationForceMaximum * AccelerationRatioMaximum * WheelTotal };
+
+	const double AccelerationForceAtRatioMaximum{ AccelerationForceMaximum * AccelerationRatioMaximum * AccelerationMaxLinearDrag };
 	const double AccelerationForceRatio{ AccelerationForce / AccelerationForceAtRatioMaximum };
-	
-	double DriftingForce{ DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * WheelsGrounded };
+
+	double DriftingForce{ DriftingForceMaximum * abs(DriftingRatio) * AccelerationForceRatio * TotalLinearDragLastTick };
 
 	if (DriftingForce == 0.0) return; 
 
@@ -562,7 +568,7 @@ void AMowerRC::AddBrakingLinearDrag()
 
 void AMowerRC::AddAcceleratingAngularDrag()
 {
-	AngularDragArray.Add(AccelerationForce * WheelsGrounded * AcceleratingAngularDragRate);
+	AngularDragArray.Add(AccelerationForce * AcceleratingAngularDragRate);
 }
 
 
@@ -579,6 +585,8 @@ void AMowerRC::ApplyDrag()
 
 	PhysicsBody->SetLinearDamping(TotalLinearDrag);
 	PhysicsBody->SetAngularDamping(TotalAngularDrag);
+
+	TotalLinearDragLastTick = TotalLinearDrag;
 }
 
 
@@ -745,6 +753,8 @@ void AMowerRC::LogMotionData(const float DeltaTime)
 	UpdateTickCount(DeltaTime);
 	
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT(" "));
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("HoverSpeedMulti     %f"), HoverSpeedMultiplier);
+	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationForce   %f"), AccelerationForce);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("Speed               %f"), abs(PhysicsBodySpeed));
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AccelerationRatio   %f"), AccelerationRatio);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("DriftingRatio       %f"), DriftingRatio);
