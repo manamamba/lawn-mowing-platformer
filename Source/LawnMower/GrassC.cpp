@@ -47,9 +47,6 @@ void AGrassC::BeginPlay()
 
 	CreateAndAttachRuntimeComponents();
 	SetRuntimeMeshComponentProperties();
-
-	if (Mesh) Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassC::Cut);
-
 	SetRuntimeSpawningComponentProperties();
 }
 
