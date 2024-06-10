@@ -172,7 +172,7 @@ void AMowerRC::Tick(float DeltaTime)
 
 	UpdateTransforms();
 
-	UpdateSpeed(DeltaTime);
+	UpdateSpeed();
 
 	UpdateCameraRotation();
 
@@ -243,7 +243,7 @@ void AMowerRC::UpdateTransforms()
 }
 
 
-void AMowerRC::UpdateSpeed(const float DeltaTime)
+void AMowerRC::UpdateSpeed()
 {
 	LocationLastTick = LocationThisTick;
 	LocationThisTick = PhysicsBodyLocation;
@@ -259,8 +259,7 @@ void AMowerRC::UpdateSpeed(const float DeltaTime)
 
 	if (!MovingForward) PhysicsBodySpeed = -PhysicsBodySpeed;
 
-	// HoverSpeedMultiplier = FMath::Pow(abs(PhysicsBodySpeed), 2.0) * DeltaTime;
-	// if (HoverSpeedMultiplier < 1.0) HoverSpeedMultiplier = 1.0;
+	HoverSpeedMultiplier = 1.0 + (abs(PhysicsBodySpeed) * 0.1);
 }
 
 
@@ -312,12 +311,7 @@ void AMowerRC::ApplyHoveringForce(FHitResult& RayCast)
 {
 	const float CompressionRatio{ 1.0f - RayCast.Time };
 	
-	double Force{ PhysicsBodyMass * GravitationalAcceleration * CompressionRatio };
-
-	//if (bJumpReady && abs(PhysicsBodySpeed) > 5.0) Force *= abs(PhysicsBodySpeed / 5.0); worked well for 120fps, bad with 60fps jumping
-	//SpeedMultiplier = abs(PhysicsBodySpeed) * 0.1;
-	//if (SpeedMultiplier < 1.0) SpeedMultiplier = 1.0;
-	// Force *= HoverSpeedMultiplier;
+	const double Force{ PhysicsBodyMass * GravitationalAcceleration * HoverSpeedMultiplier * CompressionRatio };
 
 	PhysicsBody->AddForceAtLocation(RayCast.ImpactNormal * Force, RayCast.TraceStart);
 
@@ -568,7 +562,7 @@ void AMowerRC::AddBrakingLinearDrag()
 
 void AMowerRC::AddAcceleratingAngularDrag()
 {
-	AngularDragArray.Add(AccelerationForce * AcceleratingAngularDragRate);
+	AngularDragArray.Add(AccelerationForce * TotalLinearDragLastTick * AcceleratingAngularDragRate);
 }
 
 

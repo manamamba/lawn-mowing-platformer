@@ -86,7 +86,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float MaxWheelDrag{ 2.0f };
 	const float WheelTotal{ 4.0f };
 
-	const float AccelerationForceMaximum{ 10000.0f };
+	const float AccelerationForceMaximum{ 15000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
 	const float AccelerationDecayRate{ 0.5f };
 	const float AccelerationRatioMinimumWhileBraking{ 0.15f };
@@ -122,7 +122,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
-	const float AcceleratingAngularDragRate{ 0.00004f };
+	const float AcceleratingAngularDragRate{ 0.000005f };
 	const float AirTimeAngularDrag{ 5.0f };
 
 	const double WheelAcceleratingPitchRate{ -1200.0 };
@@ -184,7 +184,7 @@ private:
 
 	void UpdateTransforms();
 
-	void UpdateSpeed(const float DeltaTime);
+	void UpdateSpeed();
 
 	void UpdateCameraRotation();
 	void ResetFullAxisRotations(FRotator& Rotator) const;
