@@ -1,4 +1,4 @@
-// GrassC actor class developed by Cody Wheeler.
+// Derived AActor class AGrassC by Cody Wheeler.
 
 
 #pragma once
@@ -14,7 +14,7 @@ class LAWNMOWER_API AGrassC : public AActor
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassClassC{};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassC> GrassClass{};
 
 public:
 	enum EGrassType : int32 {

@@ -1,11 +1,11 @@
-// Derived AActor class AGrassV1 by Cody Wheeler.
+// Derived AActor class AGrassA by Cody Wheeler.
 
 
-#include "GrassV1.h"
+#include "GrassA.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
-AGrassV1::AGrassV1()
+AGrassA::AGrassA()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -26,7 +26,7 @@ AGrassV1::AGrassV1()
 }
 
 
-void AGrassV1::BeginPlay()
+void AGrassA::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -38,7 +38,7 @@ void AGrassV1::BeginPlay()
 }
 
 
-void AGrassV1::RandomizeRotationAndScale()
+void AGrassA::RandomizeRotationAndScale()
 {
 	if (!Mesh) return;
 
@@ -51,7 +51,7 @@ void AGrassV1::RandomizeRotationAndScale()
 }
 
 
-void AGrassV1::CreateAndAttachSpawningComponents()
+void AGrassA::CreateAndAttachSpawningComponents()
 {
 	Rotator = Cast<USceneComponent>(AddComponentByClass(USceneComponent::StaticClass(), true, GetTransform(), false));
 	Spawner = Cast<USceneComponent>(AddComponentByClass(USceneComponent::StaticClass(), true, GetTransform(), false));
@@ -68,7 +68,7 @@ void AGrassV1::CreateAndAttachSpawningComponents()
 }
 
 
-void AGrassV1::SetSpawningComponentsRotationAndLocation()
+void AGrassA::SetSpawningComponentsRotationAndLocation()
 {
 	RotatorRotation = FRotator{ 67.5, 0.0, 0.0 };
 
@@ -78,7 +78,7 @@ void AGrassV1::SetSpawningComponentsRotationAndLocation()
 }
 
 
-void AGrassV1::LogComponentsAttachedAtRuntime()
+void AGrassA::LogComponentsAttachedAtRuntime()
 {
 	TArray<UActorComponent*> ActorComponent{ GetInstanceComponents() };
 
@@ -89,7 +89,7 @@ void AGrassV1::LogComponentsAttachedAtRuntime()
 }
 
 
-void AGrassV1::Tick(float DeltaTime)
+void AGrassA::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -100,7 +100,7 @@ void AGrassV1::Tick(float DeltaTime)
 }
 
 
-void AGrassV1::TickSlowerWithDrawing()
+void AGrassA::TickSlowerWithDrawing()
 {
 	++TickCount;
 
@@ -117,7 +117,7 @@ void AGrassV1::TickSlowerWithDrawing()
 }
 
 
-void AGrassV1::TryToSpawnGrass()
+void AGrassA::TryToSpawnGrass()
 {
 	FHitResult Hit{};
 
@@ -125,7 +125,7 @@ void AGrassV1::TryToSpawnGrass()
 }
 
 
-bool AGrassV1::GroundHitBySpawnerRayCast(FHitResult& Hit)
+bool AGrassA::GroundHitBySpawnerRayCast(FHitResult& Hit)
 {
 	double RayCastLength{ 5.0 };
 
@@ -152,7 +152,7 @@ bool AGrassV1::GroundHitBySpawnerRayCast(FHitResult& Hit)
 }
 
 
-bool AGrassV1::GrassHitBySpawnerSweep(FHitResult& Hit) const
+bool AGrassA::GrassHitBySpawnerSweep(FHitResult& Hit) const
 {
 	FHitResult SweepHit{};
 	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(4.0) };
@@ -161,15 +161,15 @@ bool AGrassV1::GrassHitBySpawnerSweep(FHitResult& Hit) const
 }
 
 
-void AGrassV1::SpawnGrass(FHitResult& Hit)
+void AGrassA::SpawnGrass(FHitResult& Hit)
 {
-	AGrassV1* SpawnedGrass{ GetWorld()->SpawnActor<AGrassV1>(GrassClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
+	AGrassA* SpawnedGrass{ GetWorld()->SpawnActor<AGrassA>(GrassClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
 
 	ResetSpawningHammer();
 }
 
 
-void AGrassV1::DrawSpawningComponents()
+void AGrassA::DrawSpawningComponents()
 {
 	const FVector SpawnerRayCastStart{ Spawner->GetComponentLocation() };
 	const FVector SpawnerRayCastEnd{ Spawner->GetComponentLocation() + (-Spawner->GetUpVector() * 3.1) };
@@ -181,7 +181,7 @@ void AGrassV1::DrawSpawningComponents()
 }
 
 
-void AGrassV1::UpdateRotatorRotation()
+void AGrassA::UpdateRotatorRotation()
 {
 	if (RotatorRotation.Pitch > -67.5) RotatorRotation.Pitch += -22.5;
 	else if (RotatorRotation.Yaw < 300.0) ResetSpawningHammer();
@@ -195,7 +195,7 @@ void AGrassV1::UpdateRotatorRotation()
 }
 
 
-void AGrassV1::ResetSpawningHammer()
+void AGrassA::ResetSpawningHammer()
 {
 	RotatorRotation.Yaw += 60.0;
 
@@ -204,7 +204,7 @@ void AGrassV1::ResetSpawningHammer()
 }
 
 
-void AGrassV1::DestroySpawningComponentsAndDisableTick()
+void AGrassA::DestroySpawningComponentsAndDisableTick()
 {
 	Spawner->DestroyComponent();
 	Rotator->DestroyComponent();

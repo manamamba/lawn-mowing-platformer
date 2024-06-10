@@ -1,34 +1,29 @@
-// Derived AActor class AGrassSpawnerV1 by Cody Wheeler.
+// Derived AActor class AGrassSpawnerA by Cody Wheeler.
 
 
-#include "GrassSpawnerV1.h"
-#include "GrassV1.h"
+#include "GrassSpawnerA.h"
+#include "GrassA.h"
 
 
-AGrassSpawnerV1::AGrassSpawnerV1()
+AGrassSpawnerA::AGrassSpawnerA()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	RootComponent = Mesh;
-
-	Mesh->SetCollisionProfileName(TEXT("NoCollision"));
 }
 
 
-void AGrassSpawnerV1::BeginPlay()
+void AGrassSpawnerA::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
 
-void AGrassSpawnerV1::Tick(float DeltaTime)
+void AGrassSpawnerA::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	FHitResult LineHit{};
 
-	const FTransform SpawnerWorldTransform{ Mesh->GetComponentTransform() };
+	const FTransform SpawnerWorldTransform{ RootComponent->GetComponentTransform() };
 
 	const FVector SpawnerLocation{ SpawnerWorldTransform.GetLocation() };
 	const FVector SpawnerDownVector{ -SpawnerWorldTransform.GetUnitAxis(EAxis::Type::Z) };
@@ -50,10 +45,10 @@ void AGrassSpawnerV1::Tick(float DeltaTime)
 
 		if (!GrassHit)
 		{
-			const FRotator SpawnerRotation{ Mesh->GetComponentRotation() };
+			const FRotator SpawnerRotation{ RootComponent->GetComponentRotation() };
 			const FVector SpawnLocation{ LineHit.ImpactPoint };
 
-			AGrassV1* SpawnedGrass{ GetWorld()->SpawnActor<AGrassV1>(GrassClass, SpawnLocation, SpawnerRotation) };
+			AGrassA* SpawnedGrass{ GetWorld()->SpawnActor<AGrassA>(GrassClass, SpawnLocation, SpawnerRotation) };
 
 			if (SpawnedGrass)
 			{

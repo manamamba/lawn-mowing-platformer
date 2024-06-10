@@ -1,15 +1,15 @@
-// Derived AActor class AGrassSpawnerV2 by Cody Wheeler.
+// Derived AActor class AGrassSpawnerB by Cody Wheeler.
 
 
-#include "GrassSpawnerV2.h"
+#include "GrassSpawnerB.h"
 #include "Components/BoxComponent.h"
-#include "GrassV3.h"
+#include "GrassC.h"
 #include "LawnMowerGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/StaticMeshActor.h"
 
 
-AGrassSpawnerV2::AGrassSpawnerV2()
+AGrassSpawnerB::AGrassSpawnerB()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -17,7 +17,7 @@ AGrassSpawnerV2::AGrassSpawnerV2()
 }
 
 
-void AGrassSpawnerV2::SetComponentProperties()
+void AGrassSpawnerB::SetComponentProperties()
 {
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
@@ -33,17 +33,17 @@ void AGrassSpawnerV2::SetComponentProperties()
 	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
 	Collider->SetBoxExtent(FVector{ 200.0, 200.0, 200.0 });
 
-	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerV2::ActivateSpawner);
+	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerB::ActivateSpawner);
 }
 
 
-void AGrassSpawnerV2::BeginPlay()
+void AGrassSpawnerB::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
 
-void AGrassSpawnerV2::Tick(float DeltaTime)
+void AGrassSpawnerB::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -58,7 +58,7 @@ void AGrassSpawnerV2::Tick(float DeltaTime)
 }
 
 
-void AGrassSpawnerV2::TryToSpawnGrass()
+void AGrassSpawnerB::TryToSpawnGrass()
 {
 	if (bSpawnSuccessful || !bSpawnerActivated) return;
 
@@ -68,7 +68,7 @@ void AGrassSpawnerV2::TryToSpawnGrass()
 }
 
 
-bool AGrassSpawnerV2::SpawnerHitGround(FHitResult& Hit) const
+bool AGrassSpawnerB::SpawnerHitGround(FHitResult& Hit) const
 {
 	const double TraceLength{ 25.0 };
 
@@ -81,7 +81,7 @@ bool AGrassSpawnerV2::SpawnerHitGround(FHitResult& Hit) const
 }
 
 
-void AGrassSpawnerV2::SpawnGrass(const FHitResult& Hit)
+void AGrassSpawnerB::SpawnGrass(const FHitResult& Hit)
 {
 	const FVector SpawnLocation{ Hit.ImpactPoint };
 	const FRotator SpawnRotation{ RootComponent->GetComponentRotation() };
@@ -89,7 +89,7 @@ void AGrassSpawnerV2::SpawnGrass(const FHitResult& Hit)
 	FActorSpawnParameters SpawnOwner{};
 	SpawnOwner.Owner = this;
 
-	if (AGrassV3 * Spawned{ GetWorld()->SpawnActor<AGrassV3>(GrassClass, SpawnLocation, SpawnRotation, SpawnOwner) })
+	if (AGrassC * Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClass, SpawnLocation, SpawnRotation, SpawnOwner) })
 	{
 		UpdateGrassSpawnedCount();
 
@@ -99,7 +99,7 @@ void AGrassSpawnerV2::SpawnGrass(const FHitResult& Hit)
 }
 
 
-bool AGrassSpawnerV2::SpawnedGrassCleared() const
+bool AGrassSpawnerB::SpawnedGrassCleared() const
 {
 	if (!bSpawnSuccessful || bSpawnerActivated) return false;
 
@@ -107,7 +107,7 @@ bool AGrassSpawnerV2::SpawnedGrassCleared() const
 }
 
 
-void AGrassSpawnerV2::UpdateGameModeGrassCut() const
+void AGrassSpawnerB::UpdateGameModeGrassCut() const
 {
 	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
 	{
@@ -116,7 +116,7 @@ void AGrassSpawnerV2::UpdateGameModeGrassCut() const
 }
 
 
-void AGrassSpawnerV2::ActivateActorByTag()
+void AGrassSpawnerB::ActivateActorByTag()
 {
 	// TArray<AActor*> OutActors{};
 
@@ -127,19 +127,19 @@ void AGrassSpawnerV2::ActivateActorByTag()
 }
 
 
-void AGrassSpawnerV2::DisableSpawnerTick() { SetActorTickEnabled(false); }
+void AGrassSpawnerB::DisableSpawnerTick() { SetActorTickEnabled(false); }
 
 
-int32 AGrassSpawnerV2::GetGrassType() const { return GrassType; }
-int32 AGrassSpawnerV2::GetGrassSpawned() const { return GrassSpawnedCount; };
-int32 AGrassSpawnerV2::GetGrassCut() const { return GrassCutCount; };
+int32 AGrassSpawnerB::GetGrassType() const { return GrassType; }
+int32 AGrassSpawnerB::GetGrassSpawned() const { return GrassSpawnedCount; };
+int32 AGrassSpawnerB::GetGrassCut() const { return GrassCutCount; };
 
 
-void AGrassSpawnerV2::UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
-void AGrassSpawnerV2::UpdateGrassCutCount() { ++GrassCutCount; };
+void AGrassSpawnerB::UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
+void AGrassSpawnerB::UpdateGrassCutCount() { ++GrassCutCount; };
 
 
-UFUNCTION() void AGrassSpawnerV2::ActivateSpawner(
+UFUNCTION() void AGrassSpawnerB::ActivateSpawner(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,

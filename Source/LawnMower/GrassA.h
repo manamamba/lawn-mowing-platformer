@@ -1,24 +1,24 @@
-// Grass actor class developed by Cody Wheeler.
+// Derived AActor class AGrassA by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Grass.generated.h"
+#include "GrassA.generated.h"
 
 
 UCLASS()
-class LAWNMOWER_API AGrass : public AActor
+class LAWNMOWER_API AGrassA : public AActor
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrass> GrassClass{};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassA> GrassClass{};
 
 public:
-	AGrass();
+	AGrassA();
 
 protected:
 	virtual void BeginPlay() override;

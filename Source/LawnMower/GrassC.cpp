@@ -1,8 +1,8 @@
-// GrassC actor class developed by Cody Wheeler.
+// Derived AActor class AGrassC by Cody Wheeler.
 
 
 #include "GrassC.h"
-#include "GrassSpawnerC.h"
+#include "GrassSpawnerB.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Components/SphereComponent.h"
 
@@ -97,7 +97,7 @@ UStaticMesh* AGrassC::GetMeshType()
 {
 	EGrassType GrassType{ Standard };
 
-	if (AGrassSpawnerC* OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) }) 
+	if (AGrassSpawnerB* OwningSpawner{ Cast<AGrassSpawnerB>(GetOwner()) }) 
 	{
 		GrassType = static_cast<EGrassType>(OwningSpawner->GetGrassType());
 	}
@@ -233,9 +233,9 @@ void AGrassC::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 	const FVector SpawnLocation{ Hit.ImpactPoint };
 	const FRotator SpawnRotation{ Rotator->GetComponentRotation() };
 
-	if (AGrassC * Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClassC, SpawnLocation, SpawnRotation, GrassSpawnParameters) })
+	if (AGrassC * Spawned{ GetWorld()->SpawnActor<AGrassC>(GrassClass, SpawnLocation, SpawnRotation, GrassSpawnParameters) })
 	{
-		if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GrassSpawnParameters.Owner) })
+		if (AGrassSpawnerB * OwningSpawner{ Cast<AGrassSpawnerB>(GrassSpawnParameters.Owner) })
 		{
 			OwningSpawner->UpdateGrassSpawnedCount();
 		}
@@ -283,7 +283,7 @@ UFUNCTION() void AGrassC::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) })
+	if (AGrassSpawnerB * OwningSpawner{ Cast<AGrassSpawnerB>(GetOwner()) })
 	{
 		OwningSpawner->UpdateGrassCutCount();
 	}

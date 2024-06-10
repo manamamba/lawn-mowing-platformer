@@ -1,27 +1,27 @@
-// Derived AActor class AGrassSpawnerV2 by Cody Wheeler.
+// Derived AActor class AGrassSpawnerB by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GrassSpawnerV2.generated.h"
+#include "GrassSpawnerB.generated.h"
 
 class UBoxComponent;
-class AGrassV3;
+class AGrassC;
 
 
 UCLASS()
-class LAWNMOWER_API AGrassSpawnerV2 : public AActor
+class LAWNMOWER_API AGrassSpawnerB : public AActor
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere) USceneComponent* Root {};
 	UPROPERTY(EditAnywhere) UBoxComponent* Collider {};
-	UPROPERTY(EditAnywhere) TSubclassOf<AGrassV3> GrassClass{};
+	UPROPERTY(EditAnywhere) TSubclassOf<AGrassC> GrassClass{};
 
 public:
-	AGrassSpawnerV2();
+	AGrassSpawnerB();
 
 private:
 	void SetComponentProperties();
