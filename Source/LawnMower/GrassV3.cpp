@@ -1,11 +1,13 @@
-// Derived AActor class AGrassB by Cody Wheeler.
+// Derived AActor class AGrassV3 by Cody Wheeler.
 
 
-#include "GrassB.h"
+#include "GrassV3.h"
+#include "GrassSpawnerC.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Components/SphereComponent.h"
 
 
-AGrassB::AGrassB()
+AGrassV3::AGrassV3()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -14,7 +16,7 @@ AGrassB::AGrassB()
 }
 
 
-void AGrassB::CreateAndAssignRootComponent()
+void AGrassV3::CreateAndAssignRootComponent()
 {
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
@@ -24,15 +26,20 @@ void AGrassB::CreateAndAssignRootComponent()
 }
 
 
-void AGrassB::AssignStaticMesh()
+void AGrassV3::AssignStaticMesh()
 {
-	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshAsset(TEXT("/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2"));
+	FName GrassTypeStandard{ TEXT("/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2") };
+	FName GrassTypeOptional{ TEXT("/Game/Assets/Meshes/Grass/mowergrassv2b.mowergrassv2b") };
 
-	if (StaticMeshAsset.Succeeded()) StaticMesh = StaticMeshAsset.Object;
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshStandardAsset(*GrassTypeStandard.ToString());
+	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshOptionalAsset(*GrassTypeOptional.ToString());
+
+	if (StaticMeshStandardAsset.Succeeded()) StaticMeshStandard = StaticMeshStandardAsset.Object;
+	if (StaticMeshStandardAsset.Succeeded()) StaticMeshOptional = StaticMeshOptionalAsset.Object;
 }
 
 
-void AGrassB::BeginPlay()
+void AGrassV3::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -41,12 +48,10 @@ void AGrassB::BeginPlay()
 	CreateAndAttachRuntimeComponents();
 	SetRuntimeMeshComponentProperties();
 	SetRuntimeSpawningComponentProperties();
-
-	if(Mesh) Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassB::Cut);
 }
 
 
-void AGrassB::CreateAndAttachRuntimeComponents()
+void AGrassV3::CreateAndAttachRuntimeComponents()
 {
 	Mesh = Cast<UStaticMeshComponent>(AddComponentByClass(UStaticMeshComponent::StaticClass(), true, GetTransform(), false));
 	Rotator = Cast<USceneComponent>(AddComponentByClass(USceneComponent::StaticClass(), true, GetTransform(), false));
@@ -64,10 +69,12 @@ void AGrassB::CreateAndAttachRuntimeComponents()
 }
 
 
-void AGrassB::SetRuntimeMeshComponentProperties()
+void AGrassV3::SetRuntimeMeshComponentProperties()
 {
-	Mesh->SetStaticMesh(StaticMesh);
-	
+	Mesh->SetStaticMesh(GetMeshType());
+
+	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassV3::Cut);
+
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
 	const double SpawnScaleZ{ UKismetMathLibrary::RandomFloatInRange(1.0f, 1.5f) };
@@ -86,7 +93,26 @@ void AGrassB::SetRuntimeMeshComponentProperties()
 }
 
 
-void AGrassB::SetRuntimeSpawningComponentProperties()
+UStaticMesh* AGrassV3::GetMeshType()
+{
+	EGrassType GrassType{ Standard };
+
+	if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) })
+	{
+		GrassType = static_cast<EGrassType>(OwningSpawner->GetGrassType());
+	}
+
+	switch (GrassType)
+	{
+	case Optional:	return StaticMeshOptional;
+	default:		return StaticMeshStandard;
+	}
+}
+
+
+
+
+void AGrassV3::SetRuntimeSpawningComponentProperties()
 {
 	StartingRotatorYaw = FMath::RandRange(0, 359);
 	RotatorRotation = FRotator{ 45.0, StartingRotatorYaw, 0.0 };
@@ -97,7 +123,7 @@ void AGrassB::SetRuntimeSpawningComponentProperties()
 }
 
 
-void AGrassB::Tick(float DeltaTime)
+void AGrassV3::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -107,7 +133,7 @@ void AGrassB::Tick(float DeltaTime)
 }
 
 
-void AGrassB::UpdateSpawnHammer()
+void AGrassV3::UpdateSpawnHammer()
 {
 	const double PitchMax{ 45.0 };
 
@@ -117,7 +143,7 @@ void AGrassB::UpdateSpawnHammer()
 }
 
 
-void AGrassB::TryToSpawnGrass(const double& PitchMax)
+void AGrassV3::TryToSpawnGrass(const double& PitchMax)
 {
 	FHitResult Hit{};
 
@@ -126,17 +152,19 @@ void AGrassB::TryToSpawnGrass(const double& PitchMax)
 
 	const double RayCastLength{ 5.0 };
 
-	if (RotatorRotation.Pitch == PitchMax) if (!FarGroundHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
+	if (RotatorRotation.Pitch == PitchMax) if (!FarDirtHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
+
+	if (RotatorRotation.Pitch == PitchMax) if (!GrowFieldOverlapped(Start)) return;
 
 	if (GrassHitBySpawnerSweep(Start, Direction, RayCastLength, PitchMax)) return;
 
-	if (!GroundHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
+	if (!DirtHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
 
 	SpawnGrass(Hit, PitchMax);
 }
 
 
-bool AGrassB::FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax)
+bool AGrassV3::FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax)
 {
 	const FVector End{ Start + (Direction * PitchMax) };
 
@@ -150,12 +178,25 @@ bool AGrassB::FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start
 }
 
 
-bool AGrassB::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
+bool AGrassV3::GrowFieldOverlapped(const FVector& Start)
+{
+	TArray<FOverlapResult> Overlaps{};
+
+	FCollisionObjectQueryParams GrowObjects{};
+	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
+
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) };
+
+	return GetWorld()->OverlapMultiByObjectType(Overlaps, Start, FQuat::Identity, GrowObjects, Sweeper);
+}
+
+
+bool AGrassV3::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
 {
 	FHitResult SweepHit{};
 
 	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(7.0) };
-	
+
 	const FVector End{ Start + (Direction * RayCastLength) };
 
 	const bool GrassHit{ GetWorld()->SweepSingleByChannel(SweepHit, End, End, FQuat::Identity, ECC_GameTraceChannel2, Sweeper) };
@@ -166,7 +207,7 @@ bool AGrassB::GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direct
 }
 
 
-bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
+bool AGrassV3::DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax)
 {
 	Hit.Reset();
 
@@ -184,26 +225,38 @@ bool AGrassB::GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, c
 }
 
 
-void AGrassB::SpawnGrass(FHitResult& Hit, const double& PitchMax)
+void AGrassV3::SpawnGrass(FHitResult& Hit, const double& PitchMax)
 {
-	AGrassB* SpawnedGrass{ GetWorld()->SpawnActor<AGrassB>(GrassClass, Hit.ImpactPoint, Rotator->GetComponentRotation()) };
+	FActorSpawnParameters GrassSpawnParameters{};
+	GrassSpawnParameters.Owner = GetOwner();
+
+	const FVector SpawnLocation{ Hit.ImpactPoint };
+	const FRotator SpawnRotation{ Rotator->GetComponentRotation() };
+
+	if (AGrassV3 * Spawned{ GetWorld()->SpawnActor<AGrassV3>(GrassClass, SpawnLocation, SpawnRotation, GrassSpawnParameters) })
+	{
+		if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GrassSpawnParameters.Owner) })
+		{
+			OwningSpawner->UpdateGrassSpawnedCount();
+		}
+	}
 
 	UpdateRotatorYawAndPitch(PitchMax);
 }
 
 
-void AGrassB::UpdateRotatorYawAndPitch(const double& PitchMax)
+void AGrassV3::UpdateRotatorYawAndPitch(const double& PitchMax)
 {
 	RotatorRotation.Yaw += 60.0;
 
 	if (RotatorRotation.Yaw >= StartingRotatorYaw + 360.0) RotatorRotation.Pitch = -PitchMax;
 	else RotatorRotation.Pitch = PitchMax;
-	
+
 	Rotator->SetWorldRotation(UKismetMathLibrary::TransformRotation(RootTransform, RotatorRotation));
 }
 
 
-void AGrassB::UpdateRotatorPitch(const double& PitchMax)
+void AGrassV3::UpdateRotatorPitch(const double& PitchMax)
 {
 	if (RotatorRotation.Pitch > -PitchMax) RotatorRotation.Pitch += -22.5;
 
@@ -211,18 +264,18 @@ void AGrassB::UpdateRotatorPitch(const double& PitchMax)
 }
 
 
-void AGrassB::DestroyRuntimeSpawningComponentsAndDisableTick()
+void AGrassV3::DestroyRuntimeSpawningComponentsAndDisableTick()
 {
 	Spawner->DestroyComponent();
 	Rotator->DestroyComponent();
 
 	SetActorTickEnabled(false);
 
-	// UE_LOG(LogTemp, Warning, TEXT("Spawning complete in %i ticks!"), SpawningCompleteTicks);
+	// UE_LOG(LogTemp, Warning, TEXT("Spawning complete in %i ticks!"), SpawningTicks);
 }
 
 
-UFUNCTION() void AGrassB::Cut(
+UFUNCTION() void AGrassV3::Cut(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,
@@ -230,13 +283,16 @@ UFUNCTION() void AGrassB::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	// UE_LOG(LogTemp, Warning, TEXT("%s Cut!"), *GetName());
+	if (AGrassSpawnerC * OwningSpawner{ Cast<AGrassSpawnerC>(GetOwner()) })
+	{
+		OwningSpawner->UpdateGrassCutCount();
+	}
 
 	Destroy();
 }
 
 
-void AGrassB::TickSlowerWithDrawing()
+void AGrassV3::TickSlowerWithDrawing()
 {
 	++TickCount;
 
@@ -246,14 +302,14 @@ void AGrassB::TickSlowerWithDrawing()
 
 		DrawSpawningComponents();
 
-		++SpawningCompleteTicks;
+		++SpawningTicks;
 
 		TickCount = 0.0f;
 	}
 }
 
 
-void AGrassB::DrawSpawningComponents()
+void AGrassV3::DrawSpawningComponents()
 {
 	const FVector Start{ Spawner->GetComponentLocation() };
 	const FVector Direction{ -Spawner->GetUpVector() };

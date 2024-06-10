@@ -1,35 +1,36 @@
-// Derived AActor class AGrassB by Cody Wheeler.
+// Derived AActor class AGrassV3 by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GrassB.generated.h"
+#include "GrassV3.generated.h"
 
 
 UCLASS()
-class LAWNMOWER_API AGrassB : public AActor
+class LAWNMOWER_API AGrassV3 : public AActor
 {
 	GENERATED_BODY()
-	
-	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassB> GrassClass{};
 
-	UFUNCTION() void Cut(
-		UPrimitiveComponent* OverlapComp, 
-		AActor* OtherActor, 
-		UPrimitiveComponent* OtherComp, 
-		int32 OtherBodyIndex, 
-		bool bFromSweep, 
-		const FHitResult& SweepResult);
+	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassV3> GrassClass{};
 
 public:
-	AGrassB();
+	enum EGrassType : int32 {
+		Standard,
+		Optional,
+
+		Max_Grass_Types,
+	};
+
+public:
+	AGrassV3();
 
 private:
 	void CreateAndAssignRootComponent();
 	void AssignStaticMesh();
+	UStaticMesh* GetMeshType();
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,6 +40,7 @@ private:
 	void SetRuntimeMeshComponentProperties();
 	void SetRuntimeSpawningComponentProperties();
 
+
 public:
 	virtual void Tick(float DeltaTime) override;
 
@@ -46,9 +48,10 @@ private:
 	void UpdateSpawnHammer();
 
 	void TryToSpawnGrass(const double& PitchMax);
-	bool FarGroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
+	bool FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
+	bool GrowFieldOverlapped(const FVector& Start);
 	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
-	bool GroundHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
+	bool DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
 	void SpawnGrass(FHitResult& Hit, const double& PitchMax);
 
 	void UpdateRotatorYawAndPitch(const double& PitchMax);
@@ -60,7 +63,17 @@ private:
 	void DrawSpawningComponents();
 
 private:
-	UStaticMesh* StaticMesh{};
+	UFUNCTION() void Cut(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
+private:
+	UStaticMesh* StaticMeshStandard{};
+	UStaticMesh* StaticMeshOptional{};
 	UStaticMeshComponent* Mesh{};
 	USceneComponent* Rotator{};
 	USceneComponent* Spawner{};
@@ -71,6 +84,6 @@ private:
 	double StartingRotatorYaw{};
 
 	float TickCount{};
-	int32 SpawningCompleteTicks{ 1 };
+	int32 SpawningTicks{ 1 };
 
 };

@@ -1,31 +1,31 @@
-// Derived AActor class AGrassB by Cody Wheeler.
+// Derived AActor class AGrassV2 by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "GrassB.generated.h"
+#include "GrassV2.generated.h"
 
 
 UCLASS()
-class LAWNMOWER_API AGrassB : public AActor
+class LAWNMOWER_API AGrassV2 : public AActor
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassB> GrassClass{};
+	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassV2> GrassClass{};
 
 	UFUNCTION() void Cut(
-		UPrimitiveComponent* OverlapComp, 
-		AActor* OtherActor, 
-		UPrimitiveComponent* OtherComp, 
-		int32 OtherBodyIndex, 
-		bool bFromSweep, 
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
 		const FHitResult& SweepResult);
 
 public:
-	AGrassB();
+	AGrassV2();
 
 private:
 	void CreateAndAssignRootComponent();
