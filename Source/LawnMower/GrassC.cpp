@@ -50,8 +50,6 @@ void AGrassC::BeginPlay()
 
 	if (Mesh) Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassC::Cut);
 
-	if (!GrowFieldOverlapped()) DestroyRuntimeSpawningComponentsAndDisableTick();
-
 	SetRuntimeSpawningComponentProperties();
 }
 
@@ -115,18 +113,6 @@ UStaticMesh* AGrassC::GetMeshType()
 }
 
 
-bool AGrassC::GrowFieldOverlapped()
-{
-	TArray<FOverlapResult> Overlaps{};
-
-	FCollisionObjectQueryParams GrowObjects{};
-	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
-
-	const FVector Pos{ RootComponent->GetComponentLocation() };
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
-
-	return GetWorld()->OverlapMultiByObjectType(Overlaps, Pos, FQuat::Identity, GrowObjects, Sweeper);
-}
 
 
 void AGrassC::SetRuntimeSpawningComponentProperties()
@@ -171,6 +157,8 @@ void AGrassC::TryToSpawnGrass(const double& PitchMax)
 
 	if (RotatorRotation.Pitch == PitchMax) if (!FarDirtHitBySpawnerRayCast(Hit, Start, Direction, PitchMax)) return;
 
+	if (RotatorRotation.Pitch == PitchMax) if (!GrowFieldOverlapped(Start)) return;
+
 	if (GrassHitBySpawnerSweep(Start, Direction, RayCastLength, PitchMax)) return;
 
 	if (!DirtHitBySpawnerRayCast(Hit, Start, Direction, RayCastLength, PitchMax)) return;
@@ -190,6 +178,19 @@ bool AGrassC::FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, 
 	if (!FarGroundHit) UpdateRotatorYawAndPitch(PitchMax);
 
 	return FarGroundHit;
+}
+
+
+bool AGrassC::GrowFieldOverlapped(const FVector& Start)
+{
+	TArray<FOverlapResult> Overlaps{};
+
+	FCollisionObjectQueryParams GrowObjects{};
+	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
+
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) };
+
+	return GetWorld()->OverlapMultiByObjectType(Overlaps, Start, FQuat::Identity, GrowObjects, Sweeper);
 }
 
 

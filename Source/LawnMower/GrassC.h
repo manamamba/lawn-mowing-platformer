@@ -39,7 +39,7 @@ private:
 	void CreateAndAttachRuntimeComponents();
 	void SetRuntimeMeshComponentProperties();
 	void SetRuntimeSpawningComponentProperties();
-	bool GrowFieldOverlapped();
+	
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -49,6 +49,7 @@ private:
 
 	void TryToSpawnGrass(const double& PitchMax);
 	bool FarDirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& PitchMax);
+	bool GrowFieldOverlapped(const FVector& Start);
 	bool GrassHitBySpawnerSweep(const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
 	bool DirtHitBySpawnerRayCast(FHitResult& Hit, const FVector& Start, const FVector& Direction, const double& RayCastLength, const double& PitchMax);
 	void SpawnGrass(FHitResult& Hit, const double& PitchMax);
