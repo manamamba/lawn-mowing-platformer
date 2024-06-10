@@ -119,11 +119,8 @@ void AGrassSpawnerB::UpdateGameModeGrassCut() const
 void AGrassSpawnerB::ActivateActorByTag()
 {
 	// TArray<AActor*> OutActors{};
-
 	// UGameplayStatics::GetAllActorsOfClassWithTag(this, AStaticMeshActor::StaticClass(), ActorTag, OutActors);
-
 	// for (AActor* Actor : OutActors) ...
-
 }
 
 

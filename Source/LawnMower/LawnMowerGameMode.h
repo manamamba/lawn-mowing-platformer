@@ -1,4 +1,4 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+// Derived AGameModeBase class ALawnMowerGameMode by Cody Wheeler.
 
 
 #pragma once
@@ -19,7 +19,5 @@ public:
 
 private:
 	int32 GrassCut{};
-
-
 
 };

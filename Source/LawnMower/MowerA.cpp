@@ -1,7 +1,7 @@
-// Mower pawn class developed by Cody Wheeler.
+// Derived APawn class AMowerA by Cody Wheeler.
 
 
-#include "Mower.h"
+#include "MowerA.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Components/ArrowComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -11,65 +11,65 @@
 #include "EnhancedInputSubsystems.h"
 
 
-AMower::AMower()
+AMowerA::AMowerA()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 	CreateAndAssignComponentSubObjects();
 	SetupComponentAttachments();
 	SetNonWheelProperties();
-	SetWheelProperties(WheelSet{ WheelFR, AxisFR, SuspensionFR, LocationFR, TEXT("WheelFR") });
-	SetWheelProperties(WheelSet{ WheelFL, AxisFL, SuspensionFL, LocationFL, TEXT("WheelFL") });
-	SetWheelProperties(WheelSet{ WheelBR, AxisBR, SuspensionBR, LocationBR, TEXT("WheelBR") });
-	SetWheelProperties(WheelSet{ WheelBL, AxisBL, SuspensionBL, LocationBL, TEXT("WheelBL") });
+	SetWheelProperties(FWheelSet{ WheelFr, AxisFr, SuspensionFr, LocationFr, TEXT("WheelFR") });
+	SetWheelProperties(FWheelSet{ WheelFl, AxisFl, SuspensionFl, LocationFl, TEXT("WheelFL") });
+	SetWheelProperties(FWheelSet{ WheelBr, AxisBr, SuspensionBr, LocationBr, TEXT("WheelBR") });
+	SetWheelProperties(FWheelSet{ WheelBl, AxisBl, SuspensionBl, LocationBl, TEXT("WheelBL") });
 }
 
 
-void AMower::CreateAndAssignComponentSubObjects()
+void AMowerA::CreateAndAssignComponentSubObjects()
 {
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
 	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
-	WheelFR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelFR"));
-	WheelFL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelFL"));
-	WheelBR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelBR"));
-	WheelBL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelBL"));
-	AxisFR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisFR"));
-	AxisFL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisFL"));
-	AxisBR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisBR"));
-	AxisBL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisBL"));
-	SuspensionFR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionFR"));
-	SuspensionFL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionFL"));
-	SuspensionBR = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBR"));
-	SuspensionBL = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBL"));
+	WheelFr = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelFR"));
+	WheelFl = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelFL"));
+	WheelBr = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelBR"));
+	WheelBl = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WheelBL"));
+	AxisFr = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisFR"));
+	AxisFl = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisFL"));
+	AxisBr = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisBR"));
+	AxisBl = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("AxisBL"));
+	SuspensionFr = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionFR"));
+	SuspensionFl = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionFL"));
+	SuspensionBr = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBR"));
+	SuspensionBl = CreateDefaultSubobject<UPhysicsConstraintComponent>(TEXT("SuspensionBL"));
 	Arrow = CreateDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 }
 
 
-void AMower::SetupComponentAttachments()
+void AMowerA::SetupComponentAttachments()
 {
 	if (Body) RootComponent = Body;
 	if (Handle) Handle->SetupAttachment(RootComponent);
-	if (WheelFR) WheelFR->SetupAttachment(RootComponent);
-	if (WheelFL) WheelFL->SetupAttachment(RootComponent);
-	if (WheelBR) WheelBR->SetupAttachment(RootComponent);
-	if (WheelBL) WheelBL->SetupAttachment(RootComponent);
-	if (AxisFR) AxisFR->SetupAttachment(WheelFR);
-	if (AxisFL) AxisFL->SetupAttachment(WheelFL);
-	if (AxisBR) AxisBR->SetupAttachment(WheelBR);
-	if (AxisBL) AxisBL->SetupAttachment(WheelBL);
-	if (SuspensionFR) SuspensionFR->SetupAttachment(WheelFR);
-	if (SuspensionFL) SuspensionFL->SetupAttachment(WheelFL);
-	if (SuspensionBR) SuspensionBR->SetupAttachment(WheelBR);
-	if (SuspensionBL) SuspensionBL->SetupAttachment(WheelBL);
+	if (WheelFr) WheelFr->SetupAttachment(RootComponent);
+	if (WheelFl) WheelFl->SetupAttachment(RootComponent);
+	if (WheelBr) WheelBr->SetupAttachment(RootComponent);
+	if (WheelBl) WheelBl->SetupAttachment(RootComponent);
+	if (AxisFr) AxisFr->SetupAttachment(WheelFr);
+	if (AxisFl) AxisFl->SetupAttachment(WheelFl);
+	if (AxisBr) AxisBr->SetupAttachment(WheelBr);
+	if (AxisBl) AxisBl->SetupAttachment(WheelBl);
+	if (SuspensionFr) SuspensionFr->SetupAttachment(WheelFr);
+	if (SuspensionFl) SuspensionFl->SetupAttachment(WheelFl);
+	if (SuspensionBr) SuspensionBr->SetupAttachment(WheelBr);
+	if (SuspensionBl) SuspensionBl->SetupAttachment(WheelBl);
 	if (Arrow) Arrow->SetupAttachment(RootComponent);
 	if (CameraArm) CameraArm->SetupAttachment(RootComponent);
 	if (Camera) Camera->SetupAttachment(CameraArm);
 }
 
 
-void AMower::SetNonWheelProperties()
+void AMowerA::SetNonWheelProperties()
 {
 	if (!Body || !Handle || !CameraArm) return;
 
@@ -84,10 +84,10 @@ void AMower::SetNonWheelProperties()
 }
 
 
-void AMower::SetWheelProperties(WheelSet Set)
+void AMowerA::SetWheelProperties(FWheelSet Set)
 {
 	if (!Set.Wheel || !Set.Axis || !Set.Suspension) return;
-	
+
 	SetMeshCollisionProperties(Set.Wheel);
 
 	Set.Wheel->SetRelativeLocation(Set.Location);
@@ -109,10 +109,10 @@ void AMower::SetWheelProperties(WheelSet Set)
 }
 
 
-void AMower::SetMeshCollisionProperties(UStaticMeshComponent* Mesh)
+void AMowerA::SetMeshCollisionProperties(UStaticMeshComponent* Mesh)
 {
 	if (!Mesh) return;
-	
+
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetCollisionProfileName(TEXT("Custom..."));
 	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
@@ -133,7 +133,7 @@ void AMower::SetMeshCollisionProperties(UStaticMeshComponent* Mesh)
 }
 
 
-void AMower::BeginPlay()
+void AMowerA::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -142,20 +142,20 @@ void AMower::BeginPlay()
 }
 
 
-void AMower::SetMeshMassOverrides()
+void AMowerA::SetMeshMassOverrides()
 {
 	Body->BodyInstance.SetMassOverride(30.0f);
 	Handle->BodyInstance.SetMassOverride(0.001f);
-	WheelFR->BodyInstance.SetMassOverride(5.0f);
-	WheelFL->BodyInstance.SetMassOverride(5.0f);
-	WheelBR->BodyInstance.SetMassOverride(5.0f);
-	WheelBL->BodyInstance.SetMassOverride(5.0f);
+	WheelFr->BodyInstance.SetMassOverride(5.0f);
+	WheelFl->BodyInstance.SetMassOverride(5.0f);
+	WheelBr->BodyInstance.SetMassOverride(5.0f);
+	WheelBl->BodyInstance.SetMassOverride(5.0f);
 
 	Body->SetCenterOfMass(FVector{ 0.0, 0.0, -15.0 });
 }
 
 
-void AMower::AddInputMappingContextToLocalPlayerSubsystem()
+void AMowerA::AddInputMappingContextToLocalPlayerSubsystem() const
 {
 	APlayerController* PlayerController{};
 	UEnhancedInputLocalPlayerSubsystem* Subsystem{};
@@ -167,7 +167,7 @@ void AMower::AddInputMappingContextToLocalPlayerSubsystem()
 }
 
 
-void AMower::Tick(float DeltaTime)
+void AMowerA::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
@@ -175,7 +175,7 @@ void AMower::Tick(float DeltaTime)
 }
 
 
-void AMower::ReduceWheelDrag()
+void AMowerA::ReduceWheelDrag()
 {
 	if (WheelDrag == 0.0f) return;
 	(WheelDrag > 0.0f) ? WheelDrag -= 0.25f : WheelDrag == 0.0f;
@@ -185,31 +185,31 @@ void AMower::ReduceWheelDrag()
 }
 
 
-void AMower::SetRearWheelAngularDamping()
+void AMowerA::SetRearWheelAngularDamping()
 {
-	WheelBR->SetAngularDamping(WheelDrag);
-	WheelBL->SetAngularDamping(WheelDrag);
+	WheelBr->SetAngularDamping(WheelDrag);
+	WheelBl->SetAngularDamping(WheelDrag);
 }
 
 
-void AMower::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AMowerA::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 
-		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMower::MoveCamera);
-		EnhancedInputComponent->BindAction(ResetCameraInputAction, ETriggerEvent::Triggered, this, &AMower::ResetCamera);
+		EnhancedInputComponent->BindAction(MoveCameraInputAction, ETriggerEvent::Triggered, this, &AMowerA::MoveCamera);
+		EnhancedInputComponent->BindAction(ResetCameraInputAction, ETriggerEvent::Triggered, this, &AMowerA::ResetCamera);
 
-		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMower::Accelerate);
-		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMower::Brake);
-		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMower::Steer);
-		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMower::Jump);
+		EnhancedInputComponent->BindAction(AccelerateInputAction, ETriggerEvent::Triggered, this, &AMowerA::Accelerate);
+		EnhancedInputComponent->BindAction(BrakeInputAction, ETriggerEvent::Triggered, this, &AMowerA::Brake);
+		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerA::Steer);
+		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMowerA::Jump);
 	}
 }
 
 
-void AMower::MoveCamera(const FInputActionValue& Value)
+void AMowerA::MoveCamera(const FInputActionValue& Value)
 {
 	const FVector2D InputVector{ Value.Get<FVector2D>() };
 	FRotator ArmPosition{ CameraArm->GetRelativeRotation() };
@@ -225,15 +225,15 @@ void AMower::MoveCamera(const FInputActionValue& Value)
 }
 
 
-void AMower::ResetCamera()
+void AMowerA::ResetCamera()
 {
 	CameraArm->SetRelativeRotation(FRotator{ -20.0, 0.0, 0.0 });
 }
 
 
-void AMower::Accelerate(const FInputActionValue& Value)
+void AMowerA::Accelerate(const FInputActionValue& Value)
 {
-	const float InputDirection{ Value.Get<float>()};
+	const float InputDirection{ Value.Get<float>() };
 	FVector ForwardVector{ Body->GetForwardVector() };
 	Body->AddForce(ForwardVector * InputDirection * AccelerationPower, NAME_None, true);
 
@@ -241,7 +241,7 @@ void AMower::Accelerate(const FInputActionValue& Value)
 }
 
 
-void AMower::Brake(const FInputActionValue& Value)
+void AMowerA::Brake(const FInputActionValue& Value)
 {
 	WheelDrag += Value.Get<float>();
 
@@ -250,25 +250,25 @@ void AMower::Brake(const FInputActionValue& Value)
 }
 
 
-void AMower::Steer(const FInputActionValue& Value)
+void AMowerA::Steer(const FInputActionValue& Value)
 {
 	double SteeringDirection{ Value.Get<float>() };
 
-	FRotator WheelFRRotation{ WheelFR->GetRelativeRotation() };
-	FRotator WheelFLRotation{ WheelFL->GetRelativeRotation() };
+	FRotator WheelFrRotation{ WheelFr->GetRelativeRotation() };
+	FRotator WheelFlRotation{ WheelFl->GetRelativeRotation() };
 
-	WheelFRRotation.Yaw += SteeringDirection * SteeringPower;
-	WheelFLRotation.Yaw += SteeringDirection * SteeringPower;
+	WheelFrRotation.Yaw += SteeringDirection * SteeringPower;
+	WheelFlRotation.Yaw += SteeringDirection * SteeringPower;
 
-	WheelFR->SetRelativeRotation(WheelFRRotation);
-	WheelFL->SetRelativeRotation(WheelFLRotation);
+	WheelFr->SetRelativeRotation(WheelFrRotation);
+	WheelFl->SetRelativeRotation(WheelFlRotation);
 }
 
 
-void AMower::Jump(const FInputActionValue& Value)
+void AMowerA::Jump(const FInputActionValue& Value)
 {
 	APawn* Mower{ GetController()->GetPawn() };
-	
+
 	if (!IsGrounded(Mower)) return;
 
 	// UE_LOG(LogTemp, Warning, TEXT("Mower is Grounded!"));
@@ -277,7 +277,7 @@ void AMower::Jump(const FInputActionValue& Value)
 }
 
 
-bool AMower::IsGrounded(APawn* Mower)
+bool AMowerA::IsGrounded(APawn* Mower) const
 {
 	if (!Mower) return false;
 
@@ -288,11 +288,11 @@ bool AMower::IsGrounded(APawn* Mower)
 	FVector Direction{ -Mower->GetActorUpVector() * TraceDistance };
 	FVector End{ Start + Direction };
 
-	bool Grounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
+	bool bGrounded{ GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1) };
 
 	// DrawDebugSphere(GetWorld(), Start, 20.0f, 6, FColor::Orange, true);
 	// DrawDebugLine(GetWorld(), Start, End, FColor::Blue, true);
 	// DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 15.0f, 6, FColor::Green, true);
 
-	return Grounded;
+	return bGrounded;
 }

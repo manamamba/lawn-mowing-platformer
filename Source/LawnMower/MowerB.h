@@ -1,11 +1,11 @@
-// MowerRC pawn class developed by Cody Wheeler.
+// Derived APawn class AMowerB by Cody Wheeler.
 
 
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "MowerRC.generated.h"
+#include "MowerB.generated.h"
 
 class UBoxComponent;
 class USpringArmComponent;
@@ -16,7 +16,7 @@ struct FInputActionValue;
 
 
 UCLASS()
-class LAWNMOWER_API AMowerRC : public APawn
+class LAWNMOWER_API AMowerB : public APawn
 {
 	GENERATED_BODY()
 
@@ -119,7 +119,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float AirTimeMinimum{ 0.6f };
 
 	const double StalledRollTorqueMultiplier{ 2.5 };
-	
+
 	const float BrakingLinearDragRate{ 0.25f };
 	const float BrakingLinearDragLimit{ 50.0f };
 	const float AcceleratingAngularDragRate{ 0.000005f };
@@ -135,7 +135,7 @@ class LAWNMOWER_API AMowerRC : public APawn
 	const float WheelSteeringDecayRate{ 12.0f };
 
 public:
-	AMowerRC();
+	AMowerB();
 
 private:
 	void CreateAndAssignComponentSubObjects();
@@ -225,11 +225,11 @@ private:
 	void UpdateWheelRotations(const float DeltaTime);
 	double GetWheelPitch(const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime) const;
 	float GetDriftingRatioWithPitchDirection() const;
-	void UpdateWheelPitch(FRotator& LocalRotation, const double WheelPitch);	
+	void UpdateWheelPitch(FRotator& LocalRotation, const double WheelPitch);
 	void UpdateWheelSteeringRatio(const float DeltaTime);
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
-	
+
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
