@@ -4,6 +4,7 @@
 #include "GrassC.h"
 #include "GrassSpawnerC.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Components/SphereComponent.h"
 
 
 AGrassC::AGrassC()
@@ -46,9 +47,12 @@ void AGrassC::BeginPlay()
 
 	CreateAndAttachRuntimeComponents();
 	SetRuntimeMeshComponentProperties();
-	SetRuntimeSpawningComponentProperties();
 
 	if (Mesh) Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassC::Cut);
+
+	if (!GrowFieldOverlapped()) DestroyRuntimeSpawningComponentsAndDisableTick();
+
+	SetRuntimeSpawningComponentProperties();
 }
 
 
@@ -73,6 +77,8 @@ void AGrassC::CreateAndAttachRuntimeComponents()
 void AGrassC::SetRuntimeMeshComponentProperties()
 {
 	Mesh->SetStaticMesh(GetMeshType());
+
+	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassC::Cut);
 
 	const double SpawnPitchRoll{ UKismetMathLibrary::RandomFloatInRange(0.0f, 5.0f) };
 	const double SpawnYaw{ UKismetMathLibrary::RandomFloatInRange(0.0f, 359.0f) };
@@ -106,6 +112,20 @@ UStaticMesh* AGrassC::GetMeshType()
 	case Optional:	return StaticMeshOptional;
 	default:		return StaticMeshStandard;
 	}
+}
+
+
+bool AGrassC::GrowFieldOverlapped()
+{
+	TArray<FOverlapResult> Overlaps{};
+
+	FCollisionObjectQueryParams GrowObjects{};
+	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
+
+	const FVector Pos{ RootComponent->GetComponentLocation() };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(3.0) };
+
+	return GetWorld()->OverlapMultiByObjectType(Overlaps, Pos, FQuat::Identity, GrowObjects, Sweeper);
 }
 
 

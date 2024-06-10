@@ -39,6 +39,7 @@ private:
 	void CreateAndAttachRuntimeComponents();
 	void SetRuntimeMeshComponentProperties();
 	void SetRuntimeSpawningComponentProperties();
+	bool GrowFieldOverlapped();
 
 public:
 	virtual void Tick(float DeltaTime) override;

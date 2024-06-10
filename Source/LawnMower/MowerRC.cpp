@@ -210,7 +210,7 @@ void AMowerRC::Tick(float DeltaTime)
 	// DrawAcceleration();
 	// DrawDrift();
 
-	LogMotionData(DeltaTime);
+	// LogMotionData(DeltaTime);
 
 	ResetDrag();
 	ResetPlayerInputData();
