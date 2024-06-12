@@ -14,11 +14,10 @@ class LAWNMOWER_API AGrassD : public AActor
 	GENERATED_BODY()
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly, Category = TSubClass) TSubclassOf<AGrassD> GrassClass{};
-	
-	static inline const double RayCastLength{ 24.0 };
 
-	static inline const TArray<FVector> LocalStarts{
+	static inline UStaticMesh* StaticMesh{};
+
+	static inline const TArray<FVector> LocalRayCastStarts{
 		{ 10.0, 0.0, 12.0 },
 		{ 5.0, 8.66, 12.0 },
 		{ -5.0, 8.66, 12.0 },
@@ -26,6 +25,10 @@ class LAWNMOWER_API AGrassD : public AActor
 		{ -5.0, -8.66, 12.0 },
 		{ 5.0, -8.66, 12.0 }
 	};
+
+	static inline const double RayCastLength{ 24.0 };
+
+	static inline const float TickCountMax{ 0.015f };
 
 public:	
 	AGrassD();
@@ -47,10 +50,26 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	UStaticMesh* StaticMesh{};
+	void TryToSpawnGrass();
+	bool RayCastStartInsideGrowField(const FVector& RayCastStart);
+	bool RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection);
+	bool GrassNearRayCastImpact(const FVector& Impact);
+	void SpawnGrass(const FVector& SpawnLocation, const FRotator& SpawnRotation);
+	FRotator GetSpawnRotation(const float& TraceLength, const double& YawPosition);
+
+private:
+	// UStaticMesh* StaticMesh{};
+
+	// make members stored in pointers so i can free after spawning??
+	// fixed array unreal? use unreal pointer class? Object whatever its called?
+
 	UStaticMeshComponent* Mesh{};
 	TArray<double> YawPositions{};
-	TArray<FVector> RayCastStarts{};
 	FTransform RootTransform{};
+	FVector RootDownVector{};
+	FRotator RootRotation{};
+	TArray<FVector> RayCastStarts{};
+	float TickCount{};
+	int32 SpawnPosition{};
 
 };

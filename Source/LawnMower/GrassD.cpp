@@ -27,11 +27,15 @@ void AGrassD::CreateAndAssignRootComponent()
 
 void AGrassD::LocateAndAssignStaticMesh()
 {
+	if (StaticMesh) return;
+
 	FName StaticMeshAssetLocation{ TEXT("/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2") };
 
 	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshAsset(*StaticMeshAssetLocation.ToString());
 
 	if (StaticMeshAsset.Succeeded()) StaticMesh = StaticMeshAsset.Object;
+
+	// UE_LOG(LogTemp, Warning, TEXT("Mesh Set!")); // need to check this again when spawner is ready
 }
 
 
@@ -42,7 +46,7 @@ void AGrassD::BeginPlay()
 	CreateAndAttachMeshComponent();
 	SetYawPositions();
 	SetComponentProperties();
-	SetRayCastStarts();
+	// SetRayCastStarts();
 }
 
 
@@ -72,14 +76,22 @@ void AGrassD::SetYawPositions()
 
 void AGrassD::SetComponentProperties()
 {
-	const FRotator StartingYawPosition{ 0.0, YawPositions[0], 0.0 };
-	
-	Root->SetRelativeRotation(StartingYawPosition);
+	//Root->SetRelativeRotation(FRotator{ 0.0, YawPositions[0], 0.0 });
 	Root->SetMobility(EComponentMobility::Type::Static);
 
-	Mesh->SetRelativeRotation(StartingYawPosition);
+	// Mesh->SetRelativeRotation(FRotator{ 0.0, YawPositions[0], 0.0 });
 	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, double{FMath::RandRange(1.0, 1.5)} });
 	Mesh->SetMobility(EComponentMobility::Type::Static);
+
+	Mesh->SetCollisionProfileName(TEXT("Custom..."));
+	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+	Mesh->SetCollisionObjectType(ECC_GameTraceChannel3);
+	Mesh->SetCollisionResponseToAllChannels(ECR_Ignore);
+	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel2, ECR_Block);
+	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+
+	RootTransform = Root->GetComponentTransform();
+	RootDownVector = -RootTransform.GetUnitAxis(EAxis::Type::Z);
 }
 
 
@@ -87,12 +99,8 @@ void AGrassD::SetRayCastStarts()
 {
 	RayCastStarts.Init(FVector::Zero(), 6);
 
-	RootTransform = Root->GetComponentTransform();
-
-	for (int32 Pos{ 0 }; Pos < 6; ++Pos) 
-		RayCastStarts[Pos] = UKismetMathLibrary::TransformLocation(RootTransform, LocalStarts[Pos]);
-
-	for (FVector RayCast : RayCastStarts) UE_LOG(LogTemp, Warning, TEXT("%s"), *RayCast.ToString());
+	for (int32 Start{ 0 }; Start < 6; ++Start)
+		RayCastStarts[Start] = UKismetMathLibrary::TransformLocation(RootTransform, LocalRayCastStarts[Start]);
 }
 
 
@@ -100,50 +108,109 @@ void AGrassD::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	for (FVector RayCast : RayCastStarts) DrawDebugSphere(GetWorld(), RayCast, 1.0f, 6, FColor::Orange);
+	// double TickTime{ FPlatformTime::Seconds() };
+	
+
+	if (SpawnPosition == 0)
+	{
+		RootRotation = Root->GetComponentRotation();
+
+		SetYawPositions();
+		SetRayCastStarts();
+	}
+
+	if (SpawnPosition == 6)
+	{
+		SetActorTickEnabled(false);
+		return;
+	}
+
+	TickCount += DeltaTime;
+
+	if (TickCount >= TickCountMax)
+	{
+		TryToSpawnGrass();
+
+		++SpawnPosition;
+
+		TickCount = 0.0f;
+	}
 
 
-
-
-
-
-
-
-
-
-
-
-
-	/*
-	const FTransform Transform{ Root->GetComponentTransform() };
-	const FVector Start{ Transform.GetLocation() + (Transform.GetUnitAxis(EAxis::Type::Z) * 12.0)};
-	FVector Forward{ Transform.GetUnitAxis(EAxis::Type::X) };
-	DrawDebugLine(GetWorld(), Start, Start + (Forward * 20.0), FColor::Orange);
-	FRotator ForwardRotator{ Forward.ToOrientationRotator() };
-	UE_LOG(LogTemp, Warning, TEXT("ForwardVector: %s"), *Forward.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("ForwardRotator: %s"), *ForwardRotator.ToString());
-	ForwardRotator.Yaw += 60.0;
-	*/
-
-	// maybe my approach is to stay within local values until i need the points transformed
-	// the local fvectors that represent the starting points of the raycasts can stay the same always
-	// first get six circles in a hex shape around the grass
-
-	// VectorQuaternionRotateVector
-	//for (int32 I{}, double Yaw{ SpawnYaw }; I < 6; ++I, Yaw += 60.0)
-	/*
-	const double ArmLength{ 12.0 };
-	const FTransform Transform{ Root->GetComponentTransform() };
-	const FVector AngledNormal{ Transform.GetUnitAxis(EAxis::Type::Z) + Transform.GetUnitAxis(EAxis::Type::X) };
-	const FVector SteepAngledNormal{ Transform.GetUnitAxis(EAxis::Type::Z) + AngledNormal };
-	const FVector Start{ Transform.GetLocation() };
-	const FVector End{ Start + (AngledNormal * ArmLength) };
-	DrawDebugLine(GetWorld(), Start, End, FColor::Orange);
-	const FVector StartHeight{ Start + (Transform.GetUnitAxis(EAxis::Type::Z) * ArmLength) };
-	const FVector EndLength{ StartHeight + (Transform.GetUnitAxis(EAxis::Type::X) * ArmLength) };
-	DrawDebugLine(GetWorld(), StartHeight, EndLength, FColor::Green);
-	DrawDebugLine(GetWorld(), End, End + (-Transform.GetUnitAxis(EAxis::Type::Z) * (ArmLength * 2.0)), FColor::Red);
-	*/
-
+	// UE_LOG(LogTemp, Warning, TEXT("TickTime %f"), TickTime = FPlatformTime::Seconds() - TickTime);
 }
+
+
+void AGrassD::TryToSpawnGrass()
+{
+	FHitResult Hit{};
+
+	if (!RayCastStartInsideGrowField(RayCastStarts[SpawnPosition])) return;
+	if (!RayCastHitGround(Hit, RayCastStarts[SpawnPosition], RootDownVector)) return;
+	if (GrassNearRayCastImpact(Hit.ImpactPoint)) return;
+
+		DrawDebugSphere(GetWorld(), RayCastStarts[SpawnPosition], 4.0f, 6, FColor::Magenta, false, 3.0f);
+		DrawDebugLine(GetWorld(), RayCastStarts[SpawnPosition], Hit.ImpactPoint, FColor::Magenta, false, 3.0f);
+		DrawDebugSphere(GetWorld(), Hit.ImpactPoint, 4.0f, 6, FColor::Magenta, false, 3.0f);
+
+	SpawnGrass(Hit.ImpactPoint, GetSpawnRotation(Hit.Time, YawPositions[SpawnPosition]));
+}
+
+
+bool AGrassD::RayCastStartInsideGrowField(const FVector& RayCastStart)
+{
+	TArray<FOverlapResult> Overlaps{};
+
+	FCollisionObjectQueryParams GrowObjects{};
+	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
+
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) };
+
+	return GetWorld()->OverlapMultiByObjectType(Overlaps, RayCastStart, FQuat::Identity, GrowObjects, Sweeper);
+}
+
+
+bool AGrassD::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection)
+{
+	const FVector End{ RayCastStart + (RayCastDirection * RayCastLength) };
+
+	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, End, ECC_GameTraceChannel1);
+}
+
+
+bool AGrassD::GrassNearRayCastImpact(const FVector& Impact)
+{
+	FHitResult SweepHit{};
+
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(7.0) };
+
+	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
+}
+
+
+FRotator AGrassD::GetSpawnRotation(const float& TraceLength, const double& YawPosition)
+{
+	const FRotator RelativeRotation{ 45.0 - (90.0 * TraceLength), YawPosition, 0.0 };
+	
+	return UKismetMathLibrary::TransformRotation(RootTransform, RelativeRotation);
+}
+
+
+void AGrassD::SpawnGrass(const FVector& SpawnLocation, const FRotator& SpawnRotation)
+{
+	FActorSpawnParameters GrassSpawnParameters{};
+	GrassSpawnParameters.Owner = this;
+
+	if (AGrassD * NewGrass{ GetWorld()->SpawnActor<AGrassD>(AGrassD::StaticClass(), SpawnLocation, SpawnRotation, GrassSpawnParameters) })
+	{
+		// NewGrass->Root->SetMobility(EComponentMobility::Type::Movable);
+		// NewGrass->Root->SetRelativeRotation(NewSpawnRelativeRotation);
+	}
+}
+
+// use this grass blade's worldtransform, new local
+// set up the newspawanrotation, after passing all checks and before spawning the new wgrass
+// set relative rotation after in spawn? start with tick off? set new relative rotation, turn tick on?
+// or grass gets info from owner before changing to static
+
 
