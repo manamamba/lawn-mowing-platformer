@@ -271,6 +271,7 @@ private:
 
 	bool bMovingByAccumulatedAcceleration{};
 	bool bAccelerating{};
+	bool bAcceleratingLastTick{};
 	bool bSteering{};
 	bool bLastAccelerationWasForward{};
 

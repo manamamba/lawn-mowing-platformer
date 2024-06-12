@@ -259,7 +259,9 @@ void AMowerB::UpdateSpeed()
 
 	if (!MovingForward) PhysicsBodySpeed = -PhysicsBodySpeed;
 
-	HoverSpeedMultiplier = 1.0 + (abs(PhysicsBodySpeed) * 0.1);
+	HoverSpeedMultiplier = 1.0;
+
+	if (bAcceleratingLastTick) HoverSpeedMultiplier += (abs(PhysicsBodySpeed) * 0.1);
 }
 
 
@@ -338,6 +340,8 @@ void AMowerB::UpdateGroundedMovementConditions()
 	bMovingByAccumulatedAcceleration = AccelerationRatio != 0.0f;
 	bAccelerating = AcceleratingDirection != 0.0f;
 	bSteering = Steering != 0.0f;
+
+	bAcceleratingLastTick = bAccelerating;
 
 	if (bAccelerating) AcceleratingDirection > 0.0f ? bLastAccelerationWasForward = true : bLastAccelerationWasForward = false;
 }

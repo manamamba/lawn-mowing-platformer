@@ -222,6 +222,7 @@ void AGrassD::SpawnGrass(const FVector& Location, const FRotator& Rotation)
 		if (!NewGrass) return;
 
 		NewGrass->SetOwner(SpawnedOwner.Owner);
+		NewGrass->SpawnOwner = Cast<AGrassSpawnerC>(SpawnedOwner.Owner);
 		NewGrass->SetActorLocation(Location);
 		NewGrass->SetActorRotation(Rotation);
 		NewGrass->Root->SetMobility(EComponentMobility::Type::Static);
@@ -231,11 +232,6 @@ void AGrassD::SpawnGrass(const FVector& Location, const FRotator& Rotation)
 		NewGrass->bCut = false;
 
 		UE_LOG(LogTemp, Warning, TEXT("Grass pulled! Cut Pool Size %d"), PoolOwner->PooledGrass.Num());
-
-		SpawnOwner = Cast<AGrassSpawnerC>(GetOwner());
-
-		if (SpawnOwner) SpawnOwner->UpdateGrassSpawnedCount();
-
 	}
 	else
 	{
