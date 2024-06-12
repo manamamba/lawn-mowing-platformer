@@ -110,8 +110,6 @@ UStaticMesh* AGrassC::GetMeshType()
 }
 
 
-
-
 void AGrassC::SetRuntimeSpawningComponentProperties()
 {
 	StartingRotatorYaw = FMath::RandRange(0, 359);

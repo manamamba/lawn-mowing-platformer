@@ -17,14 +17,16 @@ class LAWNMOWER_API AGrassD : public AActor
 
 	static inline UStaticMesh* StaticMesh{};
 
-	static inline const TArray<FVector> LocalRayCastStarts{
-		{ 10.0, 0.0, 12.0 },
-		{ 5.0, 8.66, 12.0 },
-		{ -5.0, 8.66, 12.0 },
+	static inline const TArray<FVector> LocalRayCastStarts{	
+		{ 10.0, 0.0, 12.0 },				
+		{ 5.0, 8.66, 12.0 },				
+		{ -5.0, 8.66, 12.0 },	
 		{ -10.0, 0.0, 12.0 },
 		{ -5.0, -8.66, 12.0 },
 		{ 5.0, -8.66, 12.0 }
 	};
+
+	static inline const TArray<double> YawRotations{ 0.0, 60.0, 120.0, 180.0, 240.0, 300.0 };
 
 	static inline const double RayCastLength{ 24.0 };
 
@@ -42,9 +44,7 @@ protected:
 
 private:
 	void CreateAndAttachMeshComponent();
-	void SetYawPositions();
-	void SetComponentProperties();
-	void SetRayCastStarts();
+	void SetMeshComponentProperties();
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -64,11 +64,8 @@ private:
 	// fixed array unreal? use unreal pointer class? Object whatever its called?
 
 	UStaticMeshComponent* Mesh{};
-	TArray<double> YawPositions{};
 	FTransform RootTransform{};
 	FVector RootDownVector{};
-	FRotator RootRotation{};
-	TArray<FVector> RayCastStarts{};
 	float TickCount{};
 	int32 SpawnPosition{};
 
