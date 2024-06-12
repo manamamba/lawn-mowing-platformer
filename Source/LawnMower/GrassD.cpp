@@ -41,14 +41,11 @@ void AGrassD::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SpawnOwner = Cast<AGrassSpawnerC>(GetOwner()); // set during spawning?
+	SpawnOwner = Cast<AGrassSpawnerC>(GetOwner());
 	PoolOwner = Cast<AGrassPoolA>(SpawnOwner->GetOwner());
 
 	CreateAndAttachMeshComponent();
 	SetMeshComponentProperties();
-
-	RootTransform = Root->GetComponentTransform();
-	RootDownVector = -RootTransform.GetUnitAxis(EAxis::Type::Z);
 }
 
 
@@ -96,20 +93,25 @@ UFUNCTION() void AGrassD::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	if (bCut) return;
+
 	if (SpawnOwner)
 	{
 		SpawnOwner->UpdateGrassCutCount();
 		
 		if (PoolOwner)
 		{
-			PoolOwner->PooledGrass.Push(this);
-
-			Root->SetMobility(EComponentMobility::Type::Movable);
+			bCut = true;
 			
+			Root->SetMobility(EComponentMobility::Type::Movable);
 			Mesh->SetMobility(EComponentMobility::Type::Movable);
 			Mesh->SetVisibility(false);
 
 			SetActorLocation(FVector::Zero());
+
+			PoolOwner->PooledGrass.Add(this);
+
+			UE_LOG(LogTemp, Warning, TEXT("Grass cut! Cut Pool Size %d"), PoolOwner->PooledGrass.Num());
 		}
 	}
 	
@@ -125,7 +127,12 @@ void AGrassD::Tick(float DeltaTime)
 	
 	TickCount += DeltaTime;
 
-	if (TickCount >= TickCountMax) TryToSpawnGrass();
+	if (TickCount >= TickCountMax)
+	{
+		TryToSpawnGrass();
+
+		TickCount = 0.0f;
+	}
 
 	// UE_LOG(LogTemp, Warning, TEXT("TickTime %f"), TickTime = FPlatformTime::Seconds() - TickTime);
 }
@@ -133,11 +140,17 @@ void AGrassD::Tick(float DeltaTime)
 
 void AGrassD::TryToSpawnGrass()
 {
+	if (SpawnAttempts == 0)
+	{
+		RootTransform = Root->GetComponentTransform();
+		RootDownVector = -RootTransform.GetUnitAxis(EAxis::Type::Z);
+	}
+
 	if (SpawnAttempts == 6)
 	{
 		SetActorTickEnabled(false);
 
-		// free pointer member variables?
+		SpawnAttempts = 0;
 
 		return;
 	}
@@ -208,9 +221,21 @@ void AGrassD::SpawnGrass(const FVector& Location, const FRotator& Rotation)
 
 		if (!NewGrass) return;
 
+		NewGrass->SetOwner(SpawnedOwner.Owner);
 		NewGrass->SetActorLocation(Location);
 		NewGrass->SetActorRotation(Rotation);
-		NewGrass->SetOwner(SpawnOwner);
+		NewGrass->Root->SetMobility(EComponentMobility::Type::Static);
+		NewGrass->Mesh->SetMobility(EComponentMobility::Type::Static);
+		NewGrass->Mesh->SetVisibility(true);
+		NewGrass->SetActorTickEnabled(true);
+		NewGrass->bCut = false;
+
+		UE_LOG(LogTemp, Warning, TEXT("Grass pulled! Cut Pool Size %d"), PoolOwner->PooledGrass.Num());
+
+		SpawnOwner = Cast<AGrassSpawnerC>(GetOwner());
+
+		if (SpawnOwner) SpawnOwner->UpdateGrassSpawnedCount();
+
 	}
 	else
 	{

@@ -33,7 +33,7 @@ class LAWNMOWER_API AGrassD : public AActor
 
 	static inline const double RayCastLength{ 24.0 };
 
-	static inline const float TickCountMax{ 0.045f }; //was 0.015f
+	static inline const float TickCountMax{ 0.032f };
 
 public:	
 	AGrassD();

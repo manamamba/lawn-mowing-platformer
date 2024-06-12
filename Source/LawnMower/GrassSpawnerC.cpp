@@ -125,6 +125,8 @@ bool AGrassSpawnerC::SpawnedGrassCleared() const
 {
 	if (!bSpawnSuccessful) return false;
 
+	UE_LOG(LogTemp, Warning, TEXT("Spawned %d, Cut %d"), GrassSpawnedCount, GrassCutCount);
+
 	return GrassSpawnedCount == GrassCutCount;
 }
 
@@ -142,3 +144,7 @@ void AGrassSpawnerC::ActivateActorByTag()
 {
 
 }
+
+
+void AGrassSpawnerC::UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
+void AGrassSpawnerC::UpdateGrassCutCount() { ++GrassCutCount; };

@@ -43,8 +43,8 @@ private:
 	void ActivateActorByTag();
 
 public:
-	inline void UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
-	inline void UpdateGrassCutCount() { ++GrassCutCount; };
+	void UpdateGrassSpawnedCount();
+	void UpdateGrassCutCount();
 
 private:
 	UFUNCTION() void ActivateSpawner(
@@ -59,6 +59,8 @@ private:
 	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) FName ActorTag {};
 	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bTriggerActorByTag{};
 	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bSetNewSpawner{};
+
+	//race condition issue, need to use an array here instead of int32
 
 	int32 GrassSpawnedCount{};
 	int32 GrassCutCount{};
