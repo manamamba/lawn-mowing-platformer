@@ -8,7 +8,6 @@
 #include "GrassSpawnerC.generated.h"
 
 class UBoxComponent;
-class AGrassD;
 
 
 UCLASS()
@@ -18,7 +17,6 @@ class LAWNMOWER_API AGrassSpawnerC : public AActor
 	
 	UPROPERTY(EditAnywhere) USceneComponent* Root {};
 	UPROPERTY(EditAnywhere) UBoxComponent* Collider {};
-	UPROPERTY(EditAnywhere) TSubclassOf<AGrassD> GrassClass{};
 
 public:	
 	AGrassSpawnerC();
@@ -29,8 +27,24 @@ private:
 protected:
 	virtual void BeginPlay() override;
 
+private:
+	void SetGrassPoolOwner();
+
 public:	
 	virtual void Tick(float DeltaTime) override;
+
+private:
+	void TryToSpawnGrass();
+	bool RayCastHitGround(FHitResult& Hit) const;
+	void SpawnGrass(const FHitResult& Hit);
+
+	bool SpawnedGrassCleared() const;
+	void UpdateGameMode() const;
+	void ActivateActorByTag();
+
+public:
+	inline void UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
+	inline void UpdateGrassCutCount() { ++GrassCutCount; };
 
 private:
 	UFUNCTION() void ActivateSpawner(
@@ -41,9 +55,14 @@ private:
 		bool bFromSweep,
 		const FHitResult& SweepResult);
 
-
 private:
-	bool bSpawnerActivated{};
+	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) FName ActorTag {};
+	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bTriggerActorByTag{};
+	// UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bSetNewSpawner{};
 
+	int32 GrassSpawnedCount{};
+	int32 GrassCutCount{};
+
+	bool bSpawnSuccessful{};
 
 };

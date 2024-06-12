@@ -14,10 +14,10 @@ class LAWNMOWER_API ALawnMowerGameMode : public AGameModeBase
 	GENERATED_BODY()
 	
 public: 
-	void UpdateGrassCut(int32 Grass);
-	int32 GetGrassCut() const;
+	void UpdateSpawnersCleared();
+	int32 GetSpawnersCleared() const;
 
 private:
-	int32 GrassCut{};
+	int32 SpawnersCleared{};
 
 };

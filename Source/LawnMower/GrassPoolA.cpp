@@ -3,6 +3,8 @@
 
 #include "GrassPoolA.h"
 
+#include "GrassD.h"
+
 
 AGrassPoolA::AGrassPoolA()
 {
@@ -15,8 +17,6 @@ AGrassPoolA::AGrassPoolA()
 void AGrassPoolA::BeginPlay()
 {
 	Super::BeginPlay();
-
-	for (FName Tag : Tags) UE_LOG(LogTemp, Warning, TEXT("GrassPoolTag: %s"), *Tag.ToString());
 }
 
 

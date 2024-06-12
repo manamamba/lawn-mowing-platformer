@@ -7,6 +7,8 @@
 #include "GameFramework/Actor.h"
 #include "GrassPoolA.generated.h"
 
+class AGrassD;
+
 
 UCLASS()
 class LAWNMOWER_API AGrassPoolA : public AActor
@@ -24,4 +26,6 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+public:
+	TArray<AGrassD*> PooledGrass{};
 };

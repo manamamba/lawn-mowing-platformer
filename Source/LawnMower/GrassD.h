@@ -7,6 +7,9 @@
 #include "GameFramework/Actor.h"
 #include "GrassD.generated.h"
 
+class AGrassPoolA;
+class AGrassSpawnerC;
+
 
 UCLASS()
 class LAWNMOWER_API AGrassD : public AActor
@@ -18,19 +21,19 @@ class LAWNMOWER_API AGrassD : public AActor
 	static inline UStaticMesh* StaticMesh{};
 
 	static inline const TArray<FVector> LocalRayCastStarts{	
-		{ 10.0, 0.0, 12.0 },				
-		{ 5.0, 8.66, 12.0 },				
-		{ -5.0, 8.66, 12.0 },	
-		{ -10.0, 0.0, 12.0 },
-		{ -5.0, -8.66, 12.0 },
-		{ 5.0, -8.66, 12.0 }
+		{ 14.0, 0.0, 12.0 },
+		{ 7.0, 12.124, 12.0 },
+		{ -7.0, 12.124, 12.0 },
+		{ -14.0, 0.0, 12.0 },
+		{ -7.0, -12.124, 12.0 },
+		{ 7.0, -12.124, 12.0 }
 	};
 
 	static inline const TArray<double> YawRotations{ 0.0, 60.0, 120.0, 180.0, 240.0, 300.0 };
 
 	static inline const double RayCastLength{ 24.0 };
 
-	static inline const float TickCountMax{ 0.015f };
+	static inline const float TickCountMax{ 0.045f }; //was 0.015f
 
 public:	
 	AGrassD();
@@ -46,6 +49,14 @@ private:
 	void CreateAndAttachMeshComponent();
 	void SetMeshComponentProperties();
 
+	UFUNCTION() void Cut(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
@@ -55,18 +66,16 @@ private:
 	bool RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection);
 	bool GrassNearRayCastImpact(const FVector& Impact);
 	void SpawnGrass(const FVector& SpawnLocation, const FRotator& SpawnRotation);
-	FRotator GetSpawnRotation(const float& TraceLength, const double& YawPosition);
+	FRotator GetSpawnRotation(const FTransform& Transform, const float& TraceLength, const double& YawPosition);
 
 private:
-	// UStaticMesh* StaticMesh{};
-
-	// make members stored in pointers so i can free after spawning??
-	// fixed array unreal? use unreal pointer class? Object whatever its called?
-
+	AGrassSpawnerC* SpawnOwner{};
+	AGrassPoolA* PoolOwner{};
 	UStaticMeshComponent* Mesh{};
 	FTransform RootTransform{};
 	FVector RootDownVector{};
 	float TickCount{};
-	int32 SpawnPosition{};
+	int32 SpawnAttempts{};
+	bool bCut{};
 
 };

@@ -4,11 +4,11 @@
 #include "LawnMowerGameMode.h"
 
 
-void ALawnMowerGameMode::UpdateGrassCut(int32 Grass)
-{
-	GrassCut += Grass;
+void ALawnMowerGameMode::UpdateSpawnersCleared() 
+{ 
+	++SpawnersCleared;
 
-	UE_LOG(LogTemp, Warning, TEXT("GrassCut: %d"), GrassCut);
+	UE_LOG(LogTemp, Warning, TEXT("Spawners Cleared: %d"), SpawnersCleared);
 }
 
-int32 ALawnMowerGameMode::GetGrassCut() const { return GrassCut; };
+int32 ALawnMowerGameMode::GetSpawnersCleared() const { return SpawnersCleared; };

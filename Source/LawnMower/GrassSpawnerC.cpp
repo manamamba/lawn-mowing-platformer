@@ -1,4 +1,4 @@
-// Derived AActor class AGrassSpawnerB by Cody Wheeler.
+// Derived AActor class AGrassSpawnerC by Cody Wheeler.
 
 
 #include "GrassSpawnerC.h"
@@ -6,6 +6,7 @@
 #include "Components/BoxComponent.h"
 #include "GrassD.h"
 #include "GrassPoolA.h"
+#include "LawnMowerGameMode.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -37,26 +38,6 @@ void AGrassSpawnerC::SetComponentProperties()
 }
 
 
-void AGrassSpawnerC::BeginPlay()
-{
-	Super::BeginPlay();
-
-	TArray<AActor*> OutActors{};
-
-	const FName PoolTag{ TEXT("Pool") };
-
-	UGameplayStatics::GetAllActorsOfClassWithTag(this, AGrassPoolA::StaticClass(), PoolTag, OutActors);
-	
-	for (AActor* Actor : OutActors) UE_LOG(LogTemp, Warning, TEXT("Actor Found by Spawner: %s"), *Actor->GetName());
-}
-
-
-void AGrassSpawnerC::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-}
-
-
 UFUNCTION() void AGrassSpawnerC::ActivateSpawner(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
@@ -65,7 +46,99 @@ UFUNCTION() void AGrassSpawnerC::ActivateSpawner(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	bSpawnerActivated = true;
+	TryToSpawnGrass();
 
 	Collider->DestroyComponent();
+}
+
+
+void AGrassSpawnerC::BeginPlay()
+{
+	Super::BeginPlay();
+
+	SetGrassPoolOwner();
+}
+
+
+void AGrassSpawnerC::SetGrassPoolOwner()
+{
+	TArray<AActor*> GrassPool{};
+
+	UGameplayStatics::GetAllActorsOfClassWithTag(this, AGrassPoolA::StaticClass(), FName{ TEXT("Pool") }, GrassPool);
+
+	SetOwner(GrassPool[0]);
+}
+
+
+void AGrassSpawnerC::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (SpawnedGrassCleared())
+	{
+		UpdateGameMode();
+
+		ActivateActorByTag();
+
+		SetActorTickEnabled(false);
+	}
+}
+
+
+void AGrassSpawnerC::TryToSpawnGrass()
+{
+	FHitResult Hit{};
+
+	if (RayCastHitGround(Hit)) SpawnGrass(Hit);
+}
+
+
+bool AGrassSpawnerC::RayCastHitGround(FHitResult& Hit) const
+{
+	const FTransform ActorWorldTransform{ GetActorTransform() };
+
+	const FVector Start{ ActorWorldTransform.GetLocation() };
+	const FVector End{ Start + (-ActorWorldTransform.GetUnitAxis(EAxis::Type::Z) * 25.0) };
+
+	return GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_GameTraceChannel1);
+}
+
+
+void AGrassSpawnerC::SpawnGrass(const FHitResult& Hit)
+{
+	const FVector Location{ Hit.ImpactPoint };
+	const FRotator Rotation{ RootComponent->GetComponentRotation() };
+
+	FActorSpawnParameters SpawnedOwner{};
+	SpawnedOwner.Owner = this;
+
+	if (AGrassD * Spawned{ GetWorld()->SpawnActor<AGrassD>(AGrassD::StaticClass(), Location, Rotation, SpawnedOwner) })
+	{
+		++GrassSpawnedCount;
+
+		bSpawnSuccessful = true;
+	}
+}
+
+
+bool AGrassSpawnerC::SpawnedGrassCleared() const
+{
+	if (!bSpawnSuccessful) return false;
+
+	return GrassSpawnedCount == GrassCutCount;
+}
+
+
+void AGrassSpawnerC::UpdateGameMode() const
+{
+	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
+	{
+		GameMode->UpdateSpawnersCleared();
+	}
+}
+
+
+void AGrassSpawnerC::ActivateActorByTag()
+{
+
 }

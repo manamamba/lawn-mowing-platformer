@@ -111,7 +111,7 @@ void AGrassSpawnerB::UpdateGameModeGrassCut() const
 {
 	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
 	{
-		GameMode->UpdateGrassCut(GrassCutCount);
+		GameMode->UpdateSpawnersCleared();
 	}
 }
 
