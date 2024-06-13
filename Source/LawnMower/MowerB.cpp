@@ -763,3 +763,9 @@ void AMowerB::LogTickTime()
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("TickTime            %f"), TickTime);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LongestTickTime     %f"), LongestTickTime);
 }
+
+
+void AMowerB::SetNewRespawnLocation(const FVector& NewLocation)
+{
+	RespawnLocation = NewLocation;
+}

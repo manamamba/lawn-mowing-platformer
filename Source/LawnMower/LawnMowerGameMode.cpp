@@ -12,3 +12,4 @@ void ALawnMowerGameMode::UpdateSpawnersCleared()
 }
 
 int32 ALawnMowerGameMode::GetSpawnersCleared() const { return SpawnersCleared; };
+

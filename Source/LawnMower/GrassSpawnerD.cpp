@@ -4,10 +4,11 @@
 #include "GrassSpawnerD.h"
 
 #include "Components/BoxComponent.h"
+#include "GameFramework/GameMode.h"
 #include "GrassE.h"
 #include "Kismet/GameplayStatics.h"
-#include "LawnMowerGameMode.h"
 #include "MowerB.h"
+#include "MowerGameModeA.h"
 
 
 AGrassSpawnerD::AGrassSpawnerD()
@@ -36,7 +37,7 @@ void AGrassSpawnerD::SetComponentProperties()
 	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerD::ActivateSpawner);
 }
 
-UFUNCTION() void AGrassSpawnerD::ActivateSpawner(
+void AGrassSpawnerD::ActivateSpawner(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,
@@ -62,13 +63,15 @@ void AGrassSpawnerD::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	// UE_LOG(LogTemp, Warning, TEXT("Spawned %d, Cut %d, Spawning %d"), GrassSpawnedCount, GrassCutCount, GrassActivelySpawning);
+
 	if (SpawnedGrassCleared())
 	{
-		UpdateGameMode();
+		if (bActivateActorByTag) ActivateActorByTag();
 
 		if (bSetNewMowerSpawn) UpdateMowerRespawn();
 
-		if (bActivateActorByTag) ActivateActorByTag();
+		if (bRestartGame) RestartGame();
 
 		SetActorTickEnabled(false);
 	}
@@ -101,9 +104,8 @@ void AGrassSpawnerD::SpawnGrass(const FHitResult& Hit)
 
 	if (AGrassE* NewGrass{ GetWorld()->SpawnActor<AGrassE>(AGrassE::StaticClass(), Location, Rotation, SpawnedOwner) })
 	{
-		GrassChildrenActivelySpawning.Add(NewGrass);
-
 		++GrassSpawnedCount;
+		++GrassActivelySpawning;
 
 		SetActorTickEnabled(true);
 	}
@@ -114,30 +116,42 @@ bool AGrassSpawnerD::SpawnedGrassCleared() const
 	return GrassSpawnedCount == GrassCutCount;
 }
 
-void AGrassSpawnerD::UpdateGameMode() const
+void AGrassSpawnerD::ActivateActorByTag()
 {
-	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
-	{
-		GameMode->UpdateSpawnersCleared();
-	}
+	
+
+
+	
+	// UGameplayStatics::GetAllActorsOfClassWithTag
+
+
+
+
 }
+
+
 
 void AGrassSpawnerD::UpdateMowerRespawn()
 {
 	AMowerB* Mower{ Cast<AMowerB>(UGameplayStatics::GetPlayerPawn(this, 0)) };
 
+	const FVector NewLocation{ GetActorLocation() + (Root->GetUpVector() * 500.0)};
 
-
-
-
+	Mower->SetNewRespawnLocation(NewLocation);
 }
 
-void AGrassSpawnerD::ActivateActorByTag()
+void AGrassSpawnerD::RestartGame()
 {
-
-	// UGameplayStatics::GetAllActorsOfClassWithTag
-
+	if (AMowerGameModeA * GameMode{ Cast<AMowerGameModeA>(UGameplayStatics::GetGameMode(this)) })
+	{
+		GameMode->RestartGame();
+	}
 }
 
 void AGrassSpawnerD::UpdateGrassSpawnedCount() { ++GrassSpawnedCount; }
 void AGrassSpawnerD::UpdateGrassCutCount() { ++GrassCutCount; };
+void AGrassSpawnerD::IncreaseGrassActivelySpawning() { ++GrassActivelySpawning; }
+void AGrassSpawnerD::DecreaseGrassActivelySpawning() { --GrassActivelySpawning; }
+int32 AGrassSpawnerD::GetGrassActivelySpawning() const { return GrassActivelySpawning; }
+
+

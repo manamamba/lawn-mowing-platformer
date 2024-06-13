@@ -80,7 +80,7 @@ void AGrassE::SetMeshComponentProperties()
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
 }
 
-UFUNCTION() void AGrassE::Cut(
+void AGrassE::Cut(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,
@@ -88,7 +88,11 @@ UFUNCTION() void AGrassE::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (SpawnOwner) SpawnOwner->UpdateGrassCutCount();
+	if (!SpawnOwner) return;
+	
+	SpawnOwner->UpdateGrassCutCount();
+
+	if (SpawnAttempts != 6) SpawnOwner->DecreaseGrassActivelySpawning();
 
 	Destroy();
 }
@@ -105,7 +109,7 @@ bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 {
 	if (!SpawnOwner) return false;
 	
-	if (SpawnOwner->GrassChildrenActivelySpawning.Num() > 50 && SpawnAttempts == 0) SpawnAttempts = 2;
+	if (SpawnOwner->GetGrassActivelySpawning() > 200 && SpawnAttempts == 0) TickCountThreshold = 0.32f;
 
 	TickCount += DeltaTime;
 
@@ -114,7 +118,7 @@ bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 
 	if (SpawnAttempts > 5)
 	{
-		SpawnOwner->GrassChildrenActivelySpawning.Pop();
+		SpawnOwner->DecreaseGrassActivelySpawning();
 
 		SetActorTickEnabled(false);
 
@@ -183,7 +187,7 @@ void AGrassE::SpawnGrass(const FVector& Location, const FRotator& Rotation)
 	{
 		if (!SpawnOwner) return;
 
-		SpawnOwner->GrassChildrenActivelySpawning.Add(NewGrass);
+		SpawnOwner->IncreaseGrassActivelySpawning();
 		SpawnOwner->UpdateGrassSpawnedCount();
 	}
 }

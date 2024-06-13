@@ -16,11 +16,8 @@ class LAWNMOWER_API AGrassSpawnerD : public AActor
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere) USceneComponent* Root {};
-	UPROPERTY(EditAnywhere) UBoxComponent* Collider {};
-
-public:
-	TArray<AGrassE*> GrassChildrenActivelySpawning{};
+	UPROPERTY(EditDefaultsOnly) USceneComponent* Root {};
+	UPROPERTY(EditDefaultsOnly) UBoxComponent* Collider {};
 
 public:
 	AGrassSpawnerD();
@@ -48,20 +45,25 @@ private:
 	void SpawnGrass(const FHitResult& Hit);
 
 	bool SpawnedGrassCleared() const;
-	void UpdateGameMode() const;
+	void RestartGame();
 	void UpdateMowerRespawn();
 	void ActivateActorByTag();
 
 public:
 	void UpdateGrassSpawnedCount();
 	void UpdateGrassCutCount();
+	void IncreaseGrassActivelySpawning();
+	void DecreaseGrassActivelySpawning();
+	int32 GetGrassActivelySpawning() const;
 
 private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) FName ActorTag {};
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bActivateActorByTag{};
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bSetNewMowerSpawn{};
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bRestartGame{};
 
 	int32 GrassSpawnedCount{};
 	int32 GrassCutCount{};
+	int32 GrassActivelySpawning{};
 
 };

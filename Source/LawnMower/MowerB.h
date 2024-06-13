@@ -245,6 +245,9 @@ private:
 
 	void LogTickTime();
 
+public:
+	void SetNewRespawnLocation(const FVector& NewLocation);
+
 private:
 	double TickTime{};
 	double LongestTickTime{};

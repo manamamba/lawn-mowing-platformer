@@ -33,8 +33,6 @@ class LAWNMOWER_API AGrassE : public AActor
 
 	static inline const double RayCastLength{ 24.0 };
 
-	static inline const float TickCountThreshold{ 0.016f };
-
 public:
 	AGrassE();
 
@@ -76,5 +74,6 @@ private:
 	FVector RootDownVector{};
 	int32 SpawnAttempts{};
 	float TickCount{};
+	float TickCountThreshold{ 0.016f };
 
 };
