@@ -107,6 +107,8 @@ void AMowerB::SetPhysicsBodyProperties()
 
 	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
 	LocationThisTick = PhysicsBodyWorldTransform.GetLocation();
+
+	RespawnLocation = PhysicsBodyWorldTransform.GetLocation();
 }
 
 void AMowerB::SetCameraArmRotation()
@@ -222,6 +224,8 @@ void AMowerB::Float() const
 
 void AMowerB::UpdateTransforms()
 {
+	if (PhysicsBodyLocation.Z < PhysicsBodyRespawnHeight) Respawn();
+	
 	PhysicsBodyWorldTransform = PhysicsBody->GetComponentTransform();
 	PhysicsBodyLocalTransform = PhysicsBody->GetRelativeTransform();
 
@@ -229,6 +233,11 @@ void AMowerB::UpdateTransforms()
 	PhysicsBodyForwardVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::X);
 	PhysicsBodyRightVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Y);
 	PhysicsBodyUpVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Z);
+}
+
+void AMowerB::Respawn()
+{
+	SetActorLocation(RespawnLocation);
 }
 
 void AMowerB::UpdateSpeed()

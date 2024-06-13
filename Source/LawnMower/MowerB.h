@@ -59,6 +59,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float PhysicsBodyMass{ 30.0f };
 	const float PhysicsBodyAntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
 	const double PhysicsBodyCenterOfMassOffset{ PhysicsBodyMass / 2.0 };
+	const double PhysicsBodyRespawnHeight{ -1000.0 };
 	const FVector PhysicsBodyCenterOfMass{ 0.0, 0.0, -PhysicsBodyCenterOfMassOffset };
 	const FVector PhysicsBodyDimensions{ 30.5, 20.0, 9.0 };
 	const FVector ColliderDimensions{ 36.0, 30.0, 4.0 };
@@ -183,6 +184,7 @@ private:
 	void Float() const;
 
 	void UpdateTransforms();
+	void Respawn();
 
 	void UpdateSpeed();
 
@@ -253,6 +255,7 @@ private:
 	FVector PhysicsBodyUpVector{};
 	FVector PhysicsBodyForwardVector{};
 	FVector PhysicsBodyRightVector{};
+	FVector RespawnLocation{};
 
 	FVector LocationThisTick{};
 	FVector LocationLastTick{};
