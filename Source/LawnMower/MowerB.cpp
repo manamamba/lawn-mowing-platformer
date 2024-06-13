@@ -19,7 +19,6 @@ AMowerB::AMowerB()
 	SetComponentProperties();
 }
 
-
 void AMowerB::CreateAndAssignComponentSubObjects()
 {
 	PhysicsBody = CreateDefaultSubobject<UBoxComponent>(TEXT("PhysicsBody"));
@@ -35,7 +34,6 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 
 }
 
-
 void AMowerB::SetupComponentAttachments()
 {
 	RootComponent = PhysicsBody;
@@ -50,7 +48,6 @@ void AMowerB::SetupComponentAttachments()
 	Camera->SetupAttachment(CameraArm);
 
 }
-
 
 void AMowerB::SetComponentProperties()
 {
@@ -84,7 +81,6 @@ void AMowerB::SetComponentProperties()
 	SetMeshComponentCollisionAndLocation(BlWheel, BlWheelPosition);
 }
 
-
 void AMowerB::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location)
 {
 	if (!Mesh) return;
@@ -104,7 +100,6 @@ void AMowerB::BeginPlay()
 	AddInputMappingContextToLocalPlayerSubsystem();
 }
 
-
 void AMowerB::SetPhysicsBodyProperties()
 {
 	PhysicsBody->SetMassOverrideInKg(NAME_None, PhysicsBodyMass);
@@ -114,14 +109,12 @@ void AMowerB::SetPhysicsBodyProperties()
 	LocationThisTick = PhysicsBodyWorldTransform.GetLocation();
 }
 
-
 void AMowerB::SetCameraArmRotation()
 {
 	WorldCameraArmRotation = UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalCameraArmRotation);
 
 	CameraArm->SetWorldRotation(WorldCameraArmRotation);
 }
-
 
 void AMowerB::AddInputMappingContextToLocalPlayerSubsystem() const
 {
@@ -133,7 +126,6 @@ void AMowerB::AddInputMappingContextToLocalPlayerSubsystem() const
 
 	if (PlayerController && Subsystem) Subsystem->AddMappingContext(InputMappingContext, 0);
 }
-
 
 void AMowerB::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -218,18 +210,15 @@ void AMowerB::Tick(float DeltaTime)
 	// LogTickTime();
 }
 
-
 void AMowerB::GetTickTime()
 {
 	TickTime = FPlatformTime::Seconds();
 }
 
-
 void AMowerB::Float() const
 {
 	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce);
 }
-
 
 void AMowerB::UpdateTransforms()
 {
@@ -241,7 +230,6 @@ void AMowerB::UpdateTransforms()
 	PhysicsBodyRightVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Y);
 	PhysicsBodyUpVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Z);
 }
-
 
 void AMowerB::UpdateSpeed()
 {
@@ -264,7 +252,6 @@ void AMowerB::UpdateSpeed()
 	if (bAcceleratingLastTick) HoverSpeedMultiplier += (abs(PhysicsBodySpeed) * 0.1);
 }
 
-
 void AMowerB::UpdateCameraRotation()
 {
 	if (bCameraReset) LocalCameraArmRotation = DefaultLocalCameraArmRotation;
@@ -280,14 +267,12 @@ void AMowerB::UpdateCameraRotation()
 	if (LocalCameraArmRotationThisTick != LocalCameraArmRotation) SetCameraArmRotation();
 }
 
-
 void AMowerB::ResetFullAxisRotations(FRotator& Rotator) const
 {
 	if (abs(Rotator.Pitch) >= RotationMaximum) Rotator.Pitch = 0.0;
 	if (abs(Rotator.Yaw) >= RotationMaximum) Rotator.Yaw = 0.0;
 	if (abs(Rotator.Roll) >= RotationMaximum) Rotator.Roll = 0.0;
 }
-
 
 void AMowerB::UpdateHoveringForces(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins)
 {
@@ -296,7 +281,6 @@ void AMowerB::UpdateHoveringForces(FRayCastGroup& RayCastGroup, const FLocalOrig
 	if (ForceRayCastHitGround(RayCastGroup.Br, LocalOrigins.Br)) ApplyHoveringForce(RayCastGroup.Br);
 	if (ForceRayCastHitGround(RayCastGroup.Bl, LocalOrigins.Bl)) ApplyHoveringForce(RayCastGroup.Bl);
 }
-
 
 bool AMowerB::ForceRayCastHitGround(FHitResult& RayCast, const FVector& LocalOrigin)
 {
@@ -308,7 +292,6 @@ bool AMowerB::ForceRayCastHitGround(FHitResult& RayCast, const FVector& LocalOri
 	return GetWorld()->LineTraceSingleByChannel(RayCast, RayCastStart, RayCastEnd, ECC_GameTraceChannel1);
 }
 
-
 void AMowerB::ApplyHoveringForce(FHitResult& RayCast)
 {
 	const float CompressionRatio{ 1.0f - RayCast.Time };
@@ -319,7 +302,6 @@ void AMowerB::ApplyHoveringForce(FHitResult& RayCast)
 
 	AddHoveringForceDrag(CompressionRatio);
 }
-
 
 void AMowerB::AddHoveringForceDrag(const float CompressionRatio)
 {
@@ -334,7 +316,6 @@ void AMowerB::AddHoveringForceDrag(const float CompressionRatio)
 	AngularDragArray.Add(Drag);
 }
 
-
 void AMowerB::UpdateGroundedMovementConditions()
 {
 	bMovingByAccumulatedAcceleration = AccelerationRatio != 0.0f;
@@ -345,7 +326,6 @@ void AMowerB::UpdateGroundedMovementConditions()
 
 	if (bAccelerating) AcceleratingDirection > 0.0f ? bLastAccelerationWasForward = true : bLastAccelerationWasForward = false;
 }
-
 
 void AMowerB::UpdateAccelerationRatio(const float DeltaTime)
 {
@@ -364,7 +344,6 @@ void AMowerB::UpdateAccelerationRatio(const float DeltaTime)
 	if (AccelerationRatio < -AccelerationRatioMinimumWhileBraking) AccelerationRatio += Braking * BrakingRate * DeltaTime;
 }
 
-
 void AMowerB::UpdateDriftingRatio(const float DeltaTime)
 {
 	if (Steering < 0.0f && DriftingRatio < 0.0f) DriftingRatio = -DriftingRatio;
@@ -381,7 +360,6 @@ void AMowerB::UpdateDriftingRatio(const float DeltaTime)
 	LimitRatio(DriftingRatio, DriftingRatioMaximum);
 }
 
-
 void AMowerB::UpdateJumpReadyRatio(const float DeltaTime)
 {
 	if (WheelsGrounded) JumpReadyRatio += JumpReadyRate * DeltaTime;
@@ -395,7 +373,6 @@ void AMowerB::UpdateJumpReadyRatio(const float DeltaTime)
 
 	if (JumpReadyRatio == JumpReadyRatioMaximum) bJumpReady = true;
 }
-
 
 void AMowerB::UpdateJumpingRatio(const float DeltaTime)
 {
@@ -421,7 +398,6 @@ void AMowerB::UpdateJumpingRatio(const float DeltaTime)
 	}
 }
 
-
 void AMowerB::DecayRatio(float& Ratio, const float DecayRate, const float DeltaTime)
 {
 	if (Ratio < 0.0f) Ratio += DecayRate * DeltaTime;
@@ -429,13 +405,11 @@ void AMowerB::DecayRatio(float& Ratio, const float DecayRate, const float DeltaT
 	if (Ratio < 0.1f && Ratio > -0.1f) Ratio = 0.0f;
 }
 
-
 void AMowerB::LimitRatio(float& Ratio, const float RatioMaximum)
 {
 	if (Ratio > RatioMaximum) Ratio = RatioMaximum;
 	if (Ratio < -RatioMaximum) Ratio = -RatioMaximum;
 }
-
 
 void AMowerB::UpdateAcceleratingDirection()
 {
@@ -444,7 +418,6 @@ void AMowerB::UpdateAcceleratingDirection()
 
 	if (AccelerationRatio < 0.0f) AccelerationSurfaceNormal = -AccelerationSurfaceNormal;
 }
-
 
 void AMowerB::ApplyAccelerationForce()
 {
@@ -457,7 +430,6 @@ void AMowerB::ApplyAccelerationForce()
 	PhysicsBody->AddForceAtLocation(AccelerationSurfaceNormal * AccelerationForce, AccelerationSurfaceImpact);
 }
 
-
 void AMowerB::ApplySteeringTorque()
 {
 	if (!WheelsGrounded) return;
@@ -469,7 +441,6 @@ void AMowerB::ApplySteeringTorque()
 
 	PhysicsBody->AddTorqueInDegrees(AccelerationSurfaceImpact + (PhysicsBodyUpVector * SteeringForce));
 }
-
 
 void AMowerB::ApplyDriftingForce()
 {
@@ -490,7 +461,6 @@ void AMowerB::ApplyDriftingForce()
 	if (DriftingRatio < 0.0f) PhysicsBody->AddForceAtLocation(-PhysicsBodyRightVector * DriftingForce, DriftingForcePosition);
 }
 
-
 void AMowerB::ApplyJumpingForce()
 {
 	if (!bStartedJumping) return;
@@ -499,7 +469,6 @@ void AMowerB::ApplyJumpingForce()
 
 	PhysicsBody->AddForce(JumpingForceDirection * JumpingForce);
 }
-
 
 void AMowerB::UpdateAirTimeRatio(const float DeltaTime)
 {
@@ -516,7 +485,6 @@ void AMowerB::UpdateAirTimeRatio(const float DeltaTime)
 	bAirTimeMinimumExceeded = AirTimeRatio >= AirTimeMinimum;
 }
 
-
 void AMowerB::ApplyAirTimeAntiGravitationalForce()
 {
 	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
@@ -530,7 +498,6 @@ void AMowerB::ApplyAirTimeAntiGravitationalForce()
 	// DrawDebugLine(GetWorld(), PhysicsBodyLocation, PhysicsBodyLocation + (TrajectoryNormal * 20.0), FColor::Green, false, 5.0f);
 }
 
-
 void AMowerB::ApplyAirTimePitchTorque()
 {
 	if (WheelsGrounded || !bAirTimeMinimumExceeded) return;
@@ -538,7 +505,6 @@ void AMowerB::ApplyAirTimePitchTorque()
 	if (PitchingDirection > 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyRightVector * AirTimePitchTorque));
 	if (PitchingDirection < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (-PhysicsBodyRightVector * AirTimePitchTorque));
 }
-
 
 void AMowerB::ApplyAirTimeRollTorque()
 {
@@ -552,7 +518,6 @@ void AMowerB::ApplyAirTimeRollTorque()
 	if (Steering < 0.0f) PhysicsBody->AddTorqueInDegrees(PhysicsBodyLocation + (PhysicsBodyForwardVector * AirTimeRollTorqueTotal));
 }
 
-
 void AMowerB::AddBrakingLinearDrag()
 {
 	if (WheelsGrounded && Braking && !bMovingByAccumulatedAcceleration) LinearBrakingDrag += BrakingLinearDragRate;
@@ -563,18 +528,15 @@ void AMowerB::AddBrakingLinearDrag()
 	LinearDragArray.Add(LinearBrakingDrag);
 }
 
-
 void AMowerB::AddAcceleratingAngularDrag()
 {
 	AngularDragArray.Add(AccelerationForce * TotalLinearDragLastTick * AcceleratingAngularDragRate);
 }
 
-
 void AMowerB::AddAirTimeAngularDrag()
 {
 	if (!WheelsGrounded) AngularDragArray.Add(AirTimeAngularDrag);
 }
-
 
 void AMowerB::ApplyDrag()
 {
@@ -587,7 +549,6 @@ void AMowerB::ApplyDrag()
 	TotalLinearDragLastTick = TotalLinearDrag;
 }
 
-
 void AMowerB::UpdateWheelSuspension(FRayCastGroup& RayCastGroup, const FLocalOrigins& LocalOrigins)
 {
 	SendWheelRayCast(FrWheel, RayCastGroup.Fr, LocalOrigins.Fr);
@@ -595,7 +556,6 @@ void AMowerB::UpdateWheelSuspension(FRayCastGroup& RayCastGroup, const FLocalOri
 	SendWheelRayCast(BrWheel, RayCastGroup.Br, LocalOrigins.Br);
 	SendWheelRayCast(BlWheel, RayCastGroup.Bl, LocalOrigins.Bl);
 }
-
 
 void AMowerB::SendWheelRayCast(UStaticMeshComponent* Wheel, FHitResult& RayCast, const FVector& LocalOrigin)
 {
@@ -609,7 +569,6 @@ void AMowerB::SendWheelRayCast(UStaticMeshComponent* Wheel, FHitResult& RayCast,
 	ApplyWheelSuspension(Wheel, RayCast, WheelStart, Grounded);
 }
 
-
 void AMowerB::ApplyWheelSuspension(UStaticMeshComponent* Wheel, const FHitResult& RayCast, const FVector& WheelStart, const bool Grounded)
 {
 	if (!Wheel) return;
@@ -620,7 +579,6 @@ void AMowerB::ApplyWheelSuspension(UStaticMeshComponent* Wheel, const FHitResult
 
 	Wheel->SetWorldLocation(WheelStart + (PhysicsBodyUpVector * RayCastLengthDifference));
 }
-
 
 void AMowerB::UpdateWheelRotations(const float DeltaTime)
 {
@@ -639,7 +597,6 @@ void AMowerB::UpdateWheelRotations(const float DeltaTime)
 	ApplyWheelRotation(BlWheel, LocalRearWheelRotations);
 }
 
-
 double AMowerB::GetWheelPitch(const double PitchRate, const float Ratio, const float RatioMaximum, const float DeltaTime) const
 {
 	double WheelPitch{ PitchRate * (Ratio / RatioMaximum) * DeltaTime };
@@ -648,7 +605,6 @@ double AMowerB::GetWheelPitch(const double PitchRate, const float Ratio, const f
 
 	return WheelPitch;
 }
-
 
 float AMowerB::GetDriftingRatioWithPitchDirection() const
 {
@@ -660,14 +616,12 @@ float AMowerB::GetDriftingRatioWithPitchDirection() const
 	return DriftingRatioWithPitchDirection;
 }
 
-
 void AMowerB::UpdateWheelPitch(FRotator& LocalRotation, const double WheelPitch)
 {
 	LocalRotation.Pitch += WheelPitch;
 
 	ResetFullAxisRotations(LocalRotation);
 }
-
 
 void AMowerB::UpdateWheelSteeringRatio(const float DeltaTime)
 {
@@ -678,12 +632,10 @@ void AMowerB::UpdateWheelSteeringRatio(const float DeltaTime)
 	LimitRatio(WheelSteeringRatio, WheelSteeringRatioMaximum);
 }
 
-
 void AMowerB::UpdateWheelYaw(FRotator& LocalRotation) const
 {
 	LocalRotation.Yaw = WheelSteeringMaximum * WheelSteeringRatio;
 }
-
 
 void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const
 {
@@ -692,7 +644,6 @@ void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& Lo
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
 }
 
-
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
 {
 	DrawRayCast(RayCasts.Fr);
@@ -700,7 +651,6 @@ void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
 	DrawRayCast(RayCasts.Br);
 	DrawRayCast(RayCasts.Bl);
 }
-
 
 void AMowerB::DrawRayCast(const FHitResult& RayCast) const
 {
@@ -722,7 +672,6 @@ void AMowerB::DrawRayCast(const FHitResult& RayCast) const
 	}
 }
 
-
 void AMowerB::DrawAcceleration() const
 {
 	const FVector CurrentAcceleration{ AccelerationSurfaceImpact + (AccelerationSurfaceNormal * abs(AccelerationRatio) * RayCastLength) };
@@ -731,7 +680,6 @@ void AMowerB::DrawAcceleration() const
 	DrawDebugLine(GetWorld(), AccelerationSurfaceImpact, CurrentAcceleration, FColor::Yellow);
 	DrawDebugSphere(GetWorld(), CurrentAcceleration, 1.0f, 6, FColor::Yellow);
 }
-
 
 void AMowerB::DrawDrift() const
 {
@@ -744,7 +692,6 @@ void AMowerB::DrawDrift() const
 	DrawDebugLine(GetWorld(), DriftingForcePosition, CurrentDrift, FColor::Magenta);
 	DrawDebugSphere(GetWorld(), CurrentDrift, 1.0f, 6, FColor::Magenta);
 }
-
 
 void AMowerB::LogMotionData(const float DeltaTime)
 {
@@ -761,7 +708,6 @@ void AMowerB::LogMotionData(const float DeltaTime)
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("AngularDrag         %f"), TotalAngularDrag);
 }
 
-
 void AMowerB::UpdateTickCount(const float DeltaTime)
 {
 	const float TickCountMultiplier{ 60.0f };
@@ -773,7 +719,6 @@ void AMowerB::UpdateTickCount(const float DeltaTime)
 	TickCount == 0.0f ? bTickReset = true : bTickReset = false;
 }
 
-
 void AMowerB::ResetDrag()
 {
 	LinearDragArray.Reset();
@@ -784,7 +729,6 @@ void AMowerB::ResetDrag()
 
 	WheelsGrounded = 0;
 }
-
 
 void AMowerB::ResetPlayerInputData()
 {
@@ -801,7 +745,6 @@ void AMowerB::ResetPlayerInputData()
 	bAccelerating = false;
 	bSteering = false;
 }
-
 
 void AMowerB::LogTickTime()
 {

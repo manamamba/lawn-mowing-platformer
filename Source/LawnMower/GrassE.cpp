@@ -1,14 +1,13 @@
-// Derived AActor class AGrassD by Cody Wheeler.
+// Derived AActor class AGrassE by Cody Wheeler.
 
 
-#include "GrassD.h"
+#include "GrassE.h"
 
-#include "GrassPoolA.h"
-#include "GrassSpawnerC.h"
+#include "GrassSpawnerD.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
-AGrassD::AGrassD()
+AGrassE::AGrassE()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -16,8 +15,7 @@ AGrassD::AGrassD()
 	LocateAndAssignStaticMesh();
 }
 
-
-void AGrassD::CreateAndAssignRootComponent()
+void AGrassE::CreateAndAssignRootComponent()
 {
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
@@ -26,10 +24,9 @@ void AGrassD::CreateAndAssignRootComponent()
 	Root->SetMobility(EComponentMobility::Type::Static);
 }
 
-
-void AGrassD::LocateAndAssignStaticMesh()
+void AGrassE::LocateAndAssignStaticMesh()
 {
-	FName StaticMeshAssetLocation{ TEXT("/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2") };
+	const FName StaticMeshAssetLocation{ TEXT("/Game/Assets/Meshes/Grass/mowergrassv2.mowergrassv2") };
 
 	ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMeshAsset(*StaticMeshAssetLocation.ToString());
 
@@ -37,19 +34,19 @@ void AGrassD::LocateAndAssignStaticMesh()
 }
 
 
-void AGrassD::BeginPlay()
+void AGrassE::BeginPlay()
 {
 	Super::BeginPlay();
 
-	SpawnOwner = Cast<AGrassSpawnerC>(GetOwner());
-	PoolOwner = Cast<AGrassPoolA>(SpawnOwner->GetOwner());
-
 	CreateAndAttachMeshComponent();
 	SetMeshComponentProperties();
+
+	SpawnOwner = Cast<AGrassSpawnerD>(GetOwner());
+	RootTransform = Root->GetComponentTransform();
+	RootDownVector = -RootTransform.GetUnitAxis(EAxis::Type::Z);
 }
 
-
-void AGrassD::CreateAndAttachMeshComponent()
+void AGrassE::CreateAndAttachMeshComponent()
 {
 	Mesh = Cast<UStaticMeshComponent>(AddComponentByClass(UStaticMeshComponent::StaticClass(), true, GetTransform(), false));
 
@@ -62,10 +59,9 @@ void AGrassD::CreateAndAttachMeshComponent()
 	Mesh->SetStaticMesh(StaticMesh);
 }
 
-
-void AGrassD::SetMeshComponentProperties()
+void AGrassE::SetMeshComponentProperties()
 {
-	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassD::Cut);
+	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassE::Cut);
 
 	const double Yaw{ static_cast<double>(FMath::RandRange(0, 359)) };
 	const double PitchRoll{ FMath::RandRange(0.0, 5.0) };
@@ -84,8 +80,7 @@ void AGrassD::SetMeshComponentProperties()
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
 }
 
-
-UFUNCTION() void AGrassD::Cut(
+UFUNCTION() void AGrassE::Cut(
 	UPrimitiveComponent* OverlapComp,
 	AActor* OtherActor,
 	UPrimitiveComponent* OtherComp,
@@ -93,66 +88,44 @@ UFUNCTION() void AGrassD::Cut(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
-	if (bCut) return;
+	if (SpawnOwner) SpawnOwner->UpdateGrassCutCount();
 
-	if (SpawnOwner)
-	{
-		SpawnOwner->UpdateGrassCutCount();
-		
-		if (PoolOwner)
-		{
-			bCut = true;
-			
-			Root->SetMobility(EComponentMobility::Type::Movable);
-			Mesh->SetMobility(EComponentMobility::Type::Movable);
-			Mesh->SetVisibility(false);
-
-			SetActorLocation(FVector::Zero());
-
-			PoolOwner->PooledGrass.Add(this);
-		}
-	}
-	
-	// Destroy();
+	Destroy();
 }
 
 
-void AGrassD::Tick(float DeltaTime)
+void AGrassE::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// double TickTime{ FPlatformTime::Seconds() };
-	
-	TickCount += DeltaTime;
-
-	if (TickCount >= TickCountMax)
-	{
-		TryToSpawnGrass();
-
-		TickCount = 0.0f;
-	}
-
-	// UE_LOG(LogTemp, Warning, TEXT("TickTime %f"), TickTime = FPlatformTime::Seconds() - TickTime);
+	if (ReadyToTrySpawning(DeltaTime)) TryToSpawnGrass();
 }
 
-
-void AGrassD::TryToSpawnGrass()
+bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 {
-	if (SpawnAttempts == 0)
-	{
-		RootTransform = Root->GetComponentTransform();
-		RootDownVector = -RootTransform.GetUnitAxis(EAxis::Type::Z);
-	}
+	if (!SpawnOwner) return false;
+	
+	if (SpawnOwner->GrassChildrenActivelySpawning.Num() > 50 && SpawnAttempts == 0) SpawnAttempts = 2;
 
-	if (SpawnAttempts == 6)
+	TickCount += DeltaTime;
+
+	if (TickCount < TickCountThreshold) return false;
+	else TickCount = 0.0f;
+
+	if (SpawnAttempts > 5)
 	{
+		SpawnOwner->GrassChildrenActivelySpawning.Pop();
+
 		SetActorTickEnabled(false);
 
-		SpawnAttempts = 0;
-
-		return;
+		return false;
 	}
 
+	return true;
+}
+
+void AGrassE::TryToSpawnGrass()
+{
 	const int32 SpawnPosition{ SpawnAttempts++ };
 
 	FHitResult Hit{};
@@ -166,8 +139,7 @@ void AGrassD::TryToSpawnGrass()
 	SpawnGrass(Hit.ImpactPoint, GetSpawnRotation(RootTransform, Hit.Time, YawRotations[SpawnPosition]));
 }
 
-
-bool AGrassD::RayCastStartInsideGrowField(const FVector& RayCastStart)
+bool AGrassE::RayCastStartInsideGrowField(const FVector& RayCastStart)
 {
 	TArray<FOverlapResult> Overlaps{};
 
@@ -179,16 +151,14 @@ bool AGrassD::RayCastStartInsideGrowField(const FVector& RayCastStart)
 	return GetWorld()->OverlapMultiByObjectType(Overlaps, RayCastStart, FQuat::Identity, GrowObjects, Sweeper);
 }
 
-
-bool AGrassD::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection)
+bool AGrassE::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection)
 {
 	const FVector End{ RayCastStart + (RayCastDirection * RayCastLength) };
 
 	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, End, ECC_GameTraceChannel1);
 }
 
-
-bool AGrassD::GrassNearRayCastImpact(const FVector& Impact)
+bool AGrassE::GrassNearRayCastImpact(const FVector& Impact)
 {
 	FHitResult SweepHit{};
 
@@ -197,42 +167,23 @@ bool AGrassD::GrassNearRayCastImpact(const FVector& Impact)
 	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
 }
 
-
-FRotator AGrassD::GetSpawnRotation(const FTransform& Transform, const float& TraceLength, const double& YawPosition)
+FRotator AGrassE::GetSpawnRotation(const FTransform& Transform, const float& TraceLength, const double& YawPosition)
 {
 	const FRotator RelativeRotation{ 45.0 - (90.0 * TraceLength), YawPosition, 0.0 };
-	
+
 	return UKismetMathLibrary::TransformRotation(Transform, RelativeRotation);
 }
 
-
-void AGrassD::SpawnGrass(const FVector& Location, const FRotator& Rotation)
+void AGrassE::SpawnGrass(const FVector& Location, const FRotator& Rotation)
 {
 	FActorSpawnParameters SpawnedOwner{};
 	SpawnedOwner.Owner = GetOwner();
 
-	AGrassD* NewGrass{};
-	
-	if (PoolOwner && PoolOwner->PooledGrass.Num() != 0)
+	if (AGrassE * NewGrass{ GetWorld()->SpawnActor<AGrassE>(AGrassE::StaticClass(), Location, Rotation, SpawnedOwner) })
 	{
-		NewGrass = PoolOwner->PooledGrass.Pop();
+		if (!SpawnOwner) return;
 
-		if (!NewGrass) return;
-
-		NewGrass->SetOwner(SpawnedOwner.Owner);
-		NewGrass->SpawnOwner = Cast<AGrassSpawnerC>(SpawnedOwner.Owner);
-		NewGrass->SetActorLocation(Location);
-		NewGrass->SetActorRotation(Rotation);
-		NewGrass->Root->SetMobility(EComponentMobility::Type::Static);
-		NewGrass->Mesh->SetMobility(EComponentMobility::Type::Static);
-		NewGrass->Mesh->SetVisibility(true);
-		NewGrass->SetActorTickEnabled(true);
-		NewGrass->bCut = false;
+		SpawnOwner->GrassChildrenActivelySpawning.Add(NewGrass);
+		SpawnOwner->UpdateGrassSpawnedCount();
 	}
-	else
-	{
-		NewGrass = GetWorld()->SpawnActor<AGrassD>(AGrassD::StaticClass(), Location, Rotation, SpawnedOwner);
-	}
-
-	if (SpawnOwner) SpawnOwner->UpdateGrassSpawnedCount();
 }
