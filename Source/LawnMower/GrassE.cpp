@@ -89,7 +89,7 @@ void AGrassE::Cut(
 	const FHitResult& SweepResult)
 {
 	if (!SpawnOwner) return;
-	
+
 	SpawnOwner->UpdateGrassCutCount();
 
 	if (SpawnAttempts != 6) SpawnOwner->DecreaseGrassActivelySpawning();
@@ -102,14 +102,14 @@ void AGrassE::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (ReadyToTrySpawning(DeltaTime)) TryToSpawnGrass();
+	if (ReadyToTrySpawning(DeltaTime)) TrySpawningGrass();
 }
 
 bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 {
 	if (!SpawnOwner) return false;
-	
-	if (SpawnOwner->GetGrassActivelySpawning() > 200 && SpawnAttempts == 0) TickCountThreshold = 0.32f;
+
+	if (SpawnOwner->GetGrassActivelySpawning() > 50 && SpawnAttempts == 0) TickCountThreshold = 0.16f;
 
 	TickCount += DeltaTime;
 
@@ -128,31 +128,18 @@ bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 	return true;
 }
 
-void AGrassE::TryToSpawnGrass()
+void AGrassE::TrySpawningGrass()
 {
 	const int32 SpawnPosition{ SpawnAttempts++ };
 
-	FHitResult Hit{};
-
 	const FVector RayCastStart{ UKismetMathLibrary::TransformLocation(RootTransform, LocalRayCastStarts[SpawnPosition]) };
 
-	if (!RayCastStartInsideGrowField(RayCastStart)) return;
+	FHitResult Hit{};
+
 	if (!RayCastHitGround(Hit, RayCastStart, RootDownVector)) return;
-	if (GrassNearRayCastImpact(Hit.ImpactPoint)) return;
+	if (!SafeToSpawnGrass(Hit.ImpactPoint)) return;
 
 	SpawnGrass(Hit.ImpactPoint, GetSpawnRotation(RootTransform, Hit.Time, YawRotations[SpawnPosition]));
-}
-
-bool AGrassE::RayCastStartInsideGrowField(const FVector& RayCastStart)
-{
-	TArray<FOverlapResult> Overlaps{};
-
-	FCollisionObjectQueryParams GrowObjects{};
-	GrowObjects.AddObjectTypesToQuery(ECC_GameTraceChannel4);
-
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(1.0) };
-
-	return GetWorld()->OverlapMultiByObjectType(Overlaps, RayCastStart, FQuat::Identity, GrowObjects, Sweeper);
 }
 
 bool AGrassE::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection)
@@ -162,16 +149,34 @@ bool AGrassE::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, con
 	return GetWorld()->LineTraceSingleByChannel(Hit, RayCastStart, End, ECC_GameTraceChannel1);
 }
 
-bool AGrassE::GrassNearRayCastImpact(const FVector& Impact)
+bool AGrassE::SafeToSpawnGrass(FVector& ImpactPoint)
 {
-	FHitResult SweepHit{};
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(9.0) };
 
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(FMath::RandRange(9.0, 9.5)) };
+	TArray<FHitResult> Hits{};
 
-	return GetWorld()->SweepSingleByChannel(SweepHit, Impact, Impact, FQuat::Identity, ECC_GameTraceChannel2, Sweeper);
+	FCollisionObjectQueryParams Types{};
+	Types.AddObjectTypesToQuery(ECC_GameTraceChannel3);
+	Types.AddObjectTypesToQuery(ECC_GameTraceChannel4);
+
+	if (!GetWorld()->SweepMultiByObjectType(Hits, ImpactPoint, ImpactPoint, FQuat::Identity, Types, Sweeper)) return false;
+
+	bool bGrassOverlap{}, bGrowOverlap{};
+
+	for (int32 I{}; I < Hits.Num(); ++I)
+	{
+		switch (Hits[I].Component->GetCollisionObjectType())
+		{
+		case ECC_GameTraceChannel3: bGrassOverlap = true;		break;
+		case ECC_GameTraceChannel4: bGrowOverlap = true;
+		}
+	}
+
+	if (bGrowOverlap && !bGrassOverlap) return true;
+	else return false;
 }
 
-FRotator AGrassE::GetSpawnRotation(const FTransform& Transform, const float& TraceLength, const double& YawPosition)
+FRotator AGrassE::GetSpawnRotation(const FTransform& Transform, const float TraceLength, const double YawPosition)
 {
 	const FRotator RelativeRotation{ 45.0 - (90.0 * TraceLength), YawPosition, 0.0 };
 

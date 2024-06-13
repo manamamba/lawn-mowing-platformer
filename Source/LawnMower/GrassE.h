@@ -60,12 +60,11 @@ public:
 
 private:
 	bool ReadyToTrySpawning(const float& DeltaTime);
-	void TryToSpawnGrass();
-	bool RayCastStartInsideGrowField(const FVector& RayCastStart);
+	void TrySpawningGrass();
 	bool RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, const FVector& RayCastDirection);
-	bool GrassNearRayCastImpact(const FVector& Impact);
+	bool SafeToSpawnGrass(FVector& ImpactPoint);
+	FRotator GetSpawnRotation(const FTransform& Transform, const float TraceLength, const double YawPosition);
 	void SpawnGrass(const FVector& SpawnLocation, const FRotator& SpawnRotation);
-	FRotator GetSpawnRotation(const FTransform& Transform, const float& TraceLength, const double& YawPosition);
 
 private:
 	UStaticMeshComponent* Mesh{};
