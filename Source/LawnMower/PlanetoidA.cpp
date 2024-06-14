@@ -101,8 +101,6 @@ void APlanetoidA::ApplyCaptureForce()
 {
 	if (!Mower || !MowerPhysicsBody) return;
 
-	UE_LOG(LogTemp, Warning, TEXT("Capturing!"));
-
 	Mower->Float();
 
 	const FVector PullDirection{ FVector{ GetActorLocation() - Mower->GetActorLocation() }.GetSafeNormal() };

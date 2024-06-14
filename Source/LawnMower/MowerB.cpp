@@ -651,6 +651,8 @@ void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& Lo
 {
 	if (!Wheel) return;
 
+	if (!WheelsGrounded && PitchingDirection != 0.0 && !AccelerationRatio) return;
+
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
 }
 
