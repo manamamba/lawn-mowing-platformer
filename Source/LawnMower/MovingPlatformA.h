@@ -25,4 +25,21 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
+private:
+	void UpdateLocation(const FVector& Origin, const FVector& Target, const float DeltaTime);
+
+private:
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) FVector LocationOffset {};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) double MovingSpeed {};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) float MaxWaitTimeInSeconds {};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) bool bMoveOnce {};
+
+	FTransform RootTransform{};
+	FVector StartLocation{};
+	FVector EndLocation{};
+	FVector MovingDirection{};
+	double MaxDistance{};
+	bool bMovingToEndLocation{ true };
+	float WaitTimeInSeconds{};
+
 };
