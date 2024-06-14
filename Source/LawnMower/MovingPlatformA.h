@@ -22,24 +22,47 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
+private:
+	void SetComponentProperties();
+
+private:
+	void SetMovingData();
+	void SetRotationData();
+
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 private:
+	void TryToMovePlatform(const float DeltaTime);
 	void UpdateLocation(const FVector& Origin, const FVector& Target, const float DeltaTime);
+	void TryToRotatePlatform(const float DeltaTime);
+	void ResetFullAxisRotations(FRotator& Rotator) const;
 
 private:
-	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) FVector LocationOffset {};
-	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) double MovingSpeed {};
-	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) float MaxWaitTimeInSeconds {};
-	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) bool bMoveOnce {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) bool bActiveWithoutSpawner{};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) bool bMoves {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) bool bMovesOnce {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) double MovingSpeed {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) float WaitTimeInSecondsBeforeMoving {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) FVector LocationOffset {};
+
+	UPROPERTY(EditAnywhere, Category = Rotating, meta = (AllowPrivateAccess = "true")) bool bRotates {};
+	UPROPERTY(EditAnywhere, Category = Rotating, meta = (AllowPrivateAccess = "true")) bool bContinuousRotation {};
+	UPROPERTY(EditAnywhere, Category = Rotating, meta = (AllowPrivateAccess = "true")) double RotationSpeed {};
+	UPROPERTY(EditAnywhere, Category = Moving, meta = (AllowPrivateAccess = "true")) FRotator RotationOffset {};
 
 	FTransform RootTransform{};
+
 	FVector StartLocation{};
 	FVector EndLocation{};
 	FVector MovingDirection{};
-	double MaxDistance{};
+	double MovingDistance{};
+	float TimeWaitedBeforeMoving{};
 	bool bMovingToEndLocation{ true };
-	float WaitTimeInSeconds{};
+
+	FRotator LocalRotation{};
+	FRotator RotatingDirections{};
+
+
 
 };

@@ -3,11 +3,18 @@
 
 #include "MovingPlatformA.h"
 
+#include "Kismet/KismetMathLibrary.h"
+
 
 AMovingPlatformA::AMovingPlatformA()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	SetComponentProperties();
+}
+
+void AMovingPlatformA::SetComponentProperties()
+{
 	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
 
@@ -27,22 +34,43 @@ void AMovingPlatformA::BeginPlay()
 	Super::BeginPlay();
 
 	RootTransform = Root->GetComponentTransform();
-	StartLocation = RootTransform.GetLocation();
-	EndLocation = StartLocation + LocationOffset;
-	MaxDistance = FVector::Dist(StartLocation, EndLocation);
-	MovingDirection = FVector{ EndLocation - StartLocation }.GetSafeNormal();
 
-	SetActorTickEnabled(false);
+	if (!bActiveWithoutSpawner) SetActorTickEnabled(false);
+
+	if (bMoves) SetMovingData();
+
+	if (bRotates) SetRotationData();
 }
 
+void AMovingPlatformA::SetMovingData()
+{
+	StartLocation = RootTransform.GetLocation();
+	EndLocation = StartLocation + LocationOffset;
+	MovingDistance = FVector::Dist(StartLocation, EndLocation);
+	MovingDirection = FVector{ EndLocation - StartLocation }.GetSafeNormal();
+}
+
+void AMovingPlatformA::SetRotationData()
+{
+	RotatingDirections.Pitch = RotationOffset.Pitch / abs(RotationOffset.Pitch);
+	RotatingDirections.Yaw = RotationOffset.Yaw / abs(RotationOffset.Yaw);
+	RotatingDirections.Roll = RotationOffset.Roll / abs(RotationOffset.Roll);
+}
 
 void AMovingPlatformA::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	WaitTimeInSeconds += DeltaTime;
+	if (bMoves) TryToMovePlatform(DeltaTime);
 
-	if (WaitTimeInSeconds < MaxWaitTimeInSeconds) return;
+	if (bRotates) TryToRotatePlatform(DeltaTime);
+}
+
+void AMovingPlatformA::TryToMovePlatform(const float DeltaTime)
+{
+	TimeWaitedBeforeMoving += DeltaTime;
+	
+	if (TimeWaitedBeforeMoving < WaitTimeInSecondsBeforeMoving) return;
 
 	if (bMovingToEndLocation) UpdateLocation(StartLocation, EndLocation, DeltaTime);
 	else UpdateLocation(EndLocation, StartLocation, DeltaTime);
@@ -54,15 +82,42 @@ void AMovingPlatformA::UpdateLocation(const FVector& Origin, const FVector& Targ
 
 	PlatformLocation += MovingDirection * (MovingSpeed * DeltaTime);
 	
-	if (FVector::Dist(PlatformLocation, Origin) >= MaxDistance)
+	if (FVector::Dist(PlatformLocation, Origin) >= MovingDistance)
 	{
-		if (bMoveOnce) SetActorTickEnabled(false);
+		if (bMovesOnce) SetActorTickEnabled(false);
 
 		PlatformLocation = Target;
 		MovingDirection = -MovingDirection;
 		bMovingToEndLocation = !bMovingToEndLocation;
-		WaitTimeInSeconds = 0.0f;
+		TimeWaitedBeforeMoving = 0.0f;
 	}
 
 	Root->SetWorldLocation(PlatformLocation);
+}
+
+void AMovingPlatformA::TryToRotatePlatform(const float DeltaTime)
+{
+	const double RotationRate{ RotationSpeed * DeltaTime };
+
+	if (RotationOffset.Pitch != 0.0) LocalRotation.Pitch += RotatingDirections.Pitch * RotationRate;
+	if (RotationOffset.Yaw != 0.0) LocalRotation.Pitch += RotatingDirections.Yaw * RotationRate;
+	if (RotationOffset.Roll != 0.0) LocalRotation.Pitch += RotatingDirections.Roll * RotationRate;
+
+	// if (LocalRotation.Pitch )
+
+
+
+	// if !bContinuousRotation 
+	// RotationOffset = -RotationOffset;
+
+	Root->SetWorldRotation(UKismetMathLibrary::TransformRotation(Root->GetComponentTransform(), LocalRotation));
+}
+
+void AMovingPlatformA::ResetFullAxisRotations(FRotator& Rotator) const
+{
+	const double RotationMaximum{ 360.0 };
+	
+	if (abs(Rotator.Pitch) >= RotationMaximum) Rotator.Pitch = 0.0;
+	if (abs(Rotator.Yaw) >= RotationMaximum) Rotator.Yaw = 0.0;
+	if (abs(Rotator.Roll) >= RotationMaximum) Rotator.Roll = 0.0;
 }
