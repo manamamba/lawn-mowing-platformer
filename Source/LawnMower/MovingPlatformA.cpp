@@ -3,10 +3,38 @@
 
 #include "MovingPlatformA.h"
 
-MovingPlatformA::MovingPlatformA()
+
+AMovingPlatformA::AMovingPlatformA()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
+	Root = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
+	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
+
+	RootComponent = Root;
+
+	Mesh->SetupAttachment(RootComponent);
+
+	Mesh->SetCollisionProfileName(TEXT("Custom..."));
+	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
+	Mesh->SetCollisionObjectType(ECC_WorldStatic);
+	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 }
 
-MovingPlatformA::~MovingPlatformA()
+
+void AMovingPlatformA::BeginPlay()
 {
+	Super::BeginPlay();
+
+	SetActorTickEnabled(false);
+}
+
+
+void AMovingPlatformA::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	UE_LOG(LogTemp, Warning, TEXT("%s Activated!"), *GetName());
+
+	SetActorTickEnabled(false);
 }

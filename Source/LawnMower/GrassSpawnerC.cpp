@@ -6,8 +6,8 @@
 #include "Components/BoxComponent.h"
 #include "GrassD.h"
 #include "GrassPoolA.h"
-#include "LawnMowerGameMode.h"
 #include "Kismet/GameplayStatics.h"
+// #include "LawnMowerGameMode.h"
 
 
 AGrassSpawnerC::AGrassSpawnerC()
@@ -133,10 +133,12 @@ bool AGrassSpawnerC::SpawnedGrassCleared() const
 
 void AGrassSpawnerC::UpdateGameMode() const
 {
+	/*
 	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
 	{
 		GameMode->UpdateSpawnersCleared();
 	}
+	*/
 }
 
 

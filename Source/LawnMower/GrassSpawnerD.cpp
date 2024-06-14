@@ -7,6 +7,7 @@
 #include "GameFramework/GameMode.h"
 #include "GrassE.h"
 #include "Kismet/GameplayStatics.h"
+#include "MovingPlatformA.h"
 #include "MowerB.h"
 #include "MowerGameModeA.h"
 
@@ -63,11 +64,9 @@ void AGrassSpawnerD::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// UE_LOG(LogTemp, Warning, TEXT("Spawned %d, Cut %d, Spawning %d"), GrassSpawnedCount, GrassCutCount, GrassActivelySpawning);
-
 	if (SpawnedGrassCleared())
 	{
-		if (bActivateActorByTag) ActivateActorByTag();
+		if (bActivatePlatformByTag) ActivateActorByTag();
 
 		if (bSetNewMowerSpawn) UpdateMowerRespawn();
 
@@ -118,18 +117,17 @@ bool AGrassSpawnerD::SpawnedGrassCleared() const
 
 void AGrassSpawnerD::ActivateActorByTag()
 {
+	TArray<AActor*> Platforms{};
 	
+	UGameplayStatics::GetAllActorsOfClassWithTag(this, AMovingPlatformA::StaticClass(), PlatformTag, Platforms);
 
+	if (Platforms.Num() == 0) return;
 
-	
-	// UGameplayStatics::GetAllActorsOfClassWithTag
-
-
-
-
+	if (AMovingPlatformA * Platform{ Cast<AMovingPlatformA>(Platforms[0]) })
+	{
+		Platform->SetActorTickEnabled(true);
+	}
 }
-
-
 
 void AGrassSpawnerD::UpdateMowerRespawn()
 {
@@ -153,5 +151,3 @@ void AGrassSpawnerD::UpdateGrassCutCount() { ++GrassCutCount; };
 void AGrassSpawnerD::IncreaseGrassActivelySpawning() { ++GrassActivelySpawning; }
 void AGrassSpawnerD::DecreaseGrassActivelySpawning() { --GrassActivelySpawning; }
 int32 AGrassSpawnerD::GetGrassActivelySpawning() const { return GrassActivelySpawning; }
-
-

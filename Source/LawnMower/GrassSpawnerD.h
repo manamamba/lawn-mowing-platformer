@@ -16,8 +16,8 @@ class LAWNMOWER_API AGrassSpawnerD : public AActor
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditDefaultsOnly) USceneComponent* Root {};
-	UPROPERTY(EditDefaultsOnly) UBoxComponent* Collider {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) USceneComponent* Root {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
 
 public:
 	AGrassSpawnerD();
@@ -57,10 +57,10 @@ public:
 	int32 GetGrassActivelySpawning() const;
 
 private:
-	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) FName ActorTag {};
-	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bActivateActorByTag{};
-	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bSetNewMowerSpawn{};
-	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = "true")) bool bRestartGame{};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) FName PlatformTag {};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) bool bActivatePlatformByTag{};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) bool bSetNewMowerSpawn{};
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) bool bRestartGame{};
 
 	int32 GrassSpawnedCount{};
 	int32 GrassCutCount{};

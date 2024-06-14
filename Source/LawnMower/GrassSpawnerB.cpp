@@ -4,9 +4,9 @@
 #include "GrassSpawnerB.h"
 #include "Components/BoxComponent.h"
 #include "GrassC.h"
-#include "LawnMowerGameMode.h"
 #include "Kismet/GameplayStatics.h"
 #include "Engine/StaticMeshActor.h"
+// #include "LawnMowerGameMode.h"
 
 
 AGrassSpawnerB::AGrassSpawnerB()
@@ -109,10 +109,12 @@ bool AGrassSpawnerB::SpawnedGrassCleared() const
 
 void AGrassSpawnerB::UpdateGameModeGrassCut() const
 {
+	/*
 	if (ALawnMowerGameMode * GameMode{ Cast<ALawnMowerGameMode>(GetWorld()->GetAuthGameMode()) })
 	{
 		GameMode->UpdateSpawnersCleared();
 	}
+	*/
 }
 
 
