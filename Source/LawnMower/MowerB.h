@@ -165,6 +165,12 @@ private:
 	void Drift(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
 
+public:
+	void Float() const;
+	float GetPhysicsBodyMass() const;
+	class UBoxComponent* GetPhysicsBody();
+	void SetNewRespawnLocation(const FVector& NewLocation);
+
 private:
 	FVector2D RotatingCameraDirection{};
 	bool bCameraReset{};
@@ -180,8 +186,6 @@ public:
 
 private:
 	void GetTickTime();
-
-	void Float() const;
 
 	void UpdateTransforms();
 	void Respawn();
@@ -244,9 +248,6 @@ private:
 	void ResetPlayerInputData();
 
 	void LogTickTime();
-
-public:
-	void SetNewRespawnLocation(const FVector& NewLocation);
 
 private:
 	double TickTime{};

@@ -2,11 +2,14 @@
 
 
 #include "MowerB.h"
-#include "Components/BoxComponent.h"
-#include "GameFramework/SpringArmComponent.h"
+
+#include "PlanetoidA.h"
 #include "Camera/CameraComponent.h"
+#include "Components/BoxComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 
@@ -52,7 +55,6 @@ void AMowerB::SetupComponentAttachments()
 void AMowerB::SetComponentProperties()
 {
 	PhysicsBody->SetBoxExtent(PhysicsBodyDimensions);
-	PhysicsBody->SetGenerateOverlapEvents(false);
 	PhysicsBody->SetSimulatePhysics(true);
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
@@ -156,13 +158,17 @@ void AMowerB::Drift(const FInputActionValue& Value) { Drifting = Value.Get<float
 void AMowerB::Jump(const FInputActionValue& Value) { Jumping = Value.Get<float>(); }
 
 
+void AMowerB::Float() const { PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); }
+float AMowerB::GetPhysicsBodyMass() const { return PhysicsBodyMass; }
+UBoxComponent* AMowerB::GetPhysicsBody() { return PhysicsBody; }
+void AMowerB::SetNewRespawnLocation(const FVector& NewLocation) { RespawnLocation = NewLocation; }
+
+
 void AMowerB::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	// StartTickTimer();
-
-	// Float();
 
 	UpdateTransforms();
 
@@ -215,11 +221,6 @@ void AMowerB::Tick(float DeltaTime)
 void AMowerB::GetTickTime()
 {
 	TickTime = FPlatformTime::Seconds();
-}
-
-void AMowerB::Float() const
-{
-	PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce);
 }
 
 void AMowerB::UpdateTransforms()
@@ -762,10 +763,4 @@ void AMowerB::LogTickTime()
 
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("TickTime            %f"), TickTime);
 	if (bTickReset) UE_LOG(LogTemp, Warning, TEXT("LongestTickTime     %f"), LongestTickTime);
-}
-
-
-void AMowerB::SetNewRespawnLocation(const FVector& NewLocation)
-{
-	RespawnLocation = NewLocation;
 }

@@ -1,4 +1,4 @@
-// Derived AActor class AGrassSpawnerB by Cody Wheeler.
+// Derived AActor class AGrassSpawnerD by Cody Wheeler.
 
 
 #pragma once
