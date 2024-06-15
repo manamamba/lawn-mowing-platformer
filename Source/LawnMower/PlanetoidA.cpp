@@ -66,7 +66,10 @@ void APlanetoidA::SetMowerProperties()
 
 	MowerMass = Mower->GetPhysicsBodyMass();
 
-	MowerCaptureForce = MowerMass * GravitationalAcceleration;
+	if (AntiGravityMultiplier) PlanetoidAcceleration = GravitationalAcceleration / abs(AntiGravityMultiplier);
+	else PlanetoidAcceleration = GravitationalAcceleration;
+
+	MowerCaptureForce = MowerMass * PlanetoidAcceleration;
 }
 
 void APlanetoidA::Capture(
@@ -94,10 +97,10 @@ void APlanetoidA::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (MowerCaptured) ApplyCaptureForce();
+	if (MowerCaptured) ApplyCaptureForce(DeltaTime);
 }
 
-void APlanetoidA::ApplyCaptureForce()
+void APlanetoidA::ApplyCaptureForce(const float DeltaTime)
 {
 	if (!Mower || !MowerPhysicsBody) return;
 

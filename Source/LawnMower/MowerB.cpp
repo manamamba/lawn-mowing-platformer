@@ -259,7 +259,7 @@ void AMowerB::UpdateSpeed()
 
 	HoverSpeedMultiplier = 1.0;
 
-	if (bAcceleratingLastTick) HoverSpeedMultiplier += (abs(PhysicsBodySpeed) * 0.1);
+	if (bAcceleratingLastTick && abs(PhysicsBodySpeed) > 5.0) HoverSpeedMultiplier += (abs(PhysicsBodySpeed) * 0.1);
 }
 
 void AMowerB::UpdateCameraRotation()

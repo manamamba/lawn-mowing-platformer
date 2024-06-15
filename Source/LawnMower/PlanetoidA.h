@@ -52,13 +52,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 private:
-	void ApplyCaptureForce();
+	void ApplyCaptureForce(const float DeltaTime);
 
 private:
+	UPROPERTY(EditAnywhere, Category = Settings, meta = (AllowPrivateAccess = "true")) float AntiGravityMultiplier{ 1.0f };
+
 	AMowerB* Mower{};
 	class UBoxComponent* MowerPhysicsBody{};
 	double MowerMass{};
 	double MowerCaptureForce{};
+	float PlanetoidAcceleration{};
 	bool MowerCaptured{};
 
 };
