@@ -56,6 +56,7 @@ void AMowerB::SetComponentProperties()
 {
 	PhysicsBody->SetBoxExtent(PhysicsBodyDimensions);
 	PhysicsBody->SetSimulatePhysics(true);
+	PhysicsBody->SetNotifyRigidBodyCollision(true);
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
 
@@ -104,6 +105,8 @@ void AMowerB::BeginPlay()
 
 void AMowerB::SetPhysicsBodyProperties()
 {
+	PhysicsBody->OnComponentHit.AddDynamic(this, &AMowerB::Bounce);
+
 	PhysicsBody->SetMassOverrideInKg(NAME_None, PhysicsBodyMass);
 	PhysicsBody->SetCenterOfMass(PhysicsBodyCenterOfMass);
 
@@ -111,6 +114,23 @@ void AMowerB::SetPhysicsBodyProperties()
 	LocationThisTick = PhysicsBodyWorldTransform.GetLocation();
 
 	RespawnLocation = PhysicsBodyWorldTransform.GetLocation();
+}
+
+void AMowerB::Bounce(
+	UPrimitiveComponent* HitComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse,
+	const FHitResult& Hit)
+{
+	DrawDebugLine(GetWorld(), Hit.ImpactPoint, Hit.ImpactPoint + (Hit.ImpactNormal * 50.0), FColor::Orange, true);
+
+	// hover and movement forces are counting currently, need a way to filter those out
+
+	UE_LOG(LogTemp, Warning, TEXT(" "));
+	UE_LOG(LogTemp, Warning, TEXT("OtherActor %s"), *OtherActor->GetName());
+
+	PhysicsBody->AddImpulseAtLocation(Hit.ImpactNormal * 2000.0, Hit.ImpactPoint);
 }
 
 void AMowerB::SetCameraArmRotation()
