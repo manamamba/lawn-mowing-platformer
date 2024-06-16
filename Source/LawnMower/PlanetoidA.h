@@ -20,6 +20,8 @@ class LAWNMOWER_API APlanetoidA : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Mesh {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USphereComponent* Collider {};
 
+	const float GravitationalRadius{ 200.0f };
+
 	UFUNCTION() void Capture(
 		UPrimitiveComponent* OverlapComp,
 		AActor* OtherActor,

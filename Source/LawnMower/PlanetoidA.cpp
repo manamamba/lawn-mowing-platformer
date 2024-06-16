@@ -35,13 +35,14 @@ void APlanetoidA::SetComponentProperties()
 	Mesh->SetCollisionObjectType(ECC_WorldStatic);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 	Mesh->SetMobility(EComponentMobility::Type::Static);
+	Mesh->SetRelativeScale3D(FVector{ 0.75, 0.75, 0.75 });
 
 	Collider->SetCollisionProfileName(TEXT("Custom..."));
 	Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
 	Collider->SetCollisionObjectType(ECC_PhysicsBody);
 	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Collider->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
-	Collider->SetSphereRadius(150.0f);
+	Collider->SetSphereRadius(GravitationalRadius);
 	Collider->SetMobility(EComponentMobility::Type::Static);
 }
 
