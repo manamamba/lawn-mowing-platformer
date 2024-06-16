@@ -24,7 +24,7 @@ void AMovingPlatformA::SetComponentProperties()
 
 	Mesh->SetCollisionProfileName(TEXT("Custom..."));
 	Mesh->SetCollisionEnabled(ECollisionEnabled::Type::QueryAndPhysics);
-	Mesh->SetCollisionObjectType(ECC_WorldStatic);
+	Mesh->SetCollisionObjectType(ECC_WorldDynamic);
 	Mesh->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Block);
 }
 

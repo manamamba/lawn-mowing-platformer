@@ -55,13 +55,6 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction {};
 
-	UFUNCTION() void Bounce(
-		UPrimitiveComponent* HitComp,
-		AActor* OtherActor,
-		UPrimitiveComponent* OtherComp,
-		FVector NormalImpulse,
-		const FHitResult& Hit);
-
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
 	const float PhysicsBodyAntiGravitationalForce{ PhysicsBodyMass * GravitationalAcceleration };
