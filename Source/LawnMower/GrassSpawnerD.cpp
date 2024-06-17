@@ -25,14 +25,16 @@ void AGrassSpawnerD::SetComponentProperties()
 	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 
 	RootComponent = Root;
+	Root->SetMobility(EComponentMobility::Type::Static);
 
 	Collider->SetupAttachment(RootComponent);
+	Collider->SetMobility(EComponentMobility::Type::Static);
 
 	Collider->SetCollisionProfileName(TEXT("Custom..."));
 	Collider->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
-	Collider->SetCollisionObjectType(ECC_GameTraceChannel3);
+	Collider->SetCollisionObjectType(ECC_PhysicsBody);
 	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
-	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+	Collider->SetCollisionResponseToChannel(ECC_PhysicsBody, ECR_Overlap);
 	Collider->SetBoxExtent(FVector{ 200.0, 200.0, 200.0 });
 
 	Collider->OnComponentBeginOverlap.AddDynamic(this, &AGrassSpawnerD::ActivateSpawner);

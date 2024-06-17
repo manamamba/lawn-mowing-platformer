@@ -11,6 +11,7 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "NiagaraComponent.h"
 
 AMowerB::AMowerB()
 {
@@ -33,7 +34,7 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	BlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BLWheel"));
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-
+	Emitter = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Emitter"));
 }
 
 void AMowerB::SetupComponentAttachments()
@@ -48,7 +49,7 @@ void AMowerB::SetupComponentAttachments()
 	BlWheel->SetupAttachment(RootComponent);
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
-
+	Emitter->SetupAttachment(RootComponent);
 }
 
 void AMowerB::SetComponentProperties()
@@ -65,6 +66,8 @@ void AMowerB::SetComponentProperties()
 	Collider->SetCollisionObjectType(ECC_GameTraceChannel3);
 	Collider->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Collider->SetCollisionResponseToChannel(ECC_GameTraceChannel3, ECR_Overlap);
+	
+	Collider->OnComponentBeginOverlap.AddDynamic(this, &AMowerB::StartEmitter);
 
 	CameraArm->SetRelativeRotation(DefaultLocalCameraArmRotation);
 	CameraArm->SetUsingAbsoluteRotation(true);
@@ -89,6 +92,21 @@ void AMowerB::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, c
 	Mesh->SetRelativeLocation(Location);
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetCollisionProfileName("NoCollision");
+}
+
+void AMowerB::StartEmitter(
+	UPrimitiveComponent* OverlapComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	int32 OtherBodyIndex,
+	bool bFromSweep,
+	const FHitResult& SweepResult)
+{
+	if (EmitterTime < EmitterTimeMaximum) return;
+
+	EmitterTime = 0.0;
+
+	Emitter->Activate(true);
 }
 
 
@@ -204,6 +222,7 @@ void AMowerB::Tick(float DeltaTime)
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
 
+	UpdateEmitterTime(DeltaTime);
 	ApplyBladeRotation(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
@@ -655,6 +674,13 @@ void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& Lo
 	if (!WheelsGrounded && PitchingDirection != 0.0 && !AccelerationRatio) return;
 
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
+}
+
+void AMowerB::UpdateEmitterTime(const float DeltaTime)
+{
+	EmitterTime += DeltaTime;
+
+	if (EmitterTime >= EmitterTimeMaximum) EmitterTime = EmitterTimeMaximum;
 }
 
 void AMowerB::ApplyBladeRotation(const float DeltaTime)

@@ -138,6 +138,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
 
+	const float EmitterTimeMaximum{ 0.25f };
 	const double BladeRotationRate{ 720.0 };
 
 public:
@@ -148,6 +149,14 @@ private:
 	void SetupComponentAttachments();
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location);
+
+	UFUNCTION() void StartEmitter(
+		UPrimitiveComponent* OverlapComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		int32 OtherBodyIndex,
+		bool bFromSweep,
+		const FHitResult& SweepResult);
 
 protected:
 	virtual void BeginPlay() override;
@@ -241,6 +250,7 @@ private:
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 
+	void UpdateEmitterTime(const float DeltaTime);
 	void ApplyBladeRotation(const float DeltaTime);
 
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
@@ -322,6 +332,8 @@ private:
 	mutable FRotator LocalRearWheelRotations{};
 	float WheelSteeringRatio{};
 
+	float EmitterTime{};
+	bool bEmitterActivated{};
 	mutable FRotator LocalBladeRotation{};
 
 	float TickCount{};
