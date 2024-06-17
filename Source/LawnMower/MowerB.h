@@ -13,6 +13,7 @@ class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UNiagaraComponent;
+class UAudioComponent;
 struct FInputActionValue;
 
 
@@ -46,6 +47,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UNiagaraComponent* Emitter {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* EngineAudio {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -140,6 +142,8 @@ class LAWNMOWER_API AMowerB : public APawn
 
 	const float EmitterTimeMaximum{ 0.25f };
 	const double BladeRotationRate{ 720.0 };
+
+	const float EngineAudioTrackProgressMaximum{ 1.064558f };
 
 public:
 	AMowerB();
@@ -253,6 +257,11 @@ private:
 	void UpdateEmitterTime(const float DeltaTime);
 	void ApplyBladeRotation(const float DeltaTime);
 
+	void UpdateEngineAudioTrackProgress(const float DeltaTime);
+	void PlayEngineAudio();
+
+
+
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
@@ -335,6 +344,8 @@ private:
 	float EmitterTime{};
 	bool bEmitterActivated{};
 	mutable FRotator LocalBladeRotation{};
+
+	float EngineAudioTrackProgress{ 1.064558f };
 
 	float TickCount{};
 	bool bTickReset{};

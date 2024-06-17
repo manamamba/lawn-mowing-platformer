@@ -12,6 +12,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "NiagaraComponent.h"
+#include "Components/AudioComponent.h"
 
 AMowerB::AMowerB()
 {
@@ -35,6 +36,7 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Emitter = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Emitter"));
+	EngineAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 }
 
 void AMowerB::SetupComponentAttachments()
@@ -50,6 +52,7 @@ void AMowerB::SetupComponentAttachments()
 	CameraArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(CameraArm);
 	Emitter->SetupAttachment(RootComponent);
+	EngineAudio->SetupAttachment(RootComponent);
 }
 
 void AMowerB::SetComponentProperties()
@@ -224,6 +227,9 @@ void AMowerB::Tick(float DeltaTime)
 
 	UpdateEmitterTime(DeltaTime);
 	ApplyBladeRotation(DeltaTime);
+
+	UpdateEngineAudioTrackProgress(DeltaTime);
+	PlayEngineAudio();
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -690,6 +696,22 @@ void AMowerB::ApplyBladeRotation(const float DeltaTime)
 	ResetFullAxisRotations(LocalBladeRotation);
 
 	Blade->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalBladeRotation));
+}
+
+void AMowerB::UpdateEngineAudioTrackProgress(const float DeltaTime)
+{
+	EngineAudioTrackProgress += DeltaTime;
+
+	if (EngineAudioTrackProgress >= EngineAudioTrackProgressMaximum) EngineAudioTrackProgress = EngineAudioTrackProgressMaximum;
+}
+
+void AMowerB::PlayEngineAudio()
+{
+	if (EngineAudioTrackProgress != EngineAudioTrackProgressMaximum) return;
+
+	EngineAudioTrackProgress = 0.0f;
+
+
 }
 
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
