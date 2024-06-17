@@ -12,6 +12,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
+class UNiagaraComponent;
 struct FInputActionValue;
 
 
@@ -37,13 +38,14 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* Collider {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Body {};
-	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Handle {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* Blade {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FrWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* FlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BrWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UNiagaraComponent* Emitter {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -66,7 +68,7 @@ class LAWNMOWER_API AMowerB : public APawn
 
 	const FVector ColliderPosition{ 0.0, 0.0, -13.0 };
 	const FVector BodyPosition{ -0.3, 0.0, -1.0 };
-	const FVector HandlePosition{ -23.3, 0.0, 0.0 };
+	const FVector BladePosition{ -0.25, 0.0, -7.0 };
 	const FVector FrWheelPosition{ 26.0, 24.0, -9.0 };
 	const FVector FlWheelPosition{ 26.0, -24.0, -9.0 };
 	const FVector BrWheelPosition{ -26.0, 24.0, -9.0 };
@@ -89,6 +91,7 @@ class LAWNMOWER_API AMowerB : public APawn
 
 	const float AccelerationForceMaximum{ 10000.0f };
 	const float AccelerationRatioMaximum{ 3.0f };
+	const float AccelerationRatioRate{ 1.25f };
 	const float AccelerationDecayRate{ 0.5f };
 	const float AccelerationRatioMinimumWhileBraking{ 0.15f };
 	const float AccelerationBrakingRate{ 1.75f };
@@ -134,6 +137,8 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float WheelSteeringRatioMaximum{ 3.0f };
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
+
+	const double BladeRotationRate{ 720.0 };
 
 public:
 	AMowerB();
@@ -236,6 +241,8 @@ private:
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 
+	void ApplyBladeRotation(const float DeltaTime);
+
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
 	void DrawAcceleration() const;
@@ -314,6 +321,8 @@ private:
 	mutable FRotator LocalFrontWheelRotations{};
 	mutable FRotator LocalRearWheelRotations{};
 	float WheelSteeringRatio{};
+
+	mutable FRotator LocalBladeRotation{};
 
 	float TickCount{};
 	bool bTickReset{};

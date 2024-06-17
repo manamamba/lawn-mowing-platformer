@@ -12,7 +12,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
-
 AMowerB::AMowerB()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -27,7 +26,7 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	PhysicsBody = CreateDefaultSubobject<UBoxComponent>(TEXT("PhysicsBody"));
 	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 	Body = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Body"));
-	Handle = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
+	Blade = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Handle"));
 	FrWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FRWheel"));
 	FlWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FLWheel"));
 	BrWheel = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BRWheel"));
@@ -42,7 +41,7 @@ void AMowerB::SetupComponentAttachments()
 	RootComponent = PhysicsBody;
 	Collider->SetupAttachment(RootComponent);
 	Body->SetupAttachment(RootComponent);
-	Handle->SetupAttachment(RootComponent);
+	Blade->SetupAttachment(RootComponent);
 	FrWheel->SetupAttachment(RootComponent);
 	FlWheel->SetupAttachment(RootComponent);
 	BrWheel->SetupAttachment(RootComponent);
@@ -76,7 +75,7 @@ void AMowerB::SetComponentProperties()
 	CameraArm->bInheritRoll = false;
 
 	SetMeshComponentCollisionAndLocation(Body, BodyPosition);
-	SetMeshComponentCollisionAndLocation(Handle, HandlePosition);
+	SetMeshComponentCollisionAndLocation(Blade, BladePosition);
 	SetMeshComponentCollisionAndLocation(FrWheel, FrWheelPosition);
 	SetMeshComponentCollisionAndLocation(FlWheel, FlWheelPosition);
 	SetMeshComponentCollisionAndLocation(BrWheel, BrWheelPosition);
@@ -204,6 +203,8 @@ void AMowerB::Tick(float DeltaTime)
 
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
+
+	ApplyBladeRotation(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -339,7 +340,7 @@ void AMowerB::UpdateGroundedMovementConditions()
 
 void AMowerB::UpdateAccelerationRatio(const float DeltaTime)
 {
-	if (bAccelerating) AccelerationRatio += AcceleratingDirection * DeltaTime;
+	if (bAccelerating) AccelerationRatio += AcceleratingDirection * AccelerationRatioRate * DeltaTime;
 	else DecayRatio(AccelerationRatio, AccelerationDecayRate, DeltaTime);
 
 	LimitRatio(AccelerationRatio, AccelerationRatioMaximum);
@@ -654,6 +655,15 @@ void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& Lo
 	if (!WheelsGrounded && PitchingDirection != 0.0 && !AccelerationRatio) return;
 
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
+}
+
+void AMowerB::ApplyBladeRotation(const float DeltaTime)
+{
+	LocalBladeRotation.Yaw += BladeRotationRate * DeltaTime;
+
+	ResetFullAxisRotations(LocalBladeRotation);
+
+	Blade->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalBladeRotation));
 }
 
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
