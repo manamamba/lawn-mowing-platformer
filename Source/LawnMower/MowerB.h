@@ -50,6 +50,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* EngineAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* MovementAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* JumpAudio {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* CrashAudio {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -115,7 +116,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float JumpReadyRatioMaximum{ 1.0f };
 	const float JumpReadyRate{ 3.0f };
 
-	const double JumpingForceMaximum{ 250000.0 };
+	const double JumpingForceMaximum{ 275000.0 };
 	const float JumpingRatioMaximum{ 1.0f };
 	const float JumpingRate{ 5.0f };
 
@@ -156,6 +157,13 @@ private:
 	void SetupComponentAttachments();
 	void SetComponentProperties();
 	void SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location);
+
+	UFUNCTION() void PlayCrashAudio(
+		UPrimitiveComponent* HitComp,
+		AActor* OtherActor,
+		UPrimitiveComponent* OtherComp,
+		FVector NormalImpulse,
+		const FHitResult& Hit);
 
 	UFUNCTION() void StartEmitter(
 		UPrimitiveComponent* OverlapComp,

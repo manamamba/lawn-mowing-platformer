@@ -39,6 +39,7 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	EngineAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
 	MovementAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("MovementAudio"));
 	JumpAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("JumpAudio"));
+	CrashAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("CrashAudio"));
 }
 
 void AMowerB::SetupComponentAttachments()
@@ -57,6 +58,7 @@ void AMowerB::SetupComponentAttachments()
 	EngineAudio->SetupAttachment(RootComponent);
 	MovementAudio->SetupAttachment(RootComponent);
 	JumpAudio->SetupAttachment(RootComponent);
+	CrashAudio->SetupAttachment(RootComponent);
 }
 
 void AMowerB::SetComponentProperties()
@@ -65,6 +67,9 @@ void AMowerB::SetComponentProperties()
 	PhysicsBody->SetSimulatePhysics(true);
 	PhysicsBody->SetUseCCD(true);
 	PhysicsBody->SetCollisionProfileName(TEXT("PhysicsActor"));
+	PhysicsBody->SetNotifyRigidBodyCollision(true);
+
+	PhysicsBody->OnComponentHit.AddDynamic(this, &AMowerB::PlayCrashAudio);
 
 	Collider->SetBoxExtent(ColliderDimensions);
 	Collider->SetRelativeLocation(ColliderPosition);
@@ -91,6 +96,8 @@ void AMowerB::SetComponentProperties()
 	SetMeshComponentCollisionAndLocation(BrWheel, BrWheelPosition);
 	SetMeshComponentCollisionAndLocation(BlWheel, BlWheelPosition);
 
+	Emitter->bAutoActivate = false;
+
 	JumpAudio->bAutoActivate = false;
 }
 
@@ -101,6 +108,17 @@ void AMowerB::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, c
 	Mesh->SetRelativeLocation(Location);
 	Mesh->SetGenerateOverlapEvents(false);
 	Mesh->SetCollisionProfileName("NoCollision");
+}
+
+void AMowerB::PlayCrashAudio(
+	UPrimitiveComponent* HitComp,
+	AActor* OtherActor,
+	UPrimitiveComponent* OtherComp,
+	FVector NormalImpulse,
+	const FHitResult& Hit)
+{
+	UE_LOG(LogTemp, Warning, TEXT("PlayCrashAudio"));
+
 }
 
 void AMowerB::StartEmitter(
@@ -428,7 +446,7 @@ void AMowerB::UpdateJumpingRatio(const float DeltaTime)
 
 		PlayJumpAudio();
 
-		PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce); // commented out for hit events
+		// PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce);
 	}
 
 	if (Jumping && bStartedJumping) JumpingRatio += JumpingRate * DeltaTime;
