@@ -37,6 +37,8 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Emitter = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Emitter"));
 	EngineAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("EngineAudio"));
+	MovementAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("MovementAudio"));
+	JumpAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("JumpAudio"));
 }
 
 void AMowerB::SetupComponentAttachments()
@@ -53,6 +55,8 @@ void AMowerB::SetupComponentAttachments()
 	Camera->SetupAttachment(CameraArm);
 	Emitter->SetupAttachment(RootComponent);
 	EngineAudio->SetupAttachment(RootComponent);
+	MovementAudio->SetupAttachment(RootComponent);
+	JumpAudio->SetupAttachment(RootComponent);
 }
 
 void AMowerB::SetComponentProperties()
@@ -86,6 +90,8 @@ void AMowerB::SetComponentProperties()
 	SetMeshComponentCollisionAndLocation(FlWheel, FlWheelPosition);
 	SetMeshComponentCollisionAndLocation(BrWheel, BrWheelPosition);
 	SetMeshComponentCollisionAndLocation(BlWheel, BlWheelPosition);
+
+	JumpAudio->bAutoActivate = false;
 }
 
 void AMowerB::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location)
@@ -225,11 +231,12 @@ void AMowerB::Tick(float DeltaTime)
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
 
-	UpdateEmitterTime(DeltaTime);
 	ApplyBladeRotation(DeltaTime);
 
-	UpdateEngineAudioTrackProgress(DeltaTime);
-	PlayEngineAudio();
+	UpdateEmitterTime(DeltaTime);
+
+	UpdateEngineAudioPitch();
+	UpdateMovementAudioVolumeAndPitch();
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -419,7 +426,9 @@ void AMowerB::UpdateJumpingRatio(const float DeltaTime)
 		JumpingForceDirection = PhysicsBodyUpVector;
 		bStartedJumping = true;
 
-		PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce);
+		PlayJumpAudio();
+
+		PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce); // commented out for hit events
 	}
 
 	if (Jumping && bStartedJumping) JumpingRatio += JumpingRate * DeltaTime;
@@ -682,13 +691,6 @@ void AMowerB::ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& Lo
 	Wheel->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalRotation));
 }
 
-void AMowerB::UpdateEmitterTime(const float DeltaTime)
-{
-	EmitterTime += DeltaTime;
-
-	if (EmitterTime >= EmitterTimeMaximum) EmitterTime = EmitterTimeMaximum;
-}
-
 void AMowerB::ApplyBladeRotation(const float DeltaTime)
 {
 	LocalBladeRotation.Yaw += BladeRotationRate * DeltaTime;
@@ -698,20 +700,32 @@ void AMowerB::ApplyBladeRotation(const float DeltaTime)
 	Blade->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalBladeRotation));
 }
 
-void AMowerB::UpdateEngineAudioTrackProgress(const float DeltaTime)
+void AMowerB::UpdateEmitterTime(const float DeltaTime)
 {
-	EngineAudioTrackProgress += DeltaTime;
+	EmitterTime += DeltaTime;
 
-	if (EngineAudioTrackProgress >= EngineAudioTrackProgressMaximum) EngineAudioTrackProgress = EngineAudioTrackProgressMaximum;
+	if (EmitterTime >= EmitterTimeMaximum) EmitterTime = EmitterTimeMaximum;
 }
 
-void AMowerB::PlayEngineAudio()
+void AMowerB::UpdateEngineAudioPitch()
 {
-	if (EngineAudioTrackProgress != EngineAudioTrackProgressMaximum) return;
+	EngineAudio->SetPitchMultiplier(EnginePitchMultiplierDefault + (abs(AccelerationRatio) / EnginePitchAccelerationDivisor));
+}
 
-	EngineAudioTrackProgress = 0.0f;
+void AMowerB::UpdateMovementAudioVolumeAndPitch()
+{
+	MovementAudio->SetVolumeMultiplier(0.0f);
+	
+	if (!WheelsGrounded || !AccelerationRatio && abs(PhysicsBodySpeed) < 0.1) return;
 
+	MovementAudio->SetVolumeMultiplier(0.25f + (abs(AccelerationRatio) / 4.0));
+	MovementAudio->SetPitchMultiplier(0.25 + (abs(AccelerationRatio) / 4.0));
+}
 
+void AMowerB::PlayJumpAudio()
+{
+	JumpAudio->SetPitchMultiplier(FMath::RandRange(0.25f, 0.5f));
+	JumpAudio->Activate();
 }
 
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const

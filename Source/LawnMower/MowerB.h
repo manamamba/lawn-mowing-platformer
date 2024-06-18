@@ -48,6 +48,8 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UNiagaraComponent* Emitter {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* EngineAudio {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* MovementAudio {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* JumpAudio {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -143,7 +145,8 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float EmitterTimeMaximum{ 0.25f };
 	const double BladeRotationRate{ 720.0 };
 
-	const float EngineAudioTrackProgressMaximum{ 1.064558f };
+	const float EnginePitchMultiplierDefault{ 0.75f };
+	const float EnginePitchAccelerationDivisor{ 12.0f };
 
 public:
 	AMowerB();
@@ -254,13 +257,13 @@ private:
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 
-	void UpdateEmitterTime(const float DeltaTime);
 	void ApplyBladeRotation(const float DeltaTime);
 
-	void UpdateEngineAudioTrackProgress(const float DeltaTime);
-	void PlayEngineAudio();
+	void UpdateEmitterTime(const float DeltaTime);
 
-
+	void UpdateEngineAudioPitch();
+	void UpdateMovementAudioVolumeAndPitch();
+	void PlayJumpAudio();
 
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
@@ -344,8 +347,6 @@ private:
 	float EmitterTime{};
 	bool bEmitterActivated{};
 	mutable FRotator LocalBladeRotation{};
-
-	float EngineAudioTrackProgress{ 1.064558f };
 
 	float TickCount{};
 	bool bTickReset{};
