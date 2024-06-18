@@ -51,6 +51,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* MovementAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* JumpAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* CrashAudio {};
+	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* CutAudio {};
 
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputMappingContext* InputMappingContext {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* MoveCameraInputAction {};
@@ -148,6 +149,8 @@ class LAWNMOWER_API AMowerB : public APawn
 
 	const float EnginePitchMultiplierDefault{ 0.75f };
 	const float EnginePitchAccelerationDivisor{ 12.0f };
+
+	const float CrashAudioTimerReady{ 0.26f };
 
 public:
 	AMowerB();
@@ -272,6 +275,7 @@ private:
 	void UpdateEngineAudioPitch();
 	void UpdateMovementAudioVolumeAndPitch();
 	void PlayJumpAudio();
+	void UpdateCrashAudioTimer(const float DeltaTime);
 
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
@@ -356,7 +360,9 @@ private:
 	bool bEmitterActivated{};
 	mutable FRotator LocalBladeRotation{};
 
+	FString LastActorCrash{};
+	float CrashAudioTimer{};
+
 	float TickCount{};
 	bool bTickReset{};
-
 };

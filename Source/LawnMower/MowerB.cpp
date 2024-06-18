@@ -40,6 +40,7 @@ void AMowerB::CreateAndAssignComponentSubObjects()
 	MovementAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("MovementAudio"));
 	JumpAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("JumpAudio"));
 	CrashAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("CrashAudio"));
+	CutAudio = CreateDefaultSubobject<UAudioComponent>(TEXT("CutAudio"));
 }
 
 void AMowerB::SetupComponentAttachments()
@@ -59,6 +60,7 @@ void AMowerB::SetupComponentAttachments()
 	MovementAudio->SetupAttachment(RootComponent);
 	JumpAudio->SetupAttachment(RootComponent);
 	CrashAudio->SetupAttachment(RootComponent);
+	CutAudio->SetupAttachment(RootComponent);
 }
 
 void AMowerB::SetComponentProperties()
@@ -97,8 +99,9 @@ void AMowerB::SetComponentProperties()
 	SetMeshComponentCollisionAndLocation(BlWheel, BlWheelPosition);
 
 	Emitter->bAutoActivate = false;
-
 	JumpAudio->bAutoActivate = false;
+	CrashAudio->bAutoActivate = false;
+	CutAudio->bAutoActivate = false;
 }
 
 void AMowerB::SetMeshComponentCollisionAndLocation(UStaticMeshComponent* Mesh, const FVector& Location)
@@ -117,8 +120,16 @@ void AMowerB::PlayCrashAudio(
 	FVector NormalImpulse,
 	const FHitResult& Hit)
 {
-	UE_LOG(LogTemp, Warning, TEXT("PlayCrashAudio"));
+	if (CrashAudioTimer < CrashAudioTimerReady) return;
+	
+	CrashAudio->SetVolumeMultiplier(FMath::RandRange(0.75f, 1.00f));
+	CrashAudio->SetPitchMultiplier(FMath::RandRange(0.85f, 1.35f));
+	
+	if (LastActorCrash != OtherActor->GetName()) CrashAudio->Activate();
 
+	LastActorCrash = OtherActor->GetName();
+	
+	CrashAudioTimer = 0.0f;
 }
 
 void AMowerB::StartEmitter(
@@ -134,6 +145,7 @@ void AMowerB::StartEmitter(
 	EmitterTime = 0.0;
 
 	Emitter->Activate(true);
+	CutAudio->Activate(true);
 }
 
 
@@ -255,6 +267,7 @@ void AMowerB::Tick(float DeltaTime)
 
 	UpdateEngineAudioPitch();
 	UpdateMovementAudioVolumeAndPitch();
+	UpdateCrashAudioTimer(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -736,14 +749,20 @@ void AMowerB::UpdateMovementAudioVolumeAndPitch()
 	
 	if (!WheelsGrounded || !AccelerationRatio && abs(PhysicsBodySpeed) < 0.1) return;
 
-	MovementAudio->SetVolumeMultiplier(0.25f + (abs(AccelerationRatio) / 4.0));
-	MovementAudio->SetPitchMultiplier(0.25 + (abs(AccelerationRatio) / 4.0));
+	MovementAudio->SetVolumeMultiplier(0.25f + (abs(AccelerationRatio) / 12.0));
 }
 
 void AMowerB::PlayJumpAudio()
 {
-	JumpAudio->SetPitchMultiplier(FMath::RandRange(0.25f, 0.5f));
+	JumpAudio->SetPitchMultiplier(FMath::RandRange(0.85f, 1.10f));
 	JumpAudio->Activate();
+}
+
+void AMowerB::UpdateCrashAudioTimer(const float DeltaTime)
+{
+	CrashAudioTimer += DeltaTime;
+
+	if (CrashAudioTimer >= CrashAudioTimerReady) CrashAudioTimer = CrashAudioTimerReady;
 }
 
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const
