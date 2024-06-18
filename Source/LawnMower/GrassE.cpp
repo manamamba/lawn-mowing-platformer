@@ -63,12 +63,8 @@ void AGrassE::SetMeshComponentProperties()
 {
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrassE::Cut);
 
-	const double Yaw{ static_cast<double>(FMath::RandRange(0, 359)) };
-	const double PitchRoll{ FMath::RandRange(0.0, 5.0) };
-	const double ScaleZ{ FMath::RandRange(1.0, 1.5) };
-
-	Mesh->SetRelativeRotation(FRotator{ PitchRoll, Yaw, PitchRoll });
-	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, ScaleZ });
+	Mesh->SetRelativeRotation(FRotator{ 5.0, static_cast<double>(FMath::RandRange(0, 359)), 5.0 });
+	Mesh->SetRelativeScale3D(FVector{ 1.0, 1.0, FMath::RandRange(1.0, 1.5) });
 
 	Mesh->SetMobility(EComponentMobility::Type::Static);
 
@@ -116,7 +112,7 @@ bool AGrassE::ReadyToTrySpawning(const float& DeltaTime)
 	if (TickCount < TickCountThreshold) return false;
 	else TickCount = 0.0f;
 
-	if (SpawnAttempts > 5)
+	if (SpawnAttempts == 6)
 	{
 		SpawnOwner->DecreaseGrassActivelySpawning();
 
@@ -151,21 +147,21 @@ bool AGrassE::RayCastHitGround(FHitResult& Hit, const FVector& RayCastStart, con
 
 bool AGrassE::SafeToSpawnGrass(FVector& ImpactPoint)
 {
-	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(9.0) };
+	const FCollisionShape Sweeper{ FCollisionShape::MakeSphere(SweeperRadius) };
 
-	TArray<FHitResult> Hits{};
+	TArray<FHitResult> SweepHits{};
 
 	FCollisionObjectQueryParams Types{};
 	Types.AddObjectTypesToQuery(ECC_GameTraceChannel3);
 	Types.AddObjectTypesToQuery(ECC_GameTraceChannel4);
 
-	if (!GetWorld()->SweepMultiByObjectType(Hits, ImpactPoint, ImpactPoint, FQuat::Identity, Types, Sweeper)) return false;
+	if (!GetWorld()->SweepMultiByObjectType(SweepHits, ImpactPoint, ImpactPoint, FQuat::Identity, Types, Sweeper)) return false;
 
 	bool bGrassOverlap{}, bGrowOverlap{};
 
-	for (int32 I{}; I < Hits.Num(); ++I)
+	for (int32 Hit{}; Hit < SweepHits.Num(); ++Hit)
 	{
-		switch (Hits[I].Component->GetCollisionObjectType())
+		switch (SweepHits[Hit].Component->GetCollisionObjectType())
 		{
 		case ECC_GameTraceChannel3: bGrassOverlap = true;		break;
 		case ECC_GameTraceChannel4: bGrowOverlap = true;

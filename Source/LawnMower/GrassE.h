@@ -33,6 +33,8 @@ class LAWNMOWER_API AGrassE : public AActor
 
 	static inline const double RayCastLength{ 24.0 };
 
+	static inline const float SweeperRadius{ 9.0f };
+
 public:
 	AGrassE();
 

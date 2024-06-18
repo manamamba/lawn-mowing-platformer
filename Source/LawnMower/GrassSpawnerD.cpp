@@ -25,7 +25,7 @@ void AGrassSpawnerD::SetComponentProperties()
 	Collider = CreateDefaultSubobject<UBoxComponent>(TEXT("Collider"));
 
 	RootComponent = Root;
-	Root->SetMobility(EComponentMobility::Type::Static);
+	RootComponent->SetMobility(EComponentMobility::Type::Static);
 
 	Collider->SetupAttachment(RootComponent);
 	Collider->SetMobility(EComponentMobility::Type::Static);

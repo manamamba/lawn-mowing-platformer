@@ -460,8 +460,6 @@ void AMowerB::UpdateJumpingRatio(const float DeltaTime)
 		bStartedJumping = true;
 
 		PlayJumpAudio();
-
-		// PhysicsBody->AddImpulse(-JumpingForceDirection * JumpReadyForce);
 	}
 
 	if (Jumping && bStartedJumping) JumpingRatio += JumpingRate * DeltaTime;

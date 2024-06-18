@@ -367,7 +367,7 @@ private:
 	float CrashAudioTimer{};
 	float CutAudioTimer{};
 
-
 	float TickCount{};
 	bool bTickReset{};
+
 };
