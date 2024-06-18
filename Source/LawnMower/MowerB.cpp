@@ -140,12 +140,13 @@ void AMowerB::StartEmitter(
 	bool bFromSweep,
 	const FHitResult& SweepResult)
 {
+	if (CutAudioTimer == CutAudioTimerMaximum) PlayCutAudio();
+
 	if (EmitterTime < EmitterTimeMaximum) return;
 
 	EmitterTime = 0.0;
 
 	Emitter->Activate(true);
-	CutAudio->Activate(true);
 }
 
 
@@ -260,14 +261,15 @@ void AMowerB::Tick(float DeltaTime)
 
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
-
 	ApplyBladeRotation(DeltaTime);
+	ApplyMowerVibration(DeltaTime);
 
 	UpdateEmitterTime(DeltaTime);
 
 	UpdateEngineAudioPitch();
 	UpdateMovementAudioVolumeAndPitch();
 	UpdateCrashAudioTimer(DeltaTime);
+	UpdateCutAudioTimer(DeltaTime);
 
 	// DrawRayCastGroup(ForceRayCasts);
 	// DrawRayCastGroup(WheelRayCasts);
@@ -731,6 +733,13 @@ void AMowerB::ApplyBladeRotation(const float DeltaTime)
 	Blade->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalBladeRotation));
 }
 
+void AMowerB::ApplyMowerVibration(const float DeltaTime)
+{
+	
+	// update notice
+
+}
+
 void AMowerB::UpdateEmitterTime(const float DeltaTime)
 {
 	EmitterTime += DeltaTime;
@@ -763,6 +772,20 @@ void AMowerB::UpdateCrashAudioTimer(const float DeltaTime)
 	CrashAudioTimer += DeltaTime;
 
 	if (CrashAudioTimer >= CrashAudioTimerReady) CrashAudioTimer = CrashAudioTimerReady;
+}
+
+void AMowerB::UpdateCutAudioTimer(const float DeltaTime)
+{
+	CutAudioTimer += DeltaTime;
+
+	if (CutAudioTimer >= CutAudioTimerMaximum) CutAudioTimer = CutAudioTimerMaximum;
+}
+
+void AMowerB::PlayCutAudio()
+{
+	CutAudio->Activate(true);
+
+	CutAudioTimer = 0.0f;
 }
 
 void AMowerB::DrawRayCastGroup(const FRayCastGroup& RayCasts) const

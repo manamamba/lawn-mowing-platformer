@@ -149,8 +149,8 @@ class LAWNMOWER_API AMowerB : public APawn
 
 	const float EnginePitchMultiplierDefault{ 0.75f };
 	const float EnginePitchAccelerationDivisor{ 12.0f };
-
 	const float CrashAudioTimerReady{ 0.26f };
+	const float CutAudioTimerMaximum{ 0.08f };
 
 public:
 	AMowerB();
@@ -220,6 +220,7 @@ private:
 	void GetTickTime();
 
 	void UpdateTransforms();
+
 	void Respawn();
 
 	void UpdateSpeed();
@@ -267,8 +268,8 @@ private:
 	void UpdateWheelSteeringRatio(const float DeltaTime);
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
-
 	void ApplyBladeRotation(const float DeltaTime);
+	void ApplyMowerVibration(const float DeltaTime);
 
 	void UpdateEmitterTime(const float DeltaTime);
 
@@ -276,6 +277,8 @@ private:
 	void UpdateMovementAudioVolumeAndPitch();
 	void PlayJumpAudio();
 	void UpdateCrashAudioTimer(const float DeltaTime);
+	void UpdateCutAudioTimer(const float DeltaTime);
+	void PlayCutAudio();
 
 	void DrawRayCastGroup(const FRayCastGroup& RayCasts) const;
 	void DrawRayCast(const FHitResult& RayCast) const;
@@ -362,6 +365,8 @@ private:
 
 	FString LastActorCrash{};
 	float CrashAudioTimer{};
+	float CutAudioTimer{};
+
 
 	float TickCount{};
 	bool bTickReset{};
