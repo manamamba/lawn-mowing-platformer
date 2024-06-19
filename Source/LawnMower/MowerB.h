@@ -144,8 +144,11 @@ class LAWNMOWER_API AMowerB : public APawn
 	const float WheelSteeringRate{ 8.0f };
 	const float WheelSteeringDecayRate{ 12.0f };
 
-	const float EmitterTimeMaximum{ 0.25f };
 	const double BladeRotationRate{ 720.0 };
+	const double VibratingRate{ 6.0 };
+	const double VibratingPositionMaximum{ 1.0 };
+
+	const float EmitterTimeMaximum{ 0.25f };
 
 	const float EnginePitchMultiplierDefault{ 0.75f };
 	const float EnginePitchAccelerationDivisor{ 12.0f };
@@ -269,7 +272,8 @@ private:
 	void UpdateWheelYaw(FRotator& LocalRotation) const;
 	void ApplyWheelRotation(UStaticMeshComponent* Wheel, const FRotator& LocalRotation) const;
 	void ApplyBladeRotation(const float DeltaTime);
-	void ApplyMowerVibration(const float DeltaTime);
+	void UpdateVibratingPosition(const float DeltaTime);
+	void ApplyVibratingPosition();
 
 	void UpdateEmitterTime(const float DeltaTime);
 
@@ -359,9 +363,13 @@ private:
 	mutable FRotator LocalRearWheelRotations{};
 	float WheelSteeringRatio{};
 
+	mutable FRotator LocalBladeRotation{};
+	FVector VibratingDirection{};
+	double VibratingDirectionRate{ VibratingRate };
+	double VibratingPosition{};
+
 	float EmitterTime{};
 	bool bEmitterActivated{};
-	mutable FRotator LocalBladeRotation{};
 
 	FString LastActorCrash{};
 	float CrashAudioTimer{};

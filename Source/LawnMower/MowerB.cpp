@@ -262,7 +262,8 @@ void AMowerB::Tick(float DeltaTime)
 	UpdateWheelSuspension(WheelRayCasts, WheelRayCastOrigins);
 	UpdateWheelRotations(DeltaTime);
 	ApplyBladeRotation(DeltaTime);
-	ApplyMowerVibration(DeltaTime);
+	UpdateVibratingPosition(DeltaTime);
+	ApplyVibratingPosition();
 
 	UpdateEmitterTime(DeltaTime);
 
@@ -300,6 +301,8 @@ void AMowerB::UpdateTransforms()
 	PhysicsBodyForwardVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::X);
 	PhysicsBodyRightVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Y);
 	PhysicsBodyUpVector = PhysicsBodyWorldTransform.GetUnitAxis(EAxis::Type::Z);
+
+	VibratingDirection = PhysicsBodyUpVector;
 }
 
 void AMowerB::Respawn()
@@ -731,11 +734,31 @@ void AMowerB::ApplyBladeRotation(const float DeltaTime)
 	Blade->SetWorldRotation(UKismetMathLibrary::TransformRotation(PhysicsBodyWorldTransform, LocalBladeRotation));
 }
 
-void AMowerB::ApplyMowerVibration(const float DeltaTime)
+void AMowerB::UpdateVibratingPosition(const float DeltaTime)
 {
-	
-	// update notice
+	VibratingPosition += VibratingDirectionRate * DeltaTime;
 
+	if (VibratingPosition >= VibratingPositionMaximum)
+	{
+		VibratingPosition = VibratingPositionMaximum;
+		VibratingDirectionRate = -VibratingDirectionRate;
+		VibratingDirection = -VibratingDirection;
+	}
+
+	if (VibratingPosition <= 0.0)
+	{
+		VibratingPosition = 0.0;
+		VibratingDirectionRate = -VibratingDirectionRate;
+		VibratingDirection = -VibratingDirection;
+	}
+}
+
+void AMowerB::ApplyVibratingPosition()
+{
+	const FVector NewPositionOffset{ 0.0, 0.0, VibratingPosition };
+
+	Body->SetRelativeLocation(BodyPosition + NewPositionOffset);
+	Blade->SetRelativeLocation(BladePosition + NewPositionOffset);
 }
 
 void AMowerB::UpdateEmitterTime(const float DeltaTime)
