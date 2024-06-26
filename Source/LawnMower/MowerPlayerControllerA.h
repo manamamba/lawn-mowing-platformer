@@ -8,6 +8,8 @@
 #include "MowerPlayerControllerA.generated.h"
 
 class UUserWidget;
+class USoundClass;
+class USoundMix;
 
 enum PauseMenuVerticalNavigation : int {
 	Resume = 1,

@@ -9,7 +9,11 @@
 
 AMowerGameModeA::AMowerGameModeA()
 {
+	Root = CreateDefaultSubobject<UAudioComponent>(TEXT("Root"));
+	
 	SongLoop = CreateDefaultSubobject<UAudioComponent>(TEXT("SongLoop"));
+
+	RootComponent = Root;
 
 	SongLoop->SetupAttachment(RootComponent);
 

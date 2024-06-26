@@ -3,6 +3,7 @@
 
 #include "MowerPlayerControllerA.h"
 
+#include "AudioDevice.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/GameplayStatics.h"
 #include "MowerGameModeA.h"
@@ -13,6 +14,7 @@ void AMowerPlayerControllerA::BeginPlay()
 	Super::BeginPlay();
 
 	PauseMenu = CreateWidget(this, PauseMenuClass);
+
 }
 
 void AMowerPlayerControllerA::DisplayPauseMenu()
@@ -130,15 +132,28 @@ void AMowerPlayerControllerA::SelectResolutionOption()
 void AMowerPlayerControllerA::SelectVolumeOption()
 {
 	VolumeSet = VolumeNavigation;
-	
+
+	float VolumeLevel{};
+
 	switch (VolumeNavigation)
 	{
-	case Zero: UE_LOG(LogTemp, Warning, TEXT("Zero Selected"));						break;
-	case Quarter: UE_LOG(LogTemp, Warning, TEXT("Quarter Selected"));				break;
-	case Half: UE_LOG(LogTemp, Warning, TEXT("Half Selected"));						break;
-	case ThreeQuarters: UE_LOG(LogTemp, Warning, TEXT("ThreeQuarters Selected"));	break;
-	case Full: UE_LOG(LogTemp, Warning, TEXT("Full Selected"));
+	case Quarter:		VolumeLevel = 0.25f;	break;
+	case Half:			VolumeLevel = 0.5f;		break;
+	case ThreeQuarters: VolumeLevel = 0.75f;	break;
+	case Full:			VolumeLevel = 1.0f;	
 	}
+
+	TArray<USoundClass*> SoundClasses{};
+	TArray<USoundMix*> SoundMixes{};
+
+	TMap<USoundClass*, FSoundClassProperties> SoundClassMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundClassPropertyMap() };
+	TMap<USoundMix*, FSoundMixState> SoundMixMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundMixModifiers() };
+
+	SoundClassMap.GenerateKeyArray(SoundClasses);
+	SoundMixMap.GenerateKeyArray(SoundMixes);
+
+	UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundClasses[0], VolumeLevel);
+	UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
 }
 
 void AMowerPlayerControllerA::SelectRestartOption()
