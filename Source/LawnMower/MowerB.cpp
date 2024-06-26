@@ -3,7 +3,6 @@
 
 #include "MowerB.h"
 
-
 #include "Camera/CameraComponent.h"
 #include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
@@ -14,8 +13,6 @@
 #include "Kismet/KismetMathLibrary.h"
 #include "MowerPlayerControllerA.h"
 #include "NiagaraComponent.h"
-#include "PlanetoidA.h"
-#include "Blueprint/UserWidget.h"
 
 
 AMowerB::AMowerB()
@@ -206,8 +203,15 @@ void AMowerB::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerB::Steer);
 		EnhancedInputComponent->BindAction(DriftInputAction, ETriggerEvent::Triggered, this, &AMowerB::Drift);
 		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMowerB::Jump);
+		
 		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &AMowerB::Pause);
+		EnhancedInputComponent->BindAction(NavigateVerticallyAction, ETriggerEvent::Triggered, this, &AMowerB::NavigateVertically);
+		EnhancedInputComponent->BindAction(NavigateHorizontallyAction, ETriggerEvent::Triggered, this, &AMowerB::NavigateHorizontally);
+		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Triggered, this, &AMowerB::Select);
+		EnhancedInputComponent->BindAction(CancelAction, ETriggerEvent::Triggered, this, &AMowerB::Cancel);
 	}
+
+	MowerController = Cast<AMowerPlayerControllerA>(UGameplayStatics::GetPlayerController(this, 0));
 }
 
 void AMowerB::MoveCamera(const FInputActionValue& Value) { RotatingCameraDirection = Value.Get<FVector2D>(); }
@@ -224,12 +228,38 @@ void AMowerB::Pause(const FInputActionValue& Value)
 	bGamePaused = !bGamePaused; 
 	UGameplayStatics::SetGamePaused(this, bGamePaused);
 
-	AMowerPlayerControllerA* MowerController{ Cast<AMowerPlayerControllerA>(UGameplayStatics::GetPlayerController(this, 0)) };
-	
 	if (!MowerController) return;
 
 	if(bGamePaused) MowerController->DisplayPauseMenu();
 	else MowerController->HidePauseMenu();
+}
+
+void AMowerB::NavigateVertically(const FInputActionValue& Value) 
+{
+	if (!MowerController || !bGamePaused) return;
+
+	MowerController->UpdateVerticalNavigation(Value.Get<float>());
+}
+
+void AMowerB::NavigateHorizontally(const FInputActionValue& Value) 
+{
+	if (!MowerController || !bGamePaused) return;
+
+	MowerController->UpdateHorizontalNavigation(Value.Get<float>());
+}
+
+void AMowerB::Select(const FInputActionValue& Value)
+{
+	if (!MowerController || !bGamePaused) return;
+
+	if (MowerController->SelectOption()) Pause(true);
+}
+
+void AMowerB::Cancel(const FInputActionValue& Value)
+{
+	if (!MowerController || !bGamePaused) return;
+
+	if (MowerController->CancelOption()) Pause(true);
 }
 
 

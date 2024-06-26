@@ -18,7 +18,7 @@ class LAWNMOWER_API AMowerGameModeA : public AGameMode
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* SongLoop {};
 
 	const float FadeInSongLoopCountMaximum{ 1.0f };
-	const float FadeInSongLoopCountRate{ 0.5f };
+	const float FadeInSongLoopCountRate{ 0.25f };
 
 public:
 	AMowerGameModeA();

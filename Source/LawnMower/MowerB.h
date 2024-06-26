@@ -7,13 +7,14 @@
 #include "GameFramework/Pawn.h"
 #include "MowerB.generated.h"
 
+class AMowerPlayerControllerA;
+class UAudioComponent;
 class UBoxComponent;
-class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
 class UNiagaraComponent;
-class UAudioComponent;
+class USpringArmComponent;
 struct FInputActionValue;
 
 
@@ -22,18 +23,18 @@ class LAWNMOWER_API AMowerB : public APawn
 {
 	GENERATED_BODY()
 
-	struct FRayCastGroup {
-		FHitResult Fr{};
-		FHitResult Fl{};
-		FHitResult Br{};
-		FHitResult Bl{};
-	};
-
 	struct FLocalOrigins {
 		FVector Fr{};
 		FVector Fl{};
 		FVector Br{};
 		FVector Bl{};
+	};
+
+	struct FRayCastGroup {
+		FHitResult Fr{};
+		FHitResult Fl{};
+		FHitResult Br{};
+		FHitResult Bl{};
 	};
 
 	UPROPERTY(EditDefaultsOnly, Category = Component) UBoxComponent* PhysicsBody {};
@@ -46,7 +47,9 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Component) UStaticMeshComponent* BlWheel {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) USpringArmComponent* CameraArm {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UCameraComponent* Camera {};
+
 	UPROPERTY(EditDefaultsOnly, Category = Component) UNiagaraComponent* Emitter {};
+
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* EngineAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* MovementAudio {};
 	UPROPERTY(EditDefaultsOnly, Category = Component) UAudioComponent* JumpAudio {};
@@ -62,7 +65,14 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction {};
+
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* PauseAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* NavigateVerticallyAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* NavigateHorizontallyAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SelectAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* CancelAction {};
+
+	UPROPERTY() AMowerPlayerControllerA* MowerController {};
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
@@ -202,6 +212,10 @@ private:
 	void Jump(const FInputActionValue& Value);
 
 	void Pause(const FInputActionValue& Value);
+	void NavigateVertically(const FInputActionValue& Value);
+	void NavigateHorizontally(const FInputActionValue& Value);
+	void Select(const FInputActionValue& Value);
+	void Cancel(const FInputActionValue& Value);
 
 public:
 	void Float() const;
