@@ -5,6 +5,9 @@
 
 #include "AudioDevice.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/CanvasPanel.h"
+#include "Components/TextBlock.h"
+#include "Components/Widget.h"
 #include "Kismet/GameplayStatics.h"
 #include "MowerGameModeA.h"
 
@@ -15,6 +18,19 @@ void AMowerPlayerControllerA::BeginPlay()
 
 	PauseMenu = CreateWidget(this, PauseMenuClass);
 
+	UpdatePauseMenuTextArray();
+}
+
+void AMowerPlayerControllerA::UpdatePauseMenuTextArray()
+{
+	TArray<UWidget*> PauseMenuCanvasPanelChildren{};
+
+	if (UCanvasPanel * PauseMenuCanvasPanel{ Cast<UCanvasPanel>(PauseMenu->GetRootWidget()) })
+	{
+		PauseMenuCanvasPanelChildren = PauseMenuCanvasPanel->GetAllChildren();
+	}
+
+	for (auto& Child : PauseMenuCanvasPanelChildren) PauseMenuText.Add(Cast<UTextBlock>(Child));
 }
 
 void AMowerPlayerControllerA::DisplayPauseMenu()
@@ -23,6 +39,7 @@ void AMowerPlayerControllerA::DisplayPauseMenu()
 
 	bUsingVerticalNavigation = true;
 
+	UpdateSelectedPauseMenuOption();
 	PrintCurrentNavigationOption();
 }
 
@@ -55,6 +72,7 @@ void AMowerPlayerControllerA::UpdateVerticalNavigation(const float NavigatingDir
 
 	VerticalNavigation = GetUpdatedNavigationOption(VerticalNavigation, NavigatingDirection, MaxMainOptions);
 
+	UpdateSelectedPauseMenuOption();
 	PrintCurrentNavigationOption();
 }
 
@@ -87,6 +105,7 @@ void AMowerPlayerControllerA::UpdateHorizontalNavigation(const float NavigatingD
 
 	if (bUsingExitNavigation) ExitNavigation = GetUpdatedNavigationOption(ExitNavigation, NavigatingDirection, MaxConfirmationOptions);
 
+	UpdateSelectedPauseMenuOption();
 	PrintCurrentNavigationOption();
 }
 
@@ -105,6 +124,7 @@ bool AMowerPlayerControllerA::SelectOption()
 
 		bUsingVerticalNavigation = false;
 
+		UpdateSelectedPauseMenuOption();
 		PrintCurrentNavigationOption();
 
 		return false;
@@ -184,9 +204,81 @@ bool AMowerPlayerControllerA::CancelOption()
 
 	ResetHorizontalNavigation();
 
+	UpdateSelectedPauseMenuOption();
 	PrintCurrentNavigationOption();
 
 	return false;
+}
+
+void AMowerPlayerControllerA::UpdateSelectedPauseMenuOption()
+{
+	FName CurrentOption{};
+
+	if (bUsingVerticalNavigation)
+	{
+		switch (VerticalNavigation)
+		{
+		case Resume: CurrentOption = TEXT("Resume");			break;
+		case Resolution: CurrentOption = TEXT("Resolution");	break;
+		case Volume: CurrentOption = TEXT("Volume");			break;
+		case Restart: CurrentOption = TEXT("Restart");			break;
+		case Exit: CurrentOption = TEXT("Exit");
+		}
+	}
+
+	if (bUsingResolutionNavigation)
+	{
+		switch (ResolutionNavigation)
+		{
+		case Windowed: CurrentOption = TEXT("Windowed");		break;
+		case FullScreen: CurrentOption = TEXT("FullScreen");
+		}
+	}
+
+	if (bUsingVolumeNavigation)
+	{
+		switch (VolumeNavigation)
+		{
+		case Zero:			CurrentOption = TEXT("Zero");			break;
+		case Quarter:		CurrentOption = TEXT("Quarter");		break;
+		case Half:			CurrentOption = TEXT("Half");		break;
+		case ThreeQuarters: CurrentOption = TEXT("ThreeQuarters");		break;
+		case Full:			CurrentOption = TEXT("Full");
+		}
+	}
+
+	if (bUsingRestartNavigation)
+	{
+		switch (RestartNavigation)
+		{
+		case Cancel:	CurrentOption = TEXT("CancelRestart");	break;
+		case Confirm:	CurrentOption = TEXT("ConfirmRestart");
+		}
+	}
+
+	if (bUsingExitNavigation)
+	{
+		switch (ExitNavigation)
+		{
+		case Cancel:	CurrentOption = TEXT("CancelExit");		break;
+		case Confirm:	CurrentOption = TEXT("ConfirmExit");
+		}
+	}
+
+	UpdatePauseMenuOptionTextColor(CurrentOption);
+}
+
+void AMowerPlayerControllerA::UpdatePauseMenuOptionTextColor(const FName& TextBoxName)
+{
+	if (SelectedTextBlock) SelectedTextBlock->SetColorAndOpacity(FSlateColor{ FLinearColor::Black });
+	
+	for (auto& Text : PauseMenuText) if (Text->GetName() == TextBoxName) SelectedTextBlock = Text;
+
+	if (!SelectedTextBlock) return;
+
+	UE_LOG(LogTemp, Warning, TEXT("SelectedTextBlock %s"), *SelectedTextBlock->GetName());
+
+	SelectedTextBlock->SetColorAndOpacity(FSlateColor{ SelectedColor });
 }
 
 void AMowerPlayerControllerA::PrintCurrentNavigationOption()

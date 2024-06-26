@@ -8,8 +8,8 @@
 #include "MowerPlayerControllerA.generated.h"
 
 class UUserWidget;
-class USoundClass;
-class USoundMix;
+class UWidget;
+class UTextBlock;
 
 enum PauseMenuVerticalNavigation : int {
 	Resume = 1,
@@ -46,6 +46,9 @@ class LAWNMOWER_API AMowerPlayerControllerA : public APlayerController
 	UPROPERTY(EditDefaultsOnly, Category = Widget) TSubclassOf<UUserWidget> PauseMenuClass{};
 
 	UPROPERTY() UUserWidget* PauseMenu {};
+	UPROPERTY() UTextBlock* SelectedTextBlock {};
+
+	const FLinearColor SelectedColor{ 0.5f, 0.25f, 0.0f };
 
 	const int MaxMainOptions{ 5 };
 	const int MaxResolutionOptions{ 2 };
@@ -54,6 +57,9 @@ class LAWNMOWER_API AMowerPlayerControllerA : public APlayerController
 
 protected:
 	virtual void BeginPlay() override;
+
+private:
+	void UpdatePauseMenuTextArray();
 
 public:
 	void DisplayPauseMenu();
@@ -73,9 +79,13 @@ private:
 	void SelectRestartOption();
 	void SelectExitOption();
 
+	void UpdateSelectedPauseMenuOption();
+	void UpdatePauseMenuOptionTextColor(const FName& TextBoxName);
 	void PrintCurrentNavigationOption();
 
 private:
+	TArray<UTextBlock*> PauseMenuText{};
+
 	bool bUsingVerticalNavigation{};
 	bool bUsingResolutionNavigation{};
 	bool bUsingVolumeNavigation{};
