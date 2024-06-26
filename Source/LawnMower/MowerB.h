@@ -62,6 +62,7 @@ class LAWNMOWER_API AMowerB : public APawn
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* SteerInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* DriftInputAction {};
 	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* JumpInputAction {};
+	UPROPERTY(EditDefaultsOnly, Category = Input) UInputAction* PauseAction {};
 
 	const float GravitationalAcceleration{ 980.0f };
 	const float PhysicsBodyMass{ 30.0f };
@@ -200,6 +201,8 @@ private:
 	void Drift(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
 
+	void Pause(const FInputActionValue& Value);
+
 public:
 	void Float() const;
 	float GetPhysicsBodyMass() const;
@@ -300,6 +303,8 @@ private:
 private:
 	double TickTime{};
 	double LongestTickTime{};
+
+	bool bGamePaused{};
 
 	FTransform PhysicsBodyWorldTransform{};
 	FTransform PhysicsBodyLocalTransform{};

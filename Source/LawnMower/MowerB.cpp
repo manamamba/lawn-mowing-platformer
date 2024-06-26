@@ -3,16 +3,20 @@
 
 #include "MowerB.h"
 
-#include "PlanetoidA.h"
+
 #include "Camera/CameraComponent.h"
+#include "Components/AudioComponent.h"
 #include "Components/BoxComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "MowerPlayerControllerA.h"
 #include "NiagaraComponent.h"
-#include "Components/AudioComponent.h"
+#include "PlanetoidA.h"
+#include "Blueprint/UserWidget.h"
+
 
 AMowerB::AMowerB()
 {
@@ -202,6 +206,7 @@ void AMowerB::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		EnhancedInputComponent->BindAction(SteerInputAction, ETriggerEvent::Triggered, this, &AMowerB::Steer);
 		EnhancedInputComponent->BindAction(DriftInputAction, ETriggerEvent::Triggered, this, &AMowerB::Drift);
 		EnhancedInputComponent->BindAction(JumpInputAction, ETriggerEvent::Triggered, this, &AMowerB::Jump);
+		EnhancedInputComponent->BindAction(PauseAction, ETriggerEvent::Triggered, this, &AMowerB::Pause);
 	}
 }
 
@@ -213,6 +218,19 @@ void AMowerB::Brake(const FInputActionValue& Value) { Braking = Value.Get<float>
 void AMowerB::Steer(const FInputActionValue& Value) { Steering = Value.Get<float>(); }
 void AMowerB::Drift(const FInputActionValue& Value) { Drifting = Value.Get<float>(); }
 void AMowerB::Jump(const FInputActionValue& Value) { Jumping = Value.Get<float>(); }
+
+void AMowerB::Pause(const FInputActionValue& Value) 
+{
+	bGamePaused = !bGamePaused; 
+	UGameplayStatics::SetGamePaused(this, bGamePaused);
+
+	AMowerPlayerControllerA* MowerController{ Cast<AMowerPlayerControllerA>(UGameplayStatics::GetPlayerController(this, 0)) };
+	
+	if (!MowerController) return;
+
+	if(bGamePaused) MowerController->DisplayPauseMenu();
+	else MowerController->HidePauseMenu();
+}
 
 
 void AMowerB::Float() const { PhysicsBody->AddForce(FVector::UpVector * PhysicsBodyAntiGravitationalForce); }
