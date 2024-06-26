@@ -86,7 +86,7 @@ void AMowerB::SetComponentProperties()
 
 	CameraArm->SetRelativeRotation(DefaultLocalCameraArmRotation);
 	CameraArm->SetUsingAbsoluteRotation(true);
-	CameraArm->TargetArmLength = 250.0f;
+	CameraArm->TargetArmLength = 350.0f;
 	CameraArm->ProbeSize = 8.0f;
 	CameraArm->bInheritPitch = false;
 	CameraArm->bInheritYaw = false;

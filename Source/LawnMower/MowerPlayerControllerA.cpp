@@ -120,13 +120,11 @@ bool AMowerPlayerControllerA::SelectOption()
 
 void AMowerPlayerControllerA::SelectResolutionOption()
 {
-	ResolutionSet = ResolutionNavigation;
+	if (ResolutionSet == ResolutionNavigation) return;
 	
-	switch (ResolutionNavigation)
-	{
-	case Windowed: UE_LOG(LogTemp, Warning, TEXT("Windowed Selected"));			break;
-	case FullScreen: UE_LOG(LogTemp, Warning, TEXT("FullScreen Selected"));
-	}
+	ResolutionSet = ResolutionNavigation;
+
+	GetWorld()->GetGameViewport()->HandleToggleFullscreenCommand();
 }
 
 void AMowerPlayerControllerA::SelectVolumeOption()
