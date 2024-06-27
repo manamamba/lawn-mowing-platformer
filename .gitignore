@@ -1,6 +1,7 @@
 # Folders
 .vs/
 Binaries/
+Build/
 DerivedDataCache/
 Intermediate/
 Saved/
