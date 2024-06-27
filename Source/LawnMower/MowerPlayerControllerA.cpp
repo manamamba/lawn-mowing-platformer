@@ -161,15 +161,6 @@ void AMowerPlayerControllerA::SelectVolumeOption()
 	case Full:			VolumeLevel = 1.0f;	
 	}
 
-	// TArray<USoundClass*> SoundClasses{};
-	// TArray<USoundMix*> SoundMixes{};
-
-	// TMap<USoundClass*, FSoundClassProperties> SoundClassMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundClassPropertyMap() };
-	// TMap<USoundMix*, FSoundMixState> SoundMixMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundMixModifiers() };
-
-	// SoundClassMap.GenerateKeyArray(SoundClasses);
-	// SoundMixMap.GenerateKeyArray(SoundMixes);
-
 	FAudioThread::RunCommandOnAudioThread([this, VolumeLevel]()
 		{
 			TArray<USoundClass*> SoundClasses{};
@@ -182,9 +173,6 @@ void AMowerPlayerControllerA::SelectVolumeOption()
 			UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundMixes[0]->SoundClassEffects[0].SoundClassObject, VolumeLevel);
 			UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
 		});
-
-	// UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundClasses[0], VolumeLevel);
-	// UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
 }
 
 void AMowerPlayerControllerA::SelectRestartOption()
@@ -254,8 +242,8 @@ void AMowerPlayerControllerA::UpdateSelectedPauseMenuOption()
 		{
 		case Zero:			CurrentOption = TEXT("Zero");			break;
 		case Quarter:		CurrentOption = TEXT("Quarter");		break;
-		case Half:			CurrentOption = TEXT("Half");		break;
-		case ThreeQuarters: CurrentOption = TEXT("ThreeQuarters");		break;
+		case Half:			CurrentOption = TEXT("Half");			break;
+		case ThreeQuarters: CurrentOption = TEXT("ThreeQuarters");	break;
 		case Full:			CurrentOption = TEXT("Full");
 		}
 	}
@@ -294,7 +282,7 @@ void AMowerPlayerControllerA::UpdatePauseMenuOptionTextColor(const FName& TextBo
 	SelectedTextBlock->SetColorAndOpacity(FSlateColor{ SelectedColor });
 }
 
-void AMowerPlayerControllerA::PrintCurrentNavigationOption()
+void AMowerPlayerControllerA::PrintCurrentNavigationOption() const
 {
 	FName CurrentOption{};
 	

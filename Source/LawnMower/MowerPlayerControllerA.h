@@ -11,7 +11,7 @@ class UUserWidget;
 class UWidget;
 class UTextBlock;
 
-enum PauseMenuVerticalNavigation : int {
+enum EPauseMenuVerticalNavigation {
 	Resume = 1,
 	Resolution,
 	Volume,
@@ -19,12 +19,12 @@ enum PauseMenuVerticalNavigation : int {
 	Exit
 };
 
-enum PauseMenuResolutionNavigation {
+enum EPauseMenuResolutionNavigation {
 	Windowed = 1,
 	FullScreen
 };
 
-enum PauseMenuVolumeNavigation {
+enum EPauseMenuVolumeNavigation {
 	Zero = 1,
 	Quarter,
 	Half,
@@ -32,7 +32,7 @@ enum PauseMenuVolumeNavigation {
 	Full
 };
 
-enum PauseMenuConfirmationNavigation {
+enum EPauseMenuConfirmationNavigation {
 	Cancel = 1,
 	Confirm
 };
@@ -81,7 +81,7 @@ private:
 
 	void UpdateSelectedPauseMenuOption();
 	void UpdatePauseMenuOptionTextColor(const FName& TextBoxName);
-	void PrintCurrentNavigationOption();
+	void PrintCurrentNavigationOption() const;
 
 private:
 	TArray<UTextBlock*> PauseMenuText{};
@@ -92,13 +92,13 @@ private:
 	bool bUsingRestartNavigation{};
 	bool bUsingExitNavigation{};
 
-	PauseMenuResolutionNavigation ResolutionSet{ Windowed };
-	PauseMenuVolumeNavigation VolumeSet{ Full };
+	EPauseMenuResolutionNavigation ResolutionSet{ Windowed };
+	EPauseMenuVolumeNavigation VolumeSet{ Full };
 
-	PauseMenuVerticalNavigation VerticalNavigation{ Resume };
-	PauseMenuResolutionNavigation ResolutionNavigation{ ResolutionSet };
-	PauseMenuVolumeNavigation VolumeNavigation{ VolumeSet };
-	PauseMenuConfirmationNavigation RestartNavigation{ Cancel };
-	PauseMenuConfirmationNavigation ExitNavigation{ Cancel };
+	EPauseMenuVerticalNavigation VerticalNavigation{ Resume };
+	EPauseMenuResolutionNavigation ResolutionNavigation{ ResolutionSet };
+	EPauseMenuVolumeNavigation VolumeNavigation{ VolumeSet };
+	EPauseMenuConfirmationNavigation RestartNavigation{ Cancel };
+	EPauseMenuConfirmationNavigation ExitNavigation{ Cancel };
 
 };
