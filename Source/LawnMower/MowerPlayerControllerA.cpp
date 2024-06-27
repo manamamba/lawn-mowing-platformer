@@ -161,17 +161,30 @@ void AMowerPlayerControllerA::SelectVolumeOption()
 	case Full:			VolumeLevel = 1.0f;	
 	}
 
-	TArray<USoundClass*> SoundClasses{};
-	TArray<USoundMix*> SoundMixes{};
+	// TArray<USoundClass*> SoundClasses{};
+	// TArray<USoundMix*> SoundMixes{};
 
-	TMap<USoundClass*, FSoundClassProperties> SoundClassMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundClassPropertyMap() };
-	TMap<USoundMix*, FSoundMixState> SoundMixMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundMixModifiers() };
+	// TMap<USoundClass*, FSoundClassProperties> SoundClassMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundClassPropertyMap() };
+	// TMap<USoundMix*, FSoundMixState> SoundMixMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundMixModifiers() };
 
-	SoundClassMap.GenerateKeyArray(SoundClasses);
-	SoundMixMap.GenerateKeyArray(SoundMixes);
+	// SoundClassMap.GenerateKeyArray(SoundClasses);
+	// SoundMixMap.GenerateKeyArray(SoundMixes);
 
-	UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundClasses[0], VolumeLevel);
-	UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
+	FAudioThread::RunCommandOnAudioThread([this, VolumeLevel]()
+		{
+			TArray<USoundClass*> SoundClasses{};
+			TArray<USoundMix*> SoundMixes{};
+
+			TMap<USoundMix*, FSoundMixState> SoundMixMap{ GetWorld()->GetAudioDevice().GetAudioDevice()->GetSoundMixModifiers() };
+
+			SoundMixMap.GenerateKeyArray(SoundMixes);
+
+			UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundMixes[0]->SoundClassEffects[0].SoundClassObject, VolumeLevel);
+			UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
+		});
+
+	// UGameplayStatics::SetSoundMixClassOverride(this, SoundMixes[0], SoundClasses[0], VolumeLevel);
+	// UGameplayStatics::PushSoundMixModifier(this, SoundMixes[0]);
 }
 
 void AMowerPlayerControllerA::SelectRestartOption()
