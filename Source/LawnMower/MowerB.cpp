@@ -273,7 +273,7 @@ void AMowerB::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// StartTickTimer();
+	// GetTickTime();
 
 	UpdateTransforms();
 
