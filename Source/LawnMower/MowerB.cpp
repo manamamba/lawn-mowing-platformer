@@ -621,8 +621,6 @@ void AMowerB::ApplyAirTimeAntiGravitationalForce()
 	double AntiGravitationalForce{ AirTimeAntiGravitationalForce * (AirTimeRatioMaxium - AirTimeRatio) };
 
 	PhysicsBody->AddForce(-TrajectoryNormal * AntiGravitationalForce);
-
-	// DrawDebugLine(GetWorld(), PhysicsBodyLocation, PhysicsBodyLocation + (TrajectoryNormal * 20.0), FColor::Green, false, 5.0f);
 }
 
 void AMowerB::ApplyAirTimePitchTorque()
@@ -869,17 +867,11 @@ void AMowerB::DrawRayCast(const FHitResult& RayCast) const
 {
 	if (!RayCast.bBlockingHit)
 	{
-		// DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceEnd, FColor::Red);
-		// DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0f, 6, FColor::Red);
-
 		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceEnd, FColor::Red);
 		DrawDebugSphere(GetWorld(), RayCast.TraceEnd, 1.0f, 6, FColor::Red);
 	}
 	else
 	{
-		// DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
-		// DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green);
-
 		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
 		DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green);
 

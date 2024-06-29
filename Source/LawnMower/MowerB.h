@@ -217,12 +217,6 @@ private:
 	void Select(const FInputActionValue& Value);
 	void Cancel(const FInputActionValue& Value);
 
-public:
-	void Float() const;
-	float GetPhysicsBodyMass() const;
-	class UBoxComponent* GetPhysicsBody();
-	void SetNewRespawnLocation(const FVector& NewLocation);
-
 private:
 	FVector2D RotatingCameraDirection{};
 	bool bCameraReset{};
@@ -232,6 +226,12 @@ private:
 	float Steering{};
 	float Drifting{};
 	float Jumping{};
+
+public:
+	void Float() const;
+	float GetPhysicsBodyMass() const;
+	class UBoxComponent* GetPhysicsBody();
+	void SetNewRespawnLocation(const FVector& NewLocation);
 
 public:
 	virtual void Tick(float DeltaTime) override;
