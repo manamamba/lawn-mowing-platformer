@@ -94,7 +94,7 @@ that is accessed later to highlight the selected option’s text.</p>
 
 <strong>Setup Instructions</strong>
 
-<p>This project was made using Unreal Engine 5.3.2 and Visual Studio 2022 as the source code editor, feel free to explore the project yourself in Unreal:</p>
+<p>This project was made using Unreal Engine 5.3.2 and Visual Studio 2022 as the source code editor, feel free to explore it yourself in Unreal:</p>
 
 <a href="https://www.youtube.com/watch?v=HQDskHVw1to">Unreal and Visual Studio Setup Guide</a>
 
