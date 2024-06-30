@@ -85,7 +85,7 @@ The direction of the capture force is calculated by subtracting the location of 
 
 <p>This class is used to loop the demo’s song in the background.</p>
 
-<strong>MowerPlaerControllerA</strong>
+<strong>MowerPlayerControllerA</strong>
 
 <p>This Actor’s functions are called by player input from the lawn mower class to navigate the pause menu. Based on these inputs, enum member variables 
 are updated to represent directional movement in the menu. When the game begins, an instance of the menu is created, then all of its text boxes are stored in an array
