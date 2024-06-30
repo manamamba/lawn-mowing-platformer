@@ -1,23 +1,23 @@
 # Lawn Mowing Platformer
 #### Video Demo: 
-#### Description: My first game, a physics-based platformer with procedural spawning, moving platforms and localized gravity, made in Unreal Engine 5.
+#### Description: A physics-based platformer made in Unreal Engine 5 with procedural spawning, moving platforms and localized gravity.
 
 <p>Hello, my name is Cody and for my CS50 final project I made a platforming demo with Unreal Engine 5 and C++. 
 From start to finish, this project took around 2 months to complete, or a little over 4 if you count the time I spent beforehand on these tutorials:</p>
 
-[`Learn C++`](https://www.learncpp.com/)
-[`Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games`](https://www.udemy.com/course/unrealcourse/)
-[Blender Guru’s Blender 4.0 Beginner Donut Tutorial](https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z)
-
-<p>The concepts used for building my lawn mower’s physics-based movement came from this video:</p>
-
-[Space Dust Racing UE4 Arcade Vehicle Physics Tour](https://www.youtube.com/watch?v=LG1CtlFRmpU)
+<a href="https://www.learncpp.com/">Learn C++</a><br>
+<a href="https://www.udemy.com/course/unrealcourse/">Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games</a><br>
+<a href="https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z">Blender Guru’s Blender 4.0 Beginner Donut Tutorial</a>
 
 <p>All of the code written for this project relates to classes derived from the Actor class in Unreal’s codebase, 
 usually with a focus on functions called within the constructor, and the virtual functions BeginPlay() and Tick(). 
 Each class has a blueprint counterpart in Unreal to visually represent how it is constructed. 
 When the game is running and an instance of an Actor is instantiated in the level, a call to their BeginPlay() function is made, 
 then a call to their Tick() function each frame.</p>
+
+<p>Concepts used to implement the lawn mower’s physics-based movement came from this video:</p>
+
+<a href="https://www.youtube.com/watch?v=LG1CtlFRmpU">Space Dust Racing UE4 Arcade Vehicle Physics Tour</a>
 
 <strong>MowerB</strong>
 
@@ -96,11 +96,10 @@ that is accessed later to highlight the selected option’s text.</p>
 
 <p>This project was made using Unreal Engine 5.3.2 and Visual Studio 2022 as the source code editor, feel free to explore the project yourself in Unreal:</p>
 
-[Unreal and Visual Studio Setup Guide](https://www.youtube.com/watch?v=HQDskHVw1to)
+<a href="https://www.youtube.com/watch?v=HQDskHVw1to">Unreal and Visual Studio Setup Guide</a>
 
 <ol>
     <li>Extract files into a project folder</li>
     <li>Right-click the uproject file and Generate Visual Studio project files</li>
     <li>Open the solution file, then build and launch Unreal using Ctrl + F5</li>
 </ol>
-
