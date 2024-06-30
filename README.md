@@ -1,114 +1,106 @@
 # Lawn Mowing Platformer
 #### Video Demo: 
-#### Description: Mowing platformer with custom vehicle physics (coded in C++)
+#### Description: My first game, a physics-based platformer with procedural spawning, moving platforms and localized gravity, made in Unreal Engine 5.
 
-<p>One of the reasons I wanted to take this amazing course was to try my hand at game development, 
-so for my final project, nothing else interested me more than trying to make a game! I decided I wanted to make a 3D game in Unreal using C++. 
-Having no experience with either, I used the following resources before getting started:</p>
+<p>Hello, my name is Cody and for my CS50 final project I made a platforming demo with Unreal Engine 5 and C++. 
+From start to finish, this project took around 2 months to complete, or a little over 4 if you count the time I spent beforehand on these tutorials:</p>
 
-<a href="https://www.learncpp.com/" target="_blank">Learn C++ Tutorial Series</a><br>
-<a href="https://www.udemy.com/course/unrealcourse/" target="_blank">Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games Course</a><br>
-<a href="https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z" target="_blank">Blender Guru’s Blender 4.0 Donut Tutorial</a>
+[`Learn C++`](https://www.learncpp.com/)
+[`Unreal Engine 5 C++ Developer: Learn C++ & Make Video Games`](https://www.udemy.com/course/unrealcourse/)
+[Blender Guru’s Blender 4.0 Beginner Donut Tutorial](https://www.youtube.com/playlist?list=PLjEaoINr3zgEPv5y--4MKpciLaoQYZB1Z)
 
-<p>Nearly 3 months later, I felt that I was ready to make my lawn mowing game!</p>
+<p>The concepts used for building my lawn mower’s physics-based movement came from this video:</p>
 
-<strong><span style="color:green">The Lawn Mower</span></strong>
+[Space Dust Racing UE4 Arcade Vehicle Physics Tour](https://www.youtube.com/watch?v=LG1CtlFRmpU)
 
-<p>The first thing I focused on was making my player character, the lawn mower. 
-I wanted my lawn mower to have exaggerated vehicle physics akin to games like Rocket League. 
-My first attempt at a physics enabled vehicle was inspired by the following tutorial:</p>
+<p>All of the code written for this project relates to classes derived from the Actor class in Unreal’s codebase, 
+usually with a focus on functions called within the constructor, and the virtual functions BeginPlay() and Tick(). 
+Each class has a blueprint counterpart in Unreal to visually represent how it is constructed. 
+When the game is running and an instance of an Actor is instantiated in the level, a call to their BeginPlay() function is made, 
+then a call to their Tick() function each frame.</p>
 
-<a href="https://www.youtube.com/watch?v=PWTCM6sZ6OE" target="_blank">UE4 Car Vehicle Wheel with Suspension using Physics: 00:00 - 11:58</a>
+<strong>MowerB</strong>
 
-<p>I created a similar vehicle class as seen in the video (Mower.cpp / Mower.h) and gave it the ability to accelerate, 
-reverse, brake, steer and even jump, but it had a glaring issue that I could not ignore. The way that the wheels were constrained 
-to the lawn mower body meant that there was no way to steer the wheels in the yaw direction and also rotate them in the pitch direction, 
-it was one or the other. So I went back to the drawing board to see if there was another way I could construct my vehicle from scratch 
-that allowed me to animate the wheels and still use physics.</p>
+<p>The lawn mower was the first class that I developed for this project, which is the Actor controlled by the player. 
+In its constructor, I attach many components and configure their properties. Additionally, I add two event listeners, 
+one to play a crash sound when the primitive component used for physics is hit by another object, and the other to start a particle emitter 
+when grass is overlapped with the mower.</p>
 
-<p>I ended up finding the following video, where a developer used raycasts (referred to as traces in Unreal) 
-on the corners of a physics rigid body to look for ground and apply force upward onto the vehicle to keep it hovering in the air, 
-then use other forces and torque to move it and animate the meshes separately:</p>
+<p>In BeginPlay(), I override the primitive component’s mass and lower it to make it harder for the mower to get stuck upside down. 
+Then I store some information about the state of the primitive component for later and set the camera’s initial rotation. 
+Lastly, I set up enhanced input for the controls.</p>
 
-<a href="https://www.youtube.com/watch?v=LG1CtlFRmpU" target="_blank">Space Dust Racing UE4 Arcade Vehicle Physics Tour</a>
+<p>Before defining the Tick() function, I define a few public member functions that I will call from other classes for localized gravity and checkpoints.</p>
 
-<p>Before making my mower hover off the ground, I needed to know how much force to apply upward to oppose gravity, 
-which for Unreal turned out to be the mass of the rigid body multiplied by 980 for gravitational acceleration. 
-Now that my mower could float, I noticed that if I moved or rotated the mower, it would maintain constant linear or angular velocity. 
-That’s when I discovered the second key to hovering, Linear and Angular damping. These member variables are part of the UPrimitiveComponent class, 
-which is a parent class of the rigid body component (UBoxComponent) on my mower. Increasing these variables’ values 
-caused the floating mower to slow down after being moved or rotated by applying a sort of friction.</p>
+<p>In Tick(), the first and last function calls pertain to calculating the time it takes for the game to process the function each frame. 
+Following that, I check if the mower has fallen too far and needs to be respawned, then I store information about its location and rotation to use later. 
+Next, I use the location of the mower from the previous frame and compare it to the current frame to determine the direction and speed of the mower for other functions. 
+Then I update the camera’s rotation based on player input and the current rotation of the mower.</p>
 
-<p>For the starting point of my traces, I initialized const FVector (x, y, z) member variables storing positions 
-relative to the local space of my new mower class (MowerRC.cpp / MowerRC.h). Then I defined two structs, FRayCastGroup and FLocalOrigins, 
-to more easily pass the FHitResult member variables (used to store information about what the trace hits) and the trace starting point FVectors 
-into the functions where I call a line trace for each corner of the mower. Using Transform calls, the FVectors passed in could be 
-used to initialize new FVectors that relate to those starting points on the mower, but in world space. Just as in the video, 
-since there are four points at which force is applied, the amount of force required to oppose gravity divided by four would mean 
-that the compression of the raycasts should be around 0.25 of 1.0.</p>
 
-<p>So now the mower could float, but it was not stable until I applied linear and angular damping based on the compression of the traces 
-and how many were hitting the ground. I did this by storing the float values of successful traces in dynamic arrays, 
-(TArrays specifically, the Unreal equivalent of the standard library dynamic array class std::vector) one for linear damping 
-and one for angular damping, so I could add up those floats later using a for each loop and apply the correct amount of damping each frame. 
-After some tinkering, I found values that worked well and now I had a hovering mower! But that was only the beginning of the mower development journey, 
-and I went on to add a bunch of functionality for movement by applying force to the rigid body, and eventually my wheel animations!</p>
+<p>The next series of functions pertain to simulating wheel suspension and making the mower hover. Here I use const member variables to represent 
+vectors in the mower’s local space, then I transform those vectors relative to the mower in world space and use them to start raycasts that look for the ground. 
+If ground is hit, force is applied to the primitive, based on the length of the raycast when ground is hit, in the direction of the hit normal where the raycast began. 
+Then, some amount of friction is stored in arrays that are used later to make the hover stable.</p>
 
-<p>I found that learning how to take advantage of FVector and FRotator (pitch, yaw, roll) member variables to represent local space values, transforms 
-and inverse transforms (in the case of my custom camera movement), traces, and Tick order (the function called each frame for an actor object in the world)
-were important to my development success.</p>
+<p>After establishing the hover and suspension, I update some boolean logic for movement, based on the player’s input this frame and last frame. 
+Next, using this information and the player’s input, I update member variables pertaining to acceleration, drifting, jumping, pitching and rolling, 
+then apply forces to the primitive based on them. Lastly for physics, friction is applied to the mower based on whether or not 
+it is grounded and if the brakes are engaged.</p>
 
-<p>Throughout the development of my mower class, which went through many refactors, I tried to give my functions and variables more descriptive names 
-for readability and organize my code files, so that the functions and variables were listed in the order they were called or referenced each frame. 
-This made it easier for me to follow and recall what each function was doing without needing a ton of comments. Also, replacing const variables 
-in function definitions with const member variables in my header, allowed me to quickly tweak, compile and test changes, without needing 
-to jump around my code while tuning a new feature.</p>
+<p>Afterwards, a series of functions are called to update the animation of the mower’s wheels, spinning blade and vibration. 
+Next, a member variable pertaining to the particle emitter is updated, which limits the frequency of consecutive activations. 
+Then, the pitch of the mower’s hum is regulated based on its acceleration speed, and variables are updated to limit the frequency of crash and cutting audio.</p>
 
-<strong><span style="color:green">Spawning Grass</span></strong>
+<p>For the remaining functions called in Tick(), they pertain to visualizing forces and printing movement information to the console for analysis. 
+Lastly, member variables storing information about friction and player input are reset to prepare for the next frame.</p>
 
-<p>The second biggest challenge I had before me was that I wanted a way to generate the grass at runtime as an expanding blue-noise wave pattern. 
-I learned about this concept of grass generation from the following video:</p>
+<strong>GrassE and GrassSpawnerD</strong> 
 
-<a href="https://www.youtube.com/watch?v=Ge3aKEmZcqY&t=2438s" target="_blank">Simple Code, High Performance 40:38 - 46:13</a>
+<p>When new grass is spawned in the level, it only consists of a root component before a static mesh component is attached and configured. 
+In this instant, an event listener is also set up, so that the Actor is destroyed when it comes into contact with the lawn mower. 
+Then, each frame the blade of grass will attempt to spawn another blade of grass if it is ready. When it is ready, a raycast is sent towards the ground. 
+If ground is hit, a sweep is done at the location to check if there is an overlap with a collider that allows new grass to spawn, 
+and check if there is an overlap with other grass. If there is an overlap with the collider and not other grass, then the position and length of the raycast 
+will be used to determine the angle of the new grass to spawn. After the grass has completed this process six times, 
+it will stop calling its Tick() function each frame.</p>
 
-<p>One of the most important things to consider for my idea was spawning grass on angles correctly, which ideally I wanted to do using something 
-like a curved trace, where I could use the impact normal (a vector in the opposite direction of a trace hit) to inform the rotation of new grass. 
-But unfortunately, I could not find any such member function in the UWorld class.</p>
+<p>The grass spawner initiates the first spawn of grass inside of a spawn enabling collider. In the constructor, an event listener is set up that will 
+activate the spawner when the lawn mower overlaps its collider. Each frame, it will check the number of grass that originated from it versus the number 
+of those that have been destroyed. This information is used to activate moving platforms, set new checkpoints for the mower, or restart the game when all 
+of its grass is destroyed.</p>
 
-<p>So I came up with the idea of using the same trace I used for the mower hovering (and later the wheel suspension animations) at various angles 
-to look for ground, do a sweep (a trace using an object like a sphere) for other grass, then spawn new grass if hitting ground but not grass. 
-I imagined it like a hammer swinging down, and when it struck the ground, it would spawn new grass if there wasn’t any already at that location.</p> 
+<strong>MovingPlatformA</strong>
 
-<p>First, I made a grass spawner to test that I could spawn grass blades when hitting ground but not grass (GrassSpawner.cpp / GrassSpawner.h). 
-This ended up operating like a pen that I could use to draw grass onto the ground. Now that I had the spawning realized, it was time to make 
-my grass spawning class (Grass.cpp / Grass.h)</p>
+<p>The moving platform class consists of blueprint exposed member variables to set the movement, rotation, speed, and method of activation for an instance 
+of this class in the level. Based on the values set, the platform will move and/or rotate each frame at the specified speed.</p>
 
-<p>For the hammer swing, I needed to use something to represent the rotation of the hammer and the direction of the hammer’s head, so I used two 
-USceneComponent class objects, constructed at runtime (so that I could destroy them after the spawning process to free their allocated memory).</p>
+<strong>PlanetoidA</strong>
 
-<p>One of these USceneComponents I named the Spawner, the hammer’s head, which I would use to get the downward trace direction, by using a flipped 
-up vector that was transformed from the local space of the USceneComponent to world space. The other, I named the Rotator, which would change 
-pitch by -22.5 degrees each frame, and change yaw by +60 degrees each time the hammer completed a swing. The range of a swing’s pitch was from 
-67.5 degrees to -67.5 degrees, so the hammer had 7 pitch positions and 6 yaw positions. And since I attached the Spawner to the Rotator, when the
-rotation of Rotator was changed, the Spawner would follow it. The entire process of hammer swings for one blade of grass, 
-that could not find ground or ground where grass did not exist, had an upper-bound of 42 frames. This had two problems, one it was pretty slow 
-and two the overlapping calculations of too many of these hammers swinging at once impacted the performance greatly!</p>
+<p>When the game begins, an instance of this class uses a pointer to the lawn mower to access its primitive component and mass to set its capture force. 
+Then, event listeners are set up to negate the normal gravity being applied to the mower and apply capture force when the mower is overlapping its collider. 
+The direction of the capture force is calculated by subtracting the location of this Actor from the location of the lawn mower, then normalizing the resulting vector.</p>
 
-<p>I updated the code to do a trace for grass before the trace for ground at each pitch angle and cancel a swing early if grass was hit, rather than 
-waiting for a ground hit to check for grass. This helped some with the processing of the calculations, but I also noticed that grass would 
-spawn over hard edges, because of the range of the swing. So I needed a way to detect if a hammer swing was near a steep edge, if I wanted it
-to still spawn on angles correctly.</p>
+<strong>MowerGameModeA</strong>
 
-<p>Besides performance issues with tracing and spawning, another problem was the impact on the renderer to draw thousands of blades on screen at one time. 
-Through research and testing, I found the biggest improvement to rendering performance by enabling Nanite on my grass blade mesh, and disabling 
-Unreal’s lighting feature Lumen for my project. Then I found that I might get even better rendering performance if my grass meshes were static 
-instead of movable.</p>
+<p>This class is used to loop the demo’s song in the background.</p>
 
-<p>So with all of the issues, I developed a newer version of my Grass spawning class (GrassB.cpp / GrassB.h) with a shorter pitch range, an edge detection 
-trace on the first pitch position of each swing to cancel early if ground was not hit at a long distance, a mesh component that is created, attached, 
-has its transform randomized, and set to be static after instantiation, and a randomized yaw position for the Rotator so spawn placement looks more natural. 
-Now the upper-bound is 30 frames, or 6 frames if the object is surrounded by grass or cannot find ground! Even with this better version however, 
-I still experience poor performance when so many are hammering away. So in the future, I have a plan to build an even better version with a lower 
-and upper-bound of 1 frame!</p>
+<strong>MowerPlaerControllerA</strong>
 
-<strong><span style="color:green">Gameplay</span></strong>
+<p>This Actor’s functions are called by player input from the lawn mower class to navigate the pause menu. Based on these inputs, enum member variables 
+are updated to represent directional movement in the menu. When the game begins, an instance of the menu is created, then all of its text boxes are stored in an array
+that is accessed later to highlight the selected option’s text.</p>
+
+
+<strong>Setup Instructions</strong>
+
+<p>This project was made using Unreal Engine 5.3.2 and Visual Studio 2022 as the source code editor, feel free to explore the project yourself in Unreal:</p>
+
+[Unreal and Visual Studio Setup Guide](https://www.youtube.com/watch?v=HQDskHVw1to)
+
+<ol>
+    <li>Extract files into a project folder</li>
+    <li>Right-click the uproject file and Generate Visual Studio project files</li>
+    <li>Open the solution file, then build and launch Unreal using Ctrl + F5</li>
+</ol>
+
