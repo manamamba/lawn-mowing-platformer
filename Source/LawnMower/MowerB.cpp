@@ -874,8 +874,6 @@ void AMowerB::DrawRayCast(const FHitResult& RayCast) const
 	{
 		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.ImpactPoint, FColor::Green);
 		DrawDebugSphere(GetWorld(), RayCast.ImpactPoint, 1.0f, 6, FColor::Green);
-
-		DrawDebugLine(GetWorld(), RayCast.TraceStart, RayCast.TraceStart + (RayCast.ImpactNormal * ((PhysicsBodyAntiGravitationalForce * 0.25) / 100)), FColor::Cyan);
 	}
 }
 
